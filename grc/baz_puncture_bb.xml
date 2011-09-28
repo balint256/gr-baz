@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<block>
+    <name>Puncture</name>
+    <key>puncture_bb</key>
+    <category>Error Correction</category>
+    <import>from gnuradio import gr</import>
+	<import>import baz</import>
+    <make>baz.puncture_bb($matrix)</make>
+	<callback>set_matrix($matrix)</callback>
+	
+  <param>
+		<name>Matrix</name>
+		<key>matrix</key>
+		<value>[]</value>
+		<type>int_vector</type>
+  </param>
+<!-- Must come before sink/source -->
+  <!--<check></check>-->
+  
+  <sink>
+    <name>in</name>
+    <type>byte</type>
+    <nports>1</nports>
+  </sink>
+    
+  <source>
+    <name>out</name>
+    <type>byte</type>
+    <nports>1</nports>
+  </source>
+
+    <doc>
+Puncture bit (unpacked byte) stream.
+    </doc>
+</block>

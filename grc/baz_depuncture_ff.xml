@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<block>
+    <name>Depuncture</name>
+    <key>depuncture_ff</key>
+    <category>Error Correction</category>
+    <import>from gnuradio import gr</import>
+	<import>import baz</import>
+    <make>baz.depuncture_ff($matrix)</make>
+	<callback>set_matrix($matrix)</callback>
+	
+  <param>
+		<name>Matrix</name>
+		<key>matrix</key>
+		<value>[]</value>
+		<type>int_vector</type>
+  </param>
+<!-- Must come before sink/source -->
+  <!--<check></check>-->
+  
+  <sink>
+    <name>in</name>
+    <type>float</type>
+    <nports>1</nports>
+  </sink>
+    
+  <source>
+    <name>out</name>
+    <type>float</type>
+    <nports>1</nports>
+  </source>
+
+    <doc>
+Depuncture symbol stream (inserting 0 for erasure).
+    </doc>
+</block>

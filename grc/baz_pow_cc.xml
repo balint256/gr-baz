@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<block>
+    <name>Power</name>
+    <key>pow_cc</key>
+    <category>Operators</category>
+    <import>from gnuradio import gr</import>
+	<import>import baz</import>
+    <make>baz.pow_cc($exponent)</make>
+	<callback>set_exponent($exponent)</callback>
+	
+  <param>
+		<name>Exponent</name>
+		<key>exponent</key>
+		<value>2.0</value>
+		<type>real</type>
+  </param>
+<!-- Must come before sink/source -->
+  <!--<check></check>-->
+  
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+    
+  <source>
+    <name>out</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </source>
+
+    <doc>
+Raise signal to complex power.
+    </doc>
+</block>

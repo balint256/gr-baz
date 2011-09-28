@@ -1,0 +1,119 @@
+/* -*- c++ -*- */
+
+%include "gnuradio.i"			// the common stuff
+
+%{
+//#include "howto_square_ff.h"
+//#include "howto_square2_ff.h"
+
+#include "baz_print_char.h"
+#include "baz_unpacked_to_packed_bb.h"
+#include "baz_pow_cc.h"
+#include "baz_delay.h"
+#include "baz_puncture_bb.h"
+#include "baz_depuncture_ff.h"
+#include "baz_swap_ff.h"
+%}
+
+//%include "howto_square_ff.i"
+//%include "howto_square2_ff.i"
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,print_char);
+
+baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL);
+
+class baz_print_char : public gr_sync_block
+{
+private:
+  baz_print_char (float threshold, int limit, const char* file);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,unpacked_to_packed_bb);
+
+baz_unpacked_to_packed_bb_sptr
+baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness = GR_MSB_FIRST);
+
+class baz_unpacked_to_packed_bb : public gr_block
+{
+  baz_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,pow_cc);
+
+baz_pow_cc_sptr
+baz_make_pow_cc (float exponent);
+
+class baz_pow_cc : public gr_sync_block
+{
+  baz_pow_cc (float exponent);
+public:
+  void set_exponent(float exponent);
+  float exponent() const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,delay)
+
+baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
+
+class baz_delay : public gr_sync_block
+{
+ private:
+  baz_delay (size_t itemsize, int delay);
+
+ public:
+  int  delay() const;
+  void set_delay (int delay);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,puncture_bb)
+
+baz_puncture_bb_sptr baz_make_puncture_bb (const std::vector<int>& matrix);
+
+class baz_puncture_bb : public gr_block
+{
+ private:
+  baz_puncture_bb (const std::vector<int>& matrix);
+
+ public:
+  void set_matrix (const std::vector<int>& matrix);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,depuncture_ff)
+
+baz_depuncture_ff_sptr baz_make_depuncture_ff (const std::vector<int>& matrix);
+
+class baz_depuncture_ff : public gr_block
+{
+ private:
+  baz_depuncture_ff (const std::vector<int>& matrix);
+
+ public:
+  void set_matrix (const std::vector<int>& matrix);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,swap_ff)
+
+baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
+
+class baz_swap_ff : public gr_sync_block
+{
+ private:
+  baz_swap_ff (bool bSwap);
+
+ public:
+  void set_swap (bool bSwap);
+};

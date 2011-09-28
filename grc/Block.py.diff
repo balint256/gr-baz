@@ -1,0 +1,17 @@
+diff --git "a/Block.orig.py" "b/Block.py"
+index dd39b09..471b563 100644
+--- "a/Block.orig.py"
++++ "b/Block.py"
+@@ -24,8 +24,10 @@ import extract_category
+ 
+ class Block(_Block, _GUIBlock):
+ 
+-	def is_virtual_sink(self): return self.get_key() == 'virtual_sink'
+-	def is_virtual_source(self): return self.get_key() == 'virtual_source'
++	def is_virtual_sink(self, strict=True, any_block_only=False):
++		return ((any_block_only == False) and (self.get_key() == 'virtual_sink')) or ((strict == False) and ((self.get_key() == 'any') or (self.get_key() == 'any_sink')))
++	def is_virtual_source(self, strict=True, any_block_only=False):
++		return ((any_block_only == False) and (self.get_key() == 'virtual_source')) or ((strict == False) and ((self.get_key() == 'any') or (self.get_key() == 'any_source')))
+ 
+ 	##for make source to keep track of indexes
+ 	_source_count = 0
