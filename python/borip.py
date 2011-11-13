@@ -36,7 +36,7 @@ class remote_usrp(gr.hier_block2):
 		self._which = which
 		
 		self.s = None
-		self._adc_freq = 0
+		self._adc_freq = 64e6
 		self._buffer = ""
 		self._gain_range = (0, 1)
 		#self._tune_result = None
@@ -108,11 +108,11 @@ class remote_usrp(gr.hier_block2):
 					res = (cmd[idx + 1:]).strip()
 					cmd = (cmd[0:idx]).upper()
 					
-					idx = res.find(" ")
-					if idx > -1:
-						data = (res[idx + 1:]).strip()
-						res = (res[0:idx]).upper()
-					else:
+					if cmd != "DEVICE":
+						idx = res.find(" ")
+						if idx > -1:
+							data = (res[idx + 1:]).strip()
+							res = (res[0:idx])
 						res = res.upper()
 				elif cmd.upper() == "BUSY":
 					pass
@@ -131,15 +131,18 @@ class remote_usrp(gr.hier_block2):
 							raise Exception, "Failed to create device: \"%s\"" % data
 					else:
 						parts = res.split("|")
-						if parts[0] == "":
-							self._name = "(No name)"
-						else:
-							self._name = parts[0]
-						self._gain_range = (float(parts[1]), float(parts[2]))
-						self._gain_step = float(parts[3])
-						self._adc_freq = int(float(parts[4]))
-						self._packet_size = int(parts[5]) * 2 * 2
-						# FIXME: Antennas
+						try:
+							if parts[0] == "":
+								self._name = "(No name)"
+							else:
+								self._name = parts[0]
+							self._gain_range = (float(parts[1]), float(parts[2]))
+							self._gain_step = float(parts[3])
+							self._adc_freq = int(float(parts[4]))
+							self._packet_size = int(parts[5]) * 2 * 2
+							# FIXME: Antennas
+						except:
+							raise Exception, "Malformed device response: " + res
 				elif cmd == "RATE":
 					pass
 				elif cmd == "GAIN":
@@ -172,7 +175,7 @@ class remote_usrp(gr.hier_block2):
 		self._buffer = ""
 		self._created = False
 	
-	def create(self, address=None, decim_rate=0, which=None, subdev_spec="", udp_port=28888):
+	def create(self, address=None, decim_rate=0, which=None, subdev_spec="", udp_port=None, sample_rate=None):
 		if address is None:
 			address = self._address
 		if (address is None) or (isinstance(address, str) and address == ""):
@@ -195,12 +198,15 @@ class remote_usrp(gr.hier_block2):
 		
 		#print "Connecting to: " + str(address)
 		
+		port = 28888
 		if isinstance(address, str):
 			parts = address.split(":")
-			port = 28888
 			if len(parts) > 1:
 				port = int(parts[1])
 			address = (parts[0], port)
+		
+		if udp_port is None:
+			udp_port = port
 		
 		try:
 			self.s.connect(address)
@@ -217,8 +223,7 @@ class remote_usrp(gr.hier_block2):
 		
 		if (res == "-") or (which is not None):
 			hint = str(which)
-			if (subdev_spec is not None) or (isinstance(subdev_spec, str) and (subdev_spec != "")):
-				
+			if ((subdev_spec is not None) and (not isinstance(subdev_spec, str))) or (isinstance(subdev_spec, str) and (subdev_spec != "")):
 				if isinstance(subdev_spec, str) == False:
 					if isinstance(subdev_spec, tuple):
 						if len(subdev_spec) > 1:
@@ -232,15 +237,17 @@ class remote_usrp(gr.hier_block2):
 		
 		self._created = True
 		
-		self._send("HEADER", "OFF")	# FIXME: Enhance udp_source
+		#self._send("HEADER", "OFF")	# Enhanced udp_source
 		
-		#sample_rate = self.adc_freq() / decim_rate
-		#self._send_and_wait_for_ok("RATE", sample_rate)
-		if self.set_decim_rate(decim_rate) == False:
-			raise Exception, "Invalid decimation: %s (sample rate: %s)" % (decim_rate, sample_rate)
+		if sample_rate is not None:
+			self._send_and_wait_for_ok("RATE", sample_rate)
+		else:
+			#sample_rate = self.adc_freq() / decim_rate
+			if self.set_decim_rate(decim_rate) == False:
+				raise Exception, "Invalid decimation: %s (sample rate: %s)" % (decim_rate, sample_rate)
 		
 		udp_interface = "0.0.0.0"	# MAGIC
-		self.udp_source = gr.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size)
+		self.udp_source = gr.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size, True, True, True)
 		#print "--> UDP Source listening on port:", udp_port, "interface:", udp_interface, "MTU:", packet_mtu
 		self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
 		self.ishort2complex = gr.interleaved_short_to_complex()
@@ -252,12 +259,15 @@ class remote_usrp(gr.hier_block2):
 	#def __repr__(self):
 	#	pass
 	
+	def set_freq(self, freq):
+		(cmd, res, data) = self._send("FREQ", freq)
+		return data	# usrp.usrp_tune_result
+	
 	def __str__(self):
 		return self.name()
 	
 	def tune(self, unit, subdev, freq):
-		(cmd, res, data) = self._send("FREQ", freq)
-		return data	# usrp.usrp_tune_result
+		return self.set_freq(freq)
 	
 	def adc_freq(self):
 		return self._adc_freq
@@ -280,12 +290,26 @@ class remote_usrp(gr.hier_block2):
 		return self
 	
 	def set_decim_rate(self, decim_rate):
+		if self.s is None:
+			self._decim_rate = decim_rate
+			return
 		sample_rate = self.adc_freq() / decim_rate
 		(cmd, res, data) = self._send("RATE", sample_rate)
 		if (res == "OK"):
 			self._decim_rate = decim_rate
 			return True
 		return False
+
+	def db(self, side_idx, subdev_idx):
+		return self
+	
+	def converter_rate(self):
+		return self.adc_freq()
+	
+	## Daughter-board #################
+	
+	def dbid(self):
+		return 0
 	
 	## Sub-device #####################
 

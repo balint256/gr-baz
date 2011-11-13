@@ -31,6 +31,7 @@
 
 #include <baz_depuncture_ff.h>
 #include <gr_io_signature.h>
+#include <stdio.h>
 
 /*
  * Create a new instance of baz_depuncture_ff and return

@@ -31,6 +31,8 @@ dist_grcblocks_DATA = \
 	baz_delay.xml \
 	baz_puncture_bb.xml \
 	baz_depuncture_ff.xml \
-	baz_swap_ff.xml
+	baz_swap_ff.xml \
+	baz_borip_source.xml \
+	baz_agc_xx.xml
 #	howto_square_ff.xml \
 #	howto_square2_ff.xml

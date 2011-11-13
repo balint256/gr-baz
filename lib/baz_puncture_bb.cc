@@ -31,6 +31,7 @@
 
 #include <baz_puncture_bb.h>
 #include <gr_io_signature.h>
+#include <stdio.h>
 
 /*
  * Create a new instance of baz_puncture_bb and return

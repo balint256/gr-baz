@@ -25,7 +25,8 @@ EXTRA_DIST = run_tests.in
 TESTS = run_tests
 
 modpython_PYTHON = \
-	__init__.py
+	__init__.py \
+	borip.py
 
 noinst_PYTHON = \
-	qa_baz.py			
+	qa_baz.py

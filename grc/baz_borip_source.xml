@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##BorIP Source
+###################################################
+ -->
+<block>
+	<name>BorIP Source</name>
+	<key>borip_source</key>
+	<category>Sources</category>
+	<import>from baz import borip</import>
+	
+	<make>borip.remote_usrp($address, $hint, 1)
+self.$(id).create(sample_rate=$sample_rate)
+self.$(id).set_freq($frequency)
+self.$(id).set_gain($gain)
+
+#if $rx_ant()
+self.$(id).select_rx_antenna($rx_ant)
+#end if
+</make>
+	
+	<!--<make>grc_usrp.simple_source_$(type.fcn)(
+	which=$which,
+	side=$side,
+	rx_ant=$rx_ant#if $hb_filters() then ', no_hb=True' else ''#)
+	
+#if $format()
+self.$(id).set_format(width=$format.width, shift=$format.shift)
+#end if
+self.$(id).set_decim_rate($decimation)
+self.$(id).set_frequency($frequency, verbose=True#slurp
+#if $lo_offset() != float('inf')
+, lo_offset=$lo_offset#slurp
+#end if
+)
+self.$(id).set_gain($gain)</make>-->
+	
+	<callback>set_sample_rate($sample_rate)</callback>
+	<callback>set_frequency($frequency)</callback>
+	<callback>set_gain($gain)</callback>
+	<callback>set_rx_antenna($rx_ant)</callback>
+	
+	<param>
+		<name>Address</name>
+		<key>address</key>
+		<type>string</type>
+	</param>
+	
+	<param>
+		<name>Hint</name>
+		<key>hint</key>
+		<type>string</type>
+	</param>
+	
+	<!--<param>
+		<name>Output Type</name>
+		<key>type</key>
+		<type>enum</type>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>fcn:c</opt>
+		</option>
+		<option>
+			<name>Short</name>
+			<key>short</key>
+			<opt>fcn:s</opt>
+		</option>
+	</param>-->
+	
+	<!--<param>
+		<name>Format</name>
+		<key>format</key>
+		<value></value>
+		<type>enum</type>
+		<hide>#if $format() then '' else 'part'#</hide>
+		<option>
+			<name>16 Bits (Default)</name>
+			<key></key>
+			<opt>width:16</opt>
+			<opt>shift:0</opt>
+		</option>
+		<option>
+			<name>8 Bits, Shift 8</name>
+			<key>w8_s8</key>
+			<opt>width:8</opt>
+			<opt>shift:8</opt>
+		</option>
+	</param>-->
+	
+	<!--<param>
+		<name>Unit Number</name>
+		<key>which</key>
+		<value>0</value>
+		<type>int</type>
+	</param>-->
+	
+	<!--<param>
+		<name>Decimation</name>
+		<key>decimation</key>
+		<type>int</type>
+	</param>-->
+	
+	<param>
+		<name>Sample rate</name>
+		<key>sample_rate</key>
+		<type>int</type>
+	</param>
+	
+	<param>
+		<name>Frequency (Hz)</name>
+		<key>frequency</key>
+		<type>real</type>
+	</param>
+	
+	<!--<param>
+		<name>LO Offset (Hz)</name>
+		<key>lo_offset</key>
+		<value>float('inf')</value>
+		<type>real</type>
+		<hide>#if $lo_offset() == float('inf') then 'part' else 'none'#</hide>
+		<option>
+			<name>Default</name>
+			<key>float('inf')</key>
+		</option>
+	</param>-->
+	
+	<param>
+		<name>Gain (dB)</name>
+		<key>gain</key>
+		<value>0</value>
+		<type>real</type>
+	</param>
+	
+	<!--<param>
+		<name>Side</name>
+		<key>side</key>
+		<value>A</value>
+		<type>string</type>
+		<option>
+			<name>A</name>
+			<key>A</key>
+		</option>
+		<option>
+			<name>B</name>
+			<key>B</key>
+		</option>
+	</param>-->
+	
+	<param>
+		<name>RX Antenna</name>
+		<key>rx_ant</key>
+		<type>string</type>
+		<hide>#if $rx_ant() then 'none' else 'part'#</hide>
+		<!--<value>RXA</value>
+		<type>string</type>
+		<option>
+			<name>RXA</name>
+			<key>RXA</key>
+		</option>
+		<option>
+			<name>RXB</name>
+			<key>RXB</key>
+		</option>
+		<option>
+			<name>RXAB</name>
+			<key>RXAB</key>
+		</option>
+		<option>
+			<name>TX/RX</name>
+			<key>TX/RX</key>
+		</option>
+		<option>
+			<name>RX2</name>
+			<key>RX2</key>
+		</option>-->
+	</param>
+	
+	<!--<param>
+		<name>Halfband Filters</name>
+		<key>hb_filters</key>
+		<value></value>
+		<type>enum</type>
+		<hide>#if $hb_filters() then 'none' else 'part'#</hide>
+		<option>
+			<name>Enable</name>
+			<key></key>
+		</option>
+		<option>
+			<name>Disable</name>
+			<key>1</key>
+		</option>
+	</param>-->
+	
+	<source>
+		<name>out</name>
+		<!--<type>$type</type>-->
+		<type>complex</type>
+	</source>
+	
+	<doc>
+BorIP source
+	</doc>
+</block>

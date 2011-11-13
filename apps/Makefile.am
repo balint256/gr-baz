@@ -23,10 +23,12 @@ include $(top_srcdir)/Makefile.common
 
 if PYTHON
 
-dist_bin_SCRIPTS = \
-	howto_square.py
+dist_bin_SCRIPTS =
+#\
+#	howto_square.py
 
-EXTRA_DIST = \
-	howto_square.grc
+EXTRA_DIST =
+#\
+#	howto_square.grc
 
 endif

@@ -1,0 +1,135 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2006,2010 Free Software Foundation, Inc.
+ * 
+ * This file is part of GNU Radio
+ * 
+ * GNU Radio is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3, or (at your option)
+ * any later version.
+ * 
+ * GNU Radio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GNU Radio; see the file COPYING.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street,
+ * Boston, MA 02110-1301, USA.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <baz_agc_cc.h>
+#include <gr_io_signature.h>
+//#include <gri_agc_cc.h>
+#include <stdio.h>
+#include <math.h>
+
+baz_agc_cc_sptr
+baz_make_agc_cc (float rate, float reference, float gain, float max_gain)
+{
+  return gnuradio::get_initial_sptr(new baz_agc_cc (rate, reference, gain, max_gain));
+}
+
+baz_agc_cc::baz_agc_cc (float rate, float reference, float gain, float max_gain)
+  : gr_sync_block ("gr_agc_cc",
+		   gr_make_io_signature (1, 1, sizeof (gr_complex)),
+		   gr_make_io_signature2 (1, 3, sizeof (gr_complex), sizeof(float)))
+  , _rate(rate)
+  , _reference(reference)
+  , _gain(gain)
+  , _max_gain(max_gain)
+  , _count(0)
+  , _env(0.0)
+{
+  //_reference = log10(reference);
+}
+
+int baz_agc_cc::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
+{
+  const gr_complex *in = (const gr_complex *) input_items[0];
+  gr_complex *out = (gr_complex *) output_items[0];
+  float* env = (output_items.size() >= 2 ? (float*)output_items[1] : NULL);
+  float* mul = (output_items.size() >= 3 ? (float*)output_items[2] : NULL);
+
+  double d[2];
+  for (unsigned i = 0; i < noutput_items; i++, _count++) {
+    //gr_complex output = in[i];
+    d[0] = in[i].real();
+	d[1] = in[i].imag();
+    double mag2 = d[0]*d[0] + d[1]*d[1];
+    double mag = sqrt(mag2);
+    
+    if (_count == 0)
+      _env = mag;
+    else
+      _env = (_env * (1.0 - _rate)) + (mag * _rate);
+    
+    if (env)
+      env[i] = _env;
+    
+    //double env10 = log10(_env);
+    //double diff = _reference - env10;
+    _gain = _reference / _env;
+    
+    if (mul)
+      mul[i] = _gain;
+    
+	//gr_complex output = in[i] * _gain;
+	//d[0] = in[i].real() * _gain;
+	//d[1] = in[i].imag() * _gain;
+    d[0] *= _gain;
+    d[1] *= _gain;
+    
+    out[i] = /*output*/gr_complex(d[0], d[1]);
+    
+    continue;
+///////////////////////////////////////////////////////////////////////////////
+    if (!finite(mag2) || isnan(mag2) || isinf(mag2)) {
+	  if (_gain == _max_gain) {
+fprintf(stderr, "[%05i] + %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
+		out[i] = /*in[i]*//*0*/gr_complex(0, 0);
+		continue;
+	  }
+	  else {
+//fprintf(stderr, "gO");
+fprintf(stderr, "[%05i]   %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
+		_gain = _max_gain;
+		i--;
+		continue;
+	  }
+	}
+	else {
+	  double diff = (double)_reference - sqrt(mag);
+	  //if (diff < 0.0)
+      //  fprintf(stderr, "[%05i] D {%f} %f,%f -> %f,%f (%f) %f %f\n", i, diff, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
+	  _gain += (double)_rate * diff;
+	  if (_max_gain > 0.0 && _gain > (double)_max_gain)
+	    _gain = _max_gain;
+	  else if (_gain <= 0.0) {
+		fprintf(stderr, "[%05i] - {%f} %f,%f -> %f,%f (%f) %f %f\n", i, diff, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
+		_gain = 1e-9;
+	  }
+//	  else if (_gain < -1e3) {
+//fprintf(stderr, "[%05i] - %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
+//		_gain = -1e3;
+//	  }
+	  out[i] = /*output*/gr_complex(d[0], d[1]);
+	}
+	  
+	  /*float f = out[i].real() * out[i].imag();
+	  if (!finite(out[i].real()) || !finite(out[i].imag()) || !finite(f) ||
+		  isnan(out[i].real()) || isnan(out[i].imag()) || isnan(f) ||
+		  isinf(out[i].real()) || isinf(out[i].imag()) || isinf(f)) {
+		fprintf(stderr, "%f,%f %f\n", out[i].real(), out[i].imag(), _gain);
+		out[i] = 0.0f;
+	  }*/
+  }
+  
+  return noutput_items;
+}

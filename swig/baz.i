@@ -13,6 +13,7 @@
 #include "baz_puncture_bb.h"
 #include "baz_depuncture_ff.h"
 #include "baz_swap_ff.h"
+#include "baz_agc_cc.h"
 %}
 
 //%include "howto_square_ff.i"
@@ -116,4 +117,17 @@ class baz_swap_ff : public gr_sync_block
 
  public:
   void set_swap (bool bSwap);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,agc_cc)
+
+//%include <gri_agc_cc.i>
+
+baz_agc_cc_sptr baz_make_agc_cc (float rate = 1e-4, float reference = 1.0, float gain = 1.0, float max_gain = 0.0);
+
+class baz_agc_cc : public gr_sync_block//, public gri_agc_cc
+{
+  baz_agc_cc (float rate, float reference, float gain, float max_gain);
 };
