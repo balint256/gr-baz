@@ -32,8 +32,12 @@ dist_grcblocks_DATA = \
 	baz_puncture_bb.xml \
 	baz_depuncture_ff.xml \
 	baz_swap_ff.xml \
+	facsink.xml \
 	baz_borip_source.xml \
+	eye.xml \
 	baz_agc_xx.xml \
-	baz_test_counter_cc.xml
+	baz_test_counter_cc.xml \
+	gr_mpsk_receiver_debug_cc.xml \
+	baz_auto_fec.xml
 #	howto_square_ff.xml \
 #	howto_square2_ff.xml

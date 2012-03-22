@@ -26,7 +26,10 @@ TESTS = run_tests
 
 modpython_PYTHON = \
 	__init__.py \
-	borip.py
+	borip.py \
+	facsink.py \
+	eye.py \
+	auto_fec.py
 
 noinst_PYTHON = \
-	qa_baz.py
+	qa_baz.py			

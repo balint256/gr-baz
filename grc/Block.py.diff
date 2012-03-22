@@ -1,5 +1,3 @@
-diff --git "a/Block.orig.py" "b/Block.py"
-index dd39b09..471b563 100644
 --- "a/Block.orig.py"
 +++ "b/Block.py"
 @@ -24,8 +24,10 @@ import extract_category

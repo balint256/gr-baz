@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<block>
+    <name>Auto FEC</name>
+    <key>auto_fec</key>
+    <category>Error Correction</category>
+    <import>from gnuradio import gr</import>
+	<import>from baz import auto_fec</import>
+    <make>auto_fec.auto_fec(
+		$sample_rate,
+		ber_threshold=$ber_threshold,
+		ber_smoothing=$ber_smoothing,
+		ber_duration=$ber_duration,
+		ber_sample_decimation=$ber_sample_decimation,
+		settling_period=$settling_period,
+		pre_lock_duration=$pre_lock_duration,
+		##puncture_matrix=$puncture_matrix
+	)</make>
+	
+	<callback>set_sample_rate($sample_rate)</callback>
+	<callback>set_ber_threshold($ber_threshold)</callback>
+	<callback>set_ber_smoothing($ber_smoothing)</callback>
+	<callback>set_ber_duration($ber_duration)</callback>
+	<callback>set_ber_sample_decimation($ber_sample_decimation)</callback>
+	<callback>set_settling_period($settling_period)</callback>
+	<callback>set_pre_lock_duration($pre_lock_duration)</callback>
+	<callback>set_puncture_matrix($puncture_matrix)</callback>
+	<callback>set_reset($reset)</callback>
+	
+	<param>
+		  <name>Sample rate</name>
+		  <key>sample_rate</key>
+		  <value></value>
+		  <type>int</type>
+	</param>
+	
+	<param>
+		  <name>BER Threshold</name>
+		  <key>ber_threshold</key>
+		  <value>0</value>
+		  <type>int</type>
+		  <hide>#if $ber_threshold() == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		  <name>BER Smoothing</name>
+		  <key>ber_smoothing</key>
+		  <value>0.0</value>
+		  <type>real</type>
+		  <hide>#if $ber_smoothing() == 0.0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		  <name>BER Duration</name>
+		  <key>ber_duration</key>
+		  <value>0</value>
+		  <type>int</type>
+		  <hide>#if $ber_duration() == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		  <name>BER Sample Decimation</name>
+		  <key>ber_sample_decimation</key>
+		  <value>1</value>
+		  <type>int</type>
+		  <hide>#if $ber_sample_decimation() == 1 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		  <name>Settling Period</name>
+		  <key>settling_period</key>
+		  <value>0</value>
+		  <type>int</type>
+		  <hide>#if $settling_period() == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		  <name>Pre-lock Duration</name>
+		  <key>pre_lock_duration</key>
+		  <value>0</value>
+		  <type>int</type>
+		  <hide>#if $pre_lock_duration() == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		<name>Puncture Matrix</name>
+		<key>puncture_matrix</key>
+		<value>[]</value>
+		<type>int_vector</type>
+		<hide>#if len($puncture_matrix()) == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		<name>Reset</name>
+		<key>reset</key>
+		<value></value>
+		<type>string</type>
+		<hide>part</hide>
+	</param>
+<!-- Must come before sink/source -->
+  <!--<check></check>-->
+  
+  <sink>
+    <name>sym</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+    
+  <source>
+    <name>byte</name>
+    <type>byte</type>
+  </source>
+  
+  <source>
+    <name>ber</name>
+    <type>float</type>
+    <!--<optional>1</optional>-->
+  </source>
+  
+  <source>
+    <name>lock</name>
+    <type>float</type>
+    <!--<optional>1</optional>-->
+  </source>
+
+    <doc>
+NASA K=7 (Voyager)
+    </doc>
+</block>

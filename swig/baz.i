@@ -49,14 +49,16 @@ class baz_unpacked_to_packed_bb : public gr_block
 GR_SWIG_BLOCK_MAGIC(baz,pow_cc);
 
 baz_pow_cc_sptr
-baz_make_pow_cc (float exponent);
+baz_make_pow_cc (float exponent, float div_exp = 0.0);
 
 class baz_pow_cc : public gr_sync_block
 {
-  baz_pow_cc (float exponent);
+  baz_pow_cc (float exponent, float div_exp = 0.0);
 public:
   void set_exponent(float exponent);
+  void set_division_exponent(float div_exp);
   float exponent() const;
+  float division_exponent() const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

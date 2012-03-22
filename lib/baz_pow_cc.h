@@ -46,7 +46,7 @@ typedef boost::shared_ptr<baz_pow_cc> baz_pow_cc_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_pow_cc_sptr baz_make_pow_cc (float exponent);
+baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp = 0.0);
 
 /*!
  * \brief square2 a stream of floats.
@@ -60,18 +60,23 @@ private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_pow_cc_sptr baz_make_pow_cc (float exponent);
+  friend baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp);
 
-  baz_pow_cc (float exponent);  	// private constructor
+  baz_pow_cc (float exponent, float div_exp = 0.0);  	// private constructor
   
   float d_exponent;
+  float d_div_exp;
 
  public:
   ~baz_pow_cc ();	// public destructor
 
   void set_exponent(float exponent);
+  void set_division_exponent(float div_exp);
+  
   inline float exponent() const
   { return d_exponent; }
+  inline float division_exponent() const
+  { return d_div_exp; }
 
   int work (int noutput_items,
 	    gr_vector_const_void_star &input_items,

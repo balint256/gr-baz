@@ -5,14 +5,22 @@
     <category>Operators</category>
     <import>from gnuradio import gr</import>
 	<import>import baz</import>
-    <make>baz.pow_cc($exponent)</make>
+    <make>baz.pow_cc($exponent, $div_exp)</make>
 	<callback>set_exponent($exponent)</callback>
+	<callback>set_division_exponent($div_exp)</callback>
 	
   <param>
 		<name>Exponent</name>
 		<key>exponent</key>
 		<value>2.0</value>
 		<type>real</type>
+  </param>
+  <param>
+		<name>Division exponent</name>
+		<key>div_exp</key>
+		<value>0.0</value>
+		<type>real</type>
+		<hide>#if $div_exp() == 0.0 then 'part' else 'none'#</hide>
   </param>
 <!-- Must come before sink/source -->
   <!--<check></check>-->

@@ -1,23 +1,22 @@
 <?xml version="1.0"?>
 <block>
-    <name>Fast AutoCorrelation Sink</name>
-    <key>facsink</key>
+    <name>Eye Diagram</name>
+    <key>eye</key>
     <category>Graphical Sinks</category>
-    <import>from baz import facsink</import>
+    <import>from baz import eye</import>
     <import>from gnuradio import gr</import>
     <make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
-facsink.$(type.fcn)(
+eye.$(type.fcn)(
 	$(parent).GetWin(),
 	title=$title,
 	sample_rate=$samp_rate,
-	baseband_freq=$baseband_freq,
-        y_per_div=$y_per_div,
-	ref_level=$ref_level,
-	fac_size=$fac_size,
-        fac_rate=$fac_rate,
-        average=$average,
-	avg_alpha=$avg_alpha,
-	peak_hold=$peak_hold,
+		samples_per_symbol=$samples_per_symbol,
+		num_plots=$num_plots,
+		sym_decim=$sym_decim,
+		v_scale=$v_scale,
+        t_scale=$t_scale,
+    ##average=$average,
+	##avg_alpha=$avg_alpha,
 #if $win_size()
 	size=$win_size,
 #end if
@@ -28,18 +27,21 @@ $(parent).Add(self.$(id).win)
 $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
 #end if</make>
 
-    <callback>set_y_per_div($y_per_div)</callback>
+    <!--<callback>set_y_per_div($y_per_div)</callback>
     <callback>set_ref_level($ref_level)</callback>
     <callback>set_average($average)</callback>
     <callback>set_peak_hold($peak_hold)</callback>
     <callback>set_avg_alpha($avg_alpha)</callback>
-    <callback>set_baseband_freq($baseband_freq)</callback>
+    <callback>set_baseband_freq($baseband_freq)</callback>-->
     <callback>set_sample_rate($samp_rate)</callback>
+	<callback>set_samples_per_symbol($samples_per_symbol)</callback>
+	<callback>set_num_plots($num_plots)</callback>
+	<callback>set_sym_decim($sym_decim)</callback>
 
     <param>
 	<name>Title</name>
 	<key>title</key>
-	<value>Fast AutoCorrelation</value>
+	<value>Eye Diagram</value>
 	<type>string</type>
     </param>
     
@@ -48,15 +50,15 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
 	<key>type</key>
 	<value>complex</value>
 	<type>enum</type>
-	<option>
+	<!--<option>
 	    <name>Complex</name>
 	    <key>complex</key>
 	    <opt>fcn:fac_sink_c</opt>
-	</option>
+	</option>-->
 	<option>
 	    <name>Float</name>
 	    <key>float</key>
-	    <opt>fcn:fac_sink_f</opt>
+	    <opt>fcn:eye_sink_f</opt>
 	</option>
     </param>
     
@@ -68,77 +70,51 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
     </param>
     
     <param>
-	<name>Baseband Freq</name>
-	<key>baseband_freq</key>
-	<value>0</value>
-	<type>real</type>
-    </param>
-    
-    <param>
-        <name>Size</name>
-        <key>fac_size</key>
-        <value>512</value>
+        <name>Samples per symbol</name>
+        <key>samples_per_symbol</key>
+        <value>10</value>
         <type>int</type>
     </param>
     
     <param>
-        <name>Rate</name>
-        <key>fac_rate</key>
-        <value>facsink.default_fac_rate</value>
+        <name>Num plots</name>
+        <key>num_plots</key>
+        <value>100</value>
         <type>int</type>
     </param>
-    
-    <param>
-	<name>Y per Div</name>
-	<key>y_per_div</key>
-	<value>10</value>
-	<type>enum</type>
-	<option>
-	    <name>1 dB</name>
-	    <key>1</key>
-	</option>
-	<option>
-	    <name>2 dB</name>
-	    <key>2</key>
-	</option>
-	<option>
-	    <name>5 dB</name>
-	    <key>5</key>
-	</option>
-	<option>
-	    <name>10 dB</name>
-	    <key>10</key>
-	</option>
-	<option>
-	    <name>20 dB</name>
-	    <key>20</key>
-	</option>
+	
+	<param>
+        <name>Symbol decimation</name>
+        <key>sym_decim</key>
+        <value>20</value>
+        <type>int</type>
     </param>
 
     <param>
-	    <name>Ref Level (dB)</name>
-	    <key>ref_level</key>
-	    <value>50</value>
-	    <type>real</type>
-    </param>
+		<name>V Scale</name>
+		<key>v_scale</key>
+		<value>0</value>
+		<type>real</type>
+		<hide>#if $v_scale() then 'none' else 'part'#</hide>
+	</param>
+	
+	<!--<param>
+		<name>V Offset</name>
+		<key>v_offset</key>
+		<value>0</value>
+		<type>real</type>
+		<hide>#if $v_offset() then 'none' else 'part'#</hide>
+	</param>-->
+	
+	<param>
+		<name>T Scale</name>
+		<key>t_scale</key>
+		<value>0</value>
+		<type>real</type>
+		<hide>#if $t_scale() then 'none' else 'part'#</hide>
+	</param>
     
-    <param>
-	    <name>Peak Hold</name>
-	    <key>peak_hold</key>
-	    <value>False</value>
-	    <type>enum</type>
-	    <hide>#if $peak_hold() == 'True' then 'none' else 'part'#</hide>
-	    <option>
-		    <name>On</name>
-		    <key>True</key>
-	    </option>
-	    <option>
-		    <name>Off</name>
-		    <key>False</key>
-	    </option>
-    </param>
-    
-    <param>
+    <!--<param>
 	    <name>Average</name>
 	    <key>average</key>
 	    <value>False</value>
@@ -160,7 +136,7 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
 	    <value>0</value>
 	    <type>real</type>
 	    <hide>#if $average() == 'True' then 'none' else 'all'#</hide>
-    </param>
+    </param>-->
     
     <param>
 	<name>Window Size</name>
@@ -185,8 +161,8 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
     </param>
     
     <check>not $win_size or len($win_size) == 2</check>
-	<check>$fac_size &gt; 0</check>
-	<check>$fac_rate &gt;= 0</check>
+	<!--<check>$fac_size &gt; 0</check>
+	<check>$fac_rate &gt;= 0</check>-->
     
     <sink>
         <name>in</name>
@@ -194,12 +170,6 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
     </sink>
     
     <doc>
-'Size' is the length of the FFT window, and therefore the duration of the auto-correlation window.
-
-'Rate' is the refresh rate of the graph on the screen.
-
-This block can be quite computationally expensive, so take care with the above parameters (otherwise your application may stop responding to GUI input).
-
 Leave the window blank for the default size, otherwise enter a tuple of (width, height) pixels.
 
 Use the Grid Position (row, column, row span, column span) to position the graphical element in the window.

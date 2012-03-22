@@ -37,9 +37,9 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_pow_cc_sptr 
-baz_make_pow_cc (float exponent)
+baz_make_pow_cc (float exponent, float div_exp /*= 0.0*/)
 {
-  return baz_pow_cc_sptr (new baz_pow_cc (exponent));
+  return baz_pow_cc_sptr (new baz_pow_cc (exponent, div_exp));
 }
 
 /*
@@ -59,11 +59,11 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_pow_cc::baz_pow_cc (float exponent)
+baz_pow_cc::baz_pow_cc (float exponent, float div_exp /*= 0.0*/)
   : gr_sync_block ("pow_cc",
 		   gr_make_io_signature (MIN_IN, MAX_IN, sizeof (gr_complex)),
 		   gr_make_io_signature (MIN_OUT, MAX_OUT, sizeof (gr_complex)))
-  , d_exponent(exponent)
+  , d_exponent(exponent), d_div_exp(div_exp)
 {
 }
 
@@ -79,6 +79,11 @@ void baz_pow_cc::set_exponent(float exponent)
   d_exponent = exponent;
 }
 
+void baz_pow_cc::set_division_exponent(float div_exp)
+{
+  d_div_exp = div_exp;
+}
+
 int 
 baz_pow_cc::work (int noutput_items,
 			gr_vector_const_void_star &input_items,
@@ -87,9 +92,14 @@ baz_pow_cc::work (int noutput_items,
   const gr_complex *in = (const gr_complex *) input_items[0];
   gr_complex *out = (gr_complex *) output_items[0];
 
-  std::complex<float> e(d_exponent,0);
+  //std::complex</*float*/double> e(d_exponent,0);
   for (int i = 0; i < noutput_items; i++){
-    out[i] = pow(in[i], d_exponent);
+	std::complex<double> d(in[i].real(), in[i].imag());
+	d = pow(d, d_exponent);
+	if (d_div_exp != 0.0f)
+	  d /= pow(10.0, (double)d_div_exp);
+    //out[i] = pow(in[i], d_exponent);
+	out[i] = std::complex<float>((float)d.real(), (float)d.imag());
   }
 
   return noutput_items;

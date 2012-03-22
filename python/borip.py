@@ -358,7 +358,7 @@ class remote_usrp(gr.hier_block2):
 if hasattr(usrp, '_orig_source_c') == False:
 	usrp._orig_source_c = usrp.source_c
 	
-	def _borip_source_c(which, decim_rate=0, nchan=None):
+	def _borip_source_c(which=0, decim_rate=256, nchan=None):
 		#global _default_server_address
 		if _default_server_address == "":
 			return usrp._orig_source_c(which=which, decim_rate=decim_rate)
