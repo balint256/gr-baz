@@ -37,7 +37,8 @@ modinclude_HEADERS = \
 	baz_puncture_bb.h \
 	baz_depuncture_ff.h \
 	baz_swap_ff.h \
-	baz_agc_cc.h
+	baz_agc_cc.h \
+	baz_test_counter_cc.h
 #	howto_square_ff.h \
 #	howto_square2_ff.h
 
@@ -51,7 +52,8 @@ libgnuradio_baz_la_SOURCES = \
 	baz_puncture_bb.cc \
 	baz_depuncture_ff.cc \
 	baz_swap_ff.cc \
-	baz_agc_cc.cc
+	baz_agc_cc.cc \
+	baz_test_counter_cc.cc
 #	howto_square_ff.cc \
 #	howto_square2_ff.cc
 

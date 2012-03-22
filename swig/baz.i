@@ -14,6 +14,7 @@
 #include "baz_depuncture_ff.h"
 #include "baz_swap_ff.h"
 #include "baz_agc_cc.h"
+#include "baz_test_counter_cc.h"
 %}
 
 //%include "howto_square_ff.i"
@@ -130,4 +131,15 @@ baz_agc_cc_sptr baz_make_agc_cc (float rate = 1e-4, float reference = 1.0, float
 class baz_agc_cc : public gr_sync_block//, public gri_agc_cc
 {
   baz_agc_cc (float rate, float reference, float gain, float max_gain);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,test_counter_cc);
+
+baz_test_counter_cc_sptr baz_make_test_counter_cc ();
+
+class baz_test_counter_cc : public gr_sync_block
+{
+  baz_test_counter_cc ();
 };

@@ -23,7 +23,7 @@ class remote_usrp(gr.hier_block2):
 	"""
 	Remote USRP via BorIP
 	"""
-	def __init__(self, address, which=0, decim_rate=0):
+	def __init__(self, address, which=0, decim_rate=0, packet_size=0):
 		"""
 		Remote USRP. Remember to call 'create'
 		"""
@@ -42,13 +42,16 @@ class remote_usrp(gr.hier_block2):
 		#self._tune_result = None
 		self._name = "(Remote device)"
 		self._gain_step = 0
-		self._packet_size = 0
+		self._packet_size = packet_size
 		self._created = False
+		self._listen_only = False
 	
 	def __del__(self):
 		self.destroy()
 	
 	def _send_raw(self, command, data=None):
+		if self._listen_only:
+			return False
 		if data is not None:
 			command += " " + str(data)
 		try:
@@ -57,9 +60,11 @@ class remote_usrp(gr.hier_block2):
 			if (e != 32): # Broken pipe
 				self.destroy()
 				raise socket.error, (e, msg)
+		return True
 	
 	def _send(self, command, data=None):
-		self._send_raw(command, data)
+		if self._send_raw(command, data) == False:
+			return (command, None, None)
 		return self._recv()
 	
 	def _send_and_wait_for_ok(self, command, data=None):
@@ -175,7 +180,7 @@ class remote_usrp(gr.hier_block2):
 		self._buffer = ""
 		self._created = False
 	
-	def create(self, address=None, decim_rate=0, which=None, subdev_spec="", udp_port=None, sample_rate=None):
+	def create(self, address=None, decim_rate=0, which=None, subdev_spec="", udp_port=None, sample_rate=None, packet_size=0):
 		if address is None:
 			address = self._address
 		if (address is None) or (isinstance(address, str) and address == ""):
@@ -208,53 +213,64 @@ class remote_usrp(gr.hier_block2):
 		if udp_port is None:
 			udp_port = port
 		
-		try:
-			self.s.connect(address)
-		except socket.error, (e, msg):
-			print "Failed to connect to server: %s %s" % (e, msg)
-			raise socket.error, (e, msg)
-		
-		(cmd, res, data) = self._recv()
-		if cmd != "DEVICE":
-			if cmd == "BUSY":
-				raise Exception, "Server is busy"
-			else:
-				raise Exception, "Unexpected greeting: " + cmd
-		
-		if (res == "-") or (which is not None):
-			hint = str(which)
-			if ((subdev_spec is not None) and (not isinstance(subdev_spec, str))) or (isinstance(subdev_spec, str) and (subdev_spec != "")):
-				if isinstance(subdev_spec, str) == False:
-					if isinstance(subdev_spec, tuple):
-						if len(subdev_spec) > 1:
-							subdev_spec = "%s:%s" % (subdev_spec[0], subdev_spec[1])
-						else:
-							subdev_spec = str(subdev_spec[0])
-					else:
-						raise Exception, "Unknown sub-device specification: " + str(subdev_spec)
-				hint += " " + subdev_spec
-			self._send("DEVICE", hint)
-		
-		self._created = True
-		
-		#self._send("HEADER", "OFF")	# Enhanced udp_source
-		
-		if sample_rate is not None:
-			self._send_and_wait_for_ok("RATE", sample_rate)
+		if address[0] == "-":
+			self._listen_only = True
+			if (self._packet_size == 0) or (packet_size > 0):
+				if packet_size == 0:
+					packet_size = 9216 * 2 * 2	# FCD testing
+				self._packet_size = packet_size
+			print "BorIP client only listening on port %d (MTU: %d)" % (udp_port, self._packet_size)
 		else:
-			#sample_rate = self.adc_freq() / decim_rate
-			if self.set_decim_rate(decim_rate) == False:
-				raise Exception, "Invalid decimation: %s (sample rate: %s)" % (decim_rate, sample_rate)
+			self._listen_only = False
+			
+			try:
+				self.s.connect(address)
+			except socket.error, (e, msg):
+				print "Failed to connect to server: %s %s" % (e, msg)
+				raise socket.error, (e, msg)
+			
+			(cmd, res, data) = self._recv()
+			if cmd != "DEVICE":
+				if cmd == "BUSY":
+					raise Exception, "Server is busy"
+				else:
+					raise Exception, "Unexpected greeting: " + cmd
+			
+			if (res == "-") or (which is not None):
+				hint = str(which)
+				if ((subdev_spec is not None) and (not isinstance(subdev_spec, str))) or (isinstance(subdev_spec, str) and (subdev_spec != "")):
+					if isinstance(subdev_spec, str) == False:
+						if isinstance(subdev_spec, tuple):
+							if len(subdev_spec) > 1:
+								subdev_spec = "%s:%s" % (subdev_spec[0], subdev_spec[1])
+							else:
+								subdev_spec = str(subdev_spec[0])
+						else:
+							raise Exception, "Unknown sub-device specification: " + str(subdev_spec)
+					hint += " " + subdev_spec
+				self._send("DEVICE", hint)
+			
+			self._created = True
+			
+			#self._send("HEADER", "OFF")	# Enhanced udp_source
+			
+			if sample_rate is not None:
+				self._send_and_wait_for_ok("RATE", sample_rate)
+			else:
+				#sample_rate = self.adc_freq() / decim_rate
+				if self.set_decim_rate(decim_rate) == False:
+					raise Exception, "Invalid decimation: %s (sample rate: %s)" % (decim_rate, sample_rate)
 		
 		udp_interface = "0.0.0.0"	# MAGIC
 		self.udp_source = gr.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size, True, True, True)
-		#print "--> UDP Source listening on port:", udp_port, "interface:", udp_interface, "MTU:", packet_mtu
+		#print "--> UDP Source listening on port:", udp_port, "interface:", udp_interface, "MTU:", self._packet_size
 		self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
 		self.ishort2complex = gr.interleaved_short_to_complex()
 		
 		self.connect(self.udp_source, self.vec2stream, self.ishort2complex, self)
 		
-		self._send_and_wait_for_ok("GO")	# Will STOP on disconnect
+		if self._listen_only == False:
+			self._send_and_wait_for_ok("GO")	# Will STOP on disconnect
 	
 	#def __repr__(self):
 	#	pass

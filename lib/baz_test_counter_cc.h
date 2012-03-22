@@ -19,12 +19,12 @@
  * the Free Software Foundation, Inc., 51 Franklin Street,
  * Boston, MA 02110-1301, USA.
  */
-#ifndef INCLUDED_BAZ_POW_CC_H
-#define INCLUDED_BAZ_POW_CC_H
+#ifndef INCLUDED_BAZ_TEST_COUNTER_CC_H
+#define INCLUDED_BAZ_TEST_COUNTER_CC_H
 
 #include <gr_sync_block.h>
 
-class baz_pow_cc;
+class baz_test_counter_cc;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -37,16 +37,16 @@ class baz_pow_cc;
  *
  * As a convention, the _sptr suffix indicates a boost::shared_ptr
  */
-typedef boost::shared_ptr<baz_pow_cc> baz_pow_cc_sptr;
+typedef boost::shared_ptr<baz_test_counter_cc> baz_test_counter_cc_sptr;
 
 /*!
- * \brief Return a shared_ptr to a new instance of baz_pow_cc.
+ * \brief Return a shared_ptr to a new instance of baz_test_counter_cc.
  *
- * To avoid accidental use of raw pointers, baz_pow_cc's
+ * To avoid accidental use of raw pointers, baz_test_counter_cc's
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_pow_cc_sptr baz_make_pow_cc (float exponent);
+baz_test_counter_cc_sptr baz_make_test_counter_cc ();
 
 /*!
  * \brief square2 a stream of floats.
@@ -54,28 +54,24 @@ baz_pow_cc_sptr baz_make_pow_cc (float exponent);
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_pow_cc : public gr_sync_block
+class baz_test_counter_cc : public gr_sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_pow_cc_sptr baz_make_pow_cc (float exponent);
+  friend baz_test_counter_cc_sptr baz_make_test_counter_cc ();
 
-  baz_pow_cc (float exponent);  	// private constructor
+  baz_test_counter_cc ();  	// private constructor
   
-  float d_exponent;
+  unsigned short d_counter;
 
  public:
-  ~baz_pow_cc ();	// public destructor
-
-  void set_exponent(float exponent);
-  inline float exponent() const
-  { return d_exponent; }
+  ~baz_test_counter_cc ();	// public destructor
 
   int work (int noutput_items,
 	    gr_vector_const_void_star &input_items,
 	    gr_vector_void_star &output_items);
 };
 
-#endif /* INCLUDED_BAZ_POW_CC_H */
+#endif /* INCLUDED_BAZ_TEST_COUNTER_CC_H */

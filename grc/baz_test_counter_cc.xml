@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<block>
+    <name>Test Counter</name>
+    <key>test_counter_cc</key>
+    <category>Misc</category>
+    <import>from gnuradio import gr</import>
+	<import>import baz</import>
+    <make>baz.test_counter_cc()</make>
+	
+<!-- Must come before sink/source -->
+  <!--<check></check>-->
+  
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+<!--    
+  <source>
+    <name>out</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </source>
+-->
+    <doc>
+Test complex stream for increasing values.
+    </doc>
+</block>
