@@ -36,7 +36,7 @@ try:
 except:
 	pass
 try:
-	_verbose = bool(_prefs.get_string('borip', 'verbose', str(_verbose)))
+	_verbose = not ((_prefs.get_string('borip', 'verbose', str(_verbose))).strip().lower() in ['false', 'f', 'n', '0', ''])
 except:
 	pass
 try:
