@@ -1,0 +1,32 @@
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py b/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py
+index 8f593cd..c6e7ee0
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py
+@@ -27,7 +27,7 @@
+ from gnuradio import gr
+ from gnuradio import modulation_utils
+ from math import pi
+-import numpy
++import numpy, Numeric
+ from pprint import pprint
+ import inspect
+ 
+@@ -97,7 +97,7 @@ class cpm_mod(gr.hier_block2):
+         @type debug: bool       
+ 	"""
+ 
+-	gr.hier_block2.__init__("cpm_mod", 
++	gr.hier_block2.__init__(self, "cpm_mod", 
+ 				gr.io_signature(1, 1, gr.sizeof_char),       # Input signature
+ 				gr.io_signature(1, 1, gr.sizeof_gr_complex)) #  Output signature
+ 
+@@ -120,7 +120,8 @@ class cpm_mod(gr.hier_block2):
+             raise TypeError, ("samples_per_symbol must be an integer >= 2, is %r" % (samples_per_symbol,))
+ 
+         self.nsymbols = 2**bits_per_symbol
+-        self.sym_alphabet=numpy.arange(-(self.nsymbols-1),self.nsymbols,2)
++        #self.sym_alphabet=numpy.arange(-(self.nsymbols-1),self.nsymbols,2)
++        self.sym_alphabet=Numeric.arrayrange(-(self.nsymbols-1),self.nsymbols,2)
+ 
+ 
+ 	self.ntaps = self._symbols_per_pulse * samples_per_symbol

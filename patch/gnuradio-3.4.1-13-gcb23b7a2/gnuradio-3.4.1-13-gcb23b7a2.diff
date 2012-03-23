@@ -1,0 +1,823 @@
+diff --git a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t
+index 3e9a34c..b6f8b4d
+--- a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t
++++ b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t
+@@ -79,20 +79,49 @@ gr_make_@BASE_NAME@ (unsigned interpolation,
+     delete d_firs[i];
+ }
+ 
++void @NAME@::set_params(unsigned interp, unsigned decim, const std::vector<@TAP_TYPE@> &taps)
++{
++  gruel::scoped_lock guard(d_mutex);
++
++  int old_interp = interpolation();
++  for (int i = 0; i < old_interp; i++)
++    delete d_firs[i];
++
++  set_relative_rate (1.0 * interp / decim);
++
++  d_interpolation = interp;
++  d_decimation = decim;
++  d_ctr = 0;
++  
++  std::vector<@TAP_TYPE@>	dummy_taps;
++  
++  d_firs.clear();
++  for (unsigned i = 0; i < interp; i++)
++    d_firs.push_back(gr_fir_util::create_@FIR_TYPE@ (dummy_taps));
++
++  set_taps (taps);
++  //install_taps (d_new_taps);	// Do in work so it can return 0
++}
++
+ void
+ @NAME@::set_taps (const std::vector<@TAP_TYPE@> &taps)
+ {
+-  d_new_taps = taps;
++  d_new_taps.clear();
++//fprintf(stderr, "Setting taps of length %d\n", taps.size());
++  //d_new_taps = taps;
+   d_updated = true;
+ 
+   // round up length to a multiple of the interpolation factor
+   int n = taps.size () % interpolation ();
+   if (n > 0){
+     n = interpolation () - n;
++//fprintf(stderr, "Adding additional taps of length %d\n", n);
+     while (n-- > 0)
+       d_new_taps.insert(d_new_taps.begin(), 0);
+   }
+-
++//fprintf(stderr, "Setting taps of length %d\n", taps.size());
++  d_new_taps.insert(d_new_taps.end(), taps.begin(), taps.end());
++//fprintf(stderr, "Setting taps complete: %d\n", d_new_taps.size());
+   assert (d_new_taps.size () % interpolation () == 0);
+ }
+ 
+@@ -148,6 +177,8 @@ int
+ {
+   const @I_TYPE@ *in = (const @I_TYPE@ *) input_items[0];
+   @O_TYPE@ *out = (@O_TYPE@ *) output_items[0];
++  
++  gruel::scoped_lock guard(d_mutex);
+ 
+   if (d_updated) {
+     install_taps (d_new_taps);
+diff --git a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t
+index 983b350..8b1bf96
+--- a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t
++++ b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t
+@@ -31,6 +31,8 @@
+ 
+ #include <gr_block.h>
+ 
++#include <gruel/thread.h>
++
+ class @NAME@;
+ typedef boost::shared_ptr<@NAME@> @SPTR_NAME@;
+ @SPTR_NAME@
+@@ -53,6 +55,7 @@ class @NAME@ : public gr_block
+   std::vector<@TAP_TYPE@>	d_new_taps;
+   bool				d_updated;
+   std::vector<@FIR_TYPE@ *> d_firs;
++  gruel::mutex	d_mutex;
+ 
+   friend @SPTR_NAME@ 
+   gr_make_@BASE_NAME@ (unsigned interpolation, unsigned decimation, const std::vector<@TAP_TYPE@> &taps);
+@@ -75,6 +78,8 @@ class @NAME@ : public gr_block
+   unsigned decimation() const { return d_decimation; }
+ 
+   void set_taps (const std::vector<@TAP_TYPE@> &taps);
++  
++  void set_params(unsigned interpolation, unsigned decimation, const std::vector<@TAP_TYPE@> &taps);
+ 
+   void forecast (int noutput_items, gr_vector_int &ninput_items_required);
+   int  general_work (int noutput_items,
+diff --git a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t
+index 1416933..e47c60c
+--- a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t
++++ b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t
+@@ -39,4 +39,6 @@ class @NAME@ : public gr_block
+   ~@NAME@ ();
+ 
+   void set_taps (const std::vector<@TAP_TYPE@> &taps);
++
++  void set_params(unsigned interpolation, unsigned decimation, const std::vector<@TAP_TYPE@> &taps);
+ };
+diff --git a/gnuradio-core/src/lib/general/gr_agc_cc.cc b/gnuradio-core/src/lib/general/gr_agc_cc.cc
+index 92cec00..dd6903f
+--- a/gnuradio-core/src/lib/general/gr_agc_cc.cc
++++ b/gnuradio-core/src/lib/general/gr_agc_cc.cc
+@@ -27,7 +27,8 @@
+ #include <gr_agc_cc.h>
+ #include <gr_io_signature.h>
+ #include <gri_agc_cc.h>
+-
++#include <stdio.h>
++//#include <math.h>
+ gr_agc_cc_sptr
+ gr_make_agc_cc (float rate, float reference, 
+ 		float gain, float max_gain)
+@@ -51,6 +52,91 @@ gr_agc_cc::work (int noutput_items,
+ {
+   const gr_complex *in = (const gr_complex *) input_items[0];
+   gr_complex *out = (gr_complex *) output_items[0];
+-  scaleN (out, in, noutput_items);
++  //scaleN (out, in, noutput_items);
++  //return noutput_items;
++// [CODE BELOW IS NO LONGER EXECUTED] ///////////////////////////////////////////
++  double d[2];
++  for (unsigned i = 0; i < noutput_items; i++) {
++      //out[i] = scale(in[i]);
++	  
++	//gr_complex output = in[i] * _gain;
++	d[0] = in[i].real() * _gain;
++	d[1] = in[i].imag() * _gain;
++	
++	double mag = d[0]*d[0] + d[1]*d[1];
++	
++    if (!finite(mag) || isnan(mag) || isinf(mag)) {
++	  if (_gain == _max_gain) {
++fprintf(stderr, "[%05i] + %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++		out[i] = /*in[i]*//*0*/gr_complex(0, 0);
++		continue;
++	  }
++	  else {
++//fprintf(stderr, "gO");
++        mag = (double)in[i].real() * (double)in[i].real() + (double)in[i].imag() + (double)in[i].imag();
++        _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++        if (isnan(mag) || !finite(mag) || isinf(mag)) {
++          float r_abs = std::fabs(in[i].real());
++          float i_abs = std::fabs(in[i].imag());
++          if (r_abs > i_abs)
++            mag = r_abs + 0.4 * i_abs;
++          else
++            mag = i_abs + 0.4 * r_abs;
++          _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++fprintf(stderr, "[%05i] ! %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++          d[0] = in[i].real() * _gain;
++          d[1] = in[i].imag() * _gain;
++        }
++        else {
++fprintf(stderr, "[%05i]   %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++		//_gain = _max_gain;
++		i--;
++		continue;
++        }
++	  }
++	}
++	else {
++	  double diff = (double)_reference - sqrt(mag);
++//if (diff < 0.0) fprintf(stderr, "[%05i] D {%f} %f,%f -> %f,%f (%f) %f %f\n", i, diff, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++	  _gain += (double)_rate * diff;
++	  if (_max_gain > 0.0 && _gain > (double)_max_gain)
++	    _gain = _max_gain;
++	  else if (_gain <= 0.0) {
++//fprintf(stderr, "[%05i] - {%f} %f,%f -> %f,%f (%f) %f %f\n", i, diff, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++		mag = (double)in[i].real() * (double)in[i].real() + (double)in[i].imag() + (double)in[i].imag();
++        _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++        if (isnan(mag) || isnan(_gain) ||
++            !finite(mag) || !finite(_gain) ||
++            isinf(mag) || isinf(_gain)) {
++          float r_abs = std::fabs(in[i].real());
++          float i_abs = std::fabs(in[i].imag());
++          if (r_abs > i_abs)
++            mag = r_abs + 0.4 * i_abs;
++          else
++            mag = i_abs + 0.4 * r_abs;
++          _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++fprintf(stderr, "[%05i] - %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++        }
++        else {
++fprintf(stderr, "Reset gain to: %f\n", _gain);
++        }
++        d[0] = in[i].real() * _gain;
++        d[1] = in[i].imag() * _gain;
++	  }
++//	  else if (_gain < -1e3) {
++//fprintf(stderr, "[%05i] - %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++//		_gain = -1e3;
++//	  }
++	  out[i] = /*output*/gr_complex(d[0], d[1]);
++	}
++	  
++	  /*float f = out[i].real() * out[i].imag();
++	  if (!finite(out[i].real()) || !finite(out[i].imag()) || !finite(f) ||
++		  isnan(out[i].real()) || isnan(out[i].imag()) || isnan(f) ||
++		  isinf(out[i].real()) || isinf(out[i].imag()) || isinf(f)) {
++		fprintf(stderr, "%f,%f %f\n", out[i].real(), out[i].imag(), _gain);
++		out[i] = 0.0f;
++	  }*/
++  }
+   return noutput_items;
+ }
+diff --git a/gnuradio-core/src/lib/general/gri_agc_cc.h b/gnuradio-core/src/lib/general/gri_agc_cc.h
+index bc31d9a..cdd21bf
+--- a/gnuradio-core/src/lib/general/gri_agc_cc.h
++++ b/gnuradio-core/src/lib/general/gri_agc_cc.h
+@@ -50,12 +50,12 @@ class gri_agc_cc {
+   void set_max_gain(float max_gain) { _max_gain = max_gain; }
+ 
+   gr_complex scale (gr_complex input){
+-    gr_complex output = input * _gain;
+-    
+-    _gain +=  _rate * (_reference - sqrt(output.real()*output.real() + 
+-					 output.imag()*output.imag()));
++    gr_complex output = input * (float)_gain;
++    float diff = _reference - sqrt(output.real()*output.real() + output.imag()*output.imag());
++    //if (!finite(diff) || isnan(diff) || isinf(diff)) return output;
++	_gain +=  _rate * diff;
+     if (_max_gain > 0.0 && _gain > _max_gain)
+-       _gain = _max_gain;						     
++       _gain = _max_gain;
+     return output;
+   }
+ 
+@@ -67,7 +67,7 @@ class gri_agc_cc {
+  protected:
+   float _rate;			// adjustment rate
+   float	_reference;		// reference value
+-  float	_gain;			// current gain
++  /*float*/double	_gain;			// current gain
+   float _max_gain;		// max allowable gain
+ };
+ 
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.cc b/gnuradio-core/src/lib/io/gr_udp_source.cc
+index ca31233..3d621e0
+--- a/gnuradio-core/src/lib/io/gr_udp_source.cc
++++ b/gnuradio-core/src/lib/io/gr_udp_source.cc
+@@ -57,6 +57,40 @@ typedef void* optval_t;
+ typedef char* optval_t;
+ #endif
+ 
++/////////////////////////////////////////////////
++
++#pragma pack(push)
++#pragma pack(1)
++
++typedef unsigned char BYTE;
++typedef unsigned short USHORT;
++
++typedef struct BorPacketHeader {
++	BYTE flags;
++	BYTE notification;
++	USHORT idx;
++} BOR_PACKET_HEADER, *PBOR_PACKET_HEADER;
++
++typedef struct BorPacket {
++	BOR_PACKET_HEADER header;
++	BYTE data[1];
++} BOR_PACKET, *PBOR_PACKET;
++
++#pragma pack(pop)
++
++enum BorFlags
++{
++	BF_NONE				= 0x00,
++	BF_HARDWARE_OVERRUN	= 0x01,
++	BF_NETWORK_OVERRUN	= 0x02,
++	BF_BUFFER_OVERRUN	= 0x04,
++	BF_EMPTY_PAYLOAD	= 0x08,
++	BF_STREAM_START		= 0x10,
++	BF_STREAM_END		= 0x20
++};
++
++/////////////////////////////////////////////////
++
+ #define USE_SELECT    1  // non-blocking receive on all platforms
+ #define USE_RCV_TIMEO 0  // non-blocking receive on all but Cygwin
+ #define SRC_VERBOSE 0
+@@ -99,13 +133,18 @@ static void report_error( const char *msg1, const char *msg2 )
+ 
+ gr_udp_source::gr_udp_source(size_t itemsize, const char *host, 
+ 			     unsigned short port, int payload_size,
+-			     bool eof, bool wait)
++			     bool eof, bool wait, bool bor, bool verbose)
+   : gr_sync_block ("udp_source",
+ 		   gr_make_io_signature(0, 0, 0),
+ 		   gr_make_io_signature(1, 1, itemsize)),
+     d_itemsize(itemsize), d_payload_size(payload_size),
+-    d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0)
++    d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0),
++	d_bor(bor), d_bor_counter(0), d_bor_first(false),
++	d_eos(false)
+ {
++  if (bor)
++	d_payload_size += sizeof(BOR_PACKET_HEADER);
++  
+   int ret = 0;
+ 
+ #if defined(USING_WINSOCK) // for Windows (with MinGW)
+@@ -177,6 +216,20 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
+   }
+ #endif // USE_RCV_TIMEO
+ 
++  int requested_recv_buff_size = 1024 * 1024;
++  if (setsockopt(d_socket, SOL_SOCKET, SO_RCVBUFFORCE, (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
++	if (d_verbose) {
++	  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_recv_buff_size);
++	}
++  }
++  else {
++	int recv_buff_size = 0;
++	socklen_t var_size = 0;
++	if ((getsockopt(d_socket, SOL_SOCKET, SO_RCVBUF, (optval_t)&recv_buff_size, &var_size) == 0) && (var_size == sizeof(int)) && (recv_buff_size != requested_recv_buff_size)) {
++	  fprintf(stderr, "BorUDP Source: successfully requested %i bytes buffer, but is still %i\n", requested_recv_buff_size, recv_buff_size);
++	}
++  }
++
+   // bind socket to an address and port number to listen on
+   if(bind (d_socket, ip_src->ai_addr, ip_src->ai_addrlen) == -1) {
+     report_error("socket bind","can't bind socket");
+@@ -187,10 +240,10 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
+ 
+ gr_udp_source_sptr
+ gr_make_udp_source (size_t itemsize, const char *ipaddr, 
+-		    unsigned short port, int payload_size, bool eof, bool wait)
++		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose)
+ {
+   return gnuradio::get_initial_sptr(new gr_udp_source (itemsize, ipaddr, 
+-						port, payload_size, eof, wait));
++						port, payload_size, eof, wait, bor, verbose));
+ }
+ 
+ gr_udp_source::~gr_udp_source ()
+@@ -213,11 +266,20 @@ gr_udp_source::~gr_udp_source ()
+ #endif
+ }
+ 
++void
++gr_udp_source::signal_eos() {
++  d_wait = false;
++  d_eos = true;
++}
++
+ int 
+ gr_udp_source::work (int noutput_items,
+ 		     gr_vector_const_void_star &input_items,
+ 		     gr_vector_void_star &output_items)
+ {
++  if (d_eos)
++	return -1;
++  
+   char *out = (char *) output_items[0];
+   ssize_t r=0, nbytes=0, bytes_received=0;
+   ssize_t total_bytes = (ssize_t)(d_itemsize*noutput_items);
+@@ -277,13 +339,20 @@ gr_udp_source::work (int noutput_items,
+     }
+ #endif // USE_SELECT
+ 
++	int recvd = -1;
+     // This is a non-blocking call with a timeout set in the constructor
+-    r = recv(d_socket, d_temp_buff, d_payload_size, 0);  // get the entire payload or the what's available
++    recvd = r = recv(d_socket, d_temp_buff, d_payload_size, 0);  // get the entire payload or the what's available
+ 
+     // If r > 0, round it down to a multiple of d_itemsize 
+     // (If sender is broken, don't propagate problem)
+-    if (r > 0)
+-      r = (r/d_itemsize) * d_itemsize;
++    if (r > 0) {
++	  if (d_bor) {
++		r -= sizeof(BOR_PACKET_HEADER);
++	  }
++	  else {
++		r = (r/d_itemsize) * d_itemsize;
++	  }
++    }
+ 
+     // Check if there was a problem; forget it if the operation just timed out
+     if(r == -1) {
+@@ -322,6 +391,44 @@ gr_udp_source::work (int noutput_items,
+       }
+     }
+     else {
++	  int offset = 0;
++	  if (d_bor) {
++		if (recvd != d_payload_size) {
++		  if (d_verbose)
++			fprintf(stderr, "Received size %d != payload %d\n", recvd, d_payload_size);
++		  else
++		  fprintf(stderr, "b!");
++		}
++		else {
++		  PBOR_PACKET_HEADER pHeader = (PBOR_PACKET_HEADER)d_temp_buff;
++		  if (pHeader->flags & BF_HARDWARE_OVERRUN) {
++			fprintf(stderr, "uO");
++		  }
++		  if (pHeader->flags & BF_STREAM_START) {
++			fprintf(stderr, "Stream start (%d)\n", (int)pHeader->idx);
++			if (d_bor_first)
++			  d_bor_first = false;
++		  }
++		  if (pHeader->idx != d_bor_counter) {
++			if (d_bor_first == false) {
++			  if ((pHeader->flags & BF_STREAM_START) == 0) {
++			    fprintf(stderr, "First packet (%d)\n", (int)pHeader->idx);
++			  }
++			  d_bor_first = true;
++			}
++			else {
++			  if (d_verbose)
++				fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (int)(pHeader->idx - d_bor_counter), (int)d_bor_counter, (int)pHeader->idx);
++			  else
++			  fprintf(stderr, "bO");
++			}
++			d_bor_counter = pHeader->idx;
++		  }
++		  ++d_bor_counter;
++		  offset = sizeof(BOR_PACKET_HEADER);
++		}
++	  }
++	  
+       // Calculate the number of bytes we can take from the buffer in this call
+       nbytes = std::min(r, total_bytes-bytes_received);
+       
+@@ -329,10 +436,10 @@ gr_udp_source::work (int noutput_items,
+       nbytes -= ((bytes_received+nbytes) % d_itemsize);   
+ 
+       // copy the number of bytes we want to look at here
+-      memcpy(out, d_temp_buff, nbytes);    
++      memcpy(out, (d_temp_buff + offset), nbytes);
+ 
+       d_residual = r - nbytes;                      // save the number of bytes stored
+-      d_temp_offset=nbytes;                         // reset buffer index
++      d_temp_offset = nbytes + offset;              // reset buffer index
+ 
+       // keep track of the total number of bytes received
+       bytes_received += nbytes;
+@@ -350,12 +457,11 @@ gr_udp_source::work (int noutput_items,
+   }
+ 
+   #if SRC_VERBOSE
+-  printf("Total Bytes Received: %d (bytes_received / noutput_items = %d / %d)\n", 
+-	 bytes_received, bytes_received, noutput_items);
++  printf("Total Bytes Received: %d (bytes_received / noutput_items = %d / %d)\n", bytes_received, bytes_received, noutput_items);
+   #endif
+ 
+   // bytes_received is already set to some integer multiple of itemsize
+-  return bytes_received/d_itemsize;
++  return (d_eos ? -1 : bytes_received/d_itemsize);
+ }
+ 
+ // Return port number of d_socket
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.h b/gnuradio-core/src/lib/io/gr_udp_source.h
+index 5d30fad..501ab2a
+--- a/gnuradio-core/src/lib/io/gr_udp_source.h
++++ b/gnuradio-core/src/lib/io/gr_udp_source.h
+@@ -32,7 +32,7 @@ typedef boost::shared_ptr<gr_udp_source> gr_udp_source_sptr;
+ gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *host, 
+ 				      unsigned short port,
+ 				      int payload_size=1472,
+-				      bool eof=true, bool wait=true);
++				      bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
+ 
+ /*! 
+  * \brief Read stream from an UDP socket.
+@@ -58,7 +58,7 @@ class gr_udp_source : public gr_sync_block
+ 					       const char *host, 
+ 					       unsigned short port,
+ 					       int payload_size,
+-					       bool eof, bool wait);
++					       bool eof, bool wait, bool bor, bool verbose);
+ 
+  private:
+   size_t	d_itemsize;
+@@ -69,6 +69,11 @@ class gr_udp_source : public gr_sync_block
+   char *d_temp_buff;    // hold buffer between calls
+   ssize_t d_residual;   // hold information about number of bytes stored in the temp buffer
+   size_t d_temp_offset; // point to temp buffer location offset
++  bool			d_bor;
++  unsigned short d_bor_counter;
++  bool			d_bor_first;
++  bool			d_verbose;
++  bool			d_eos;
+ 
+  protected:
+   /*!
+@@ -87,7 +92,7 @@ class gr_udp_source : public gr_sync_block
+    *                     (default: true)
+    */
+   gr_udp_source(size_t itemsize, const char *host, unsigned short port,
+-		int payload_size, bool eof, bool wait);
++		int payload_size, bool eof, bool wait, bool bor, bool verbose);
+ 
+  public:
+   ~gr_udp_source();
+@@ -97,6 +102,8 @@ class gr_udp_source : public gr_sync_block
+ 
+   /*! \brief return the port number of the socket */
+   int get_port();
++  
++  void signal_eos();
+ 
+   // should we export anything else?
+ 
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.i b/gnuradio-core/src/lib/io/gr_udp_source.i
+index 2001f33..fb9e3e7
+--- a/gnuradio-core/src/lib/io/gr_udp_source.i
++++ b/gnuradio-core/src/lib/io/gr_udp_source.i
+@@ -25,17 +25,18 @@ GR_SWIG_BLOCK_MAGIC(gr,udp_source)
+ gr_udp_source_sptr 
+ gr_make_udp_source (size_t itemsize, const char *host, 
+ 		    unsigned short port, int payload_size=1472,
+-		    bool eof=true, bool wait=true) throw (std::runtime_error);
++		    bool eof=true, bool wait=true, bool bor=false, bool verbose=false) throw (std::runtime_error);
+ 
+ class gr_udp_source : public gr_sync_block
+ {
+  protected:
+   gr_udp_source (size_t itemsize, const char *host, 
+-		 unsigned short port, int payload_size, bool eof, bool wait) throw (std::runtime_error);
++		 unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose) throw (std::runtime_error);
+ 
+  public:
+   ~gr_udp_source ();
+ 
+   int payload_size() { return d_payload_size; }
+   int get_port();
++  void signal_eos();
+ };
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py b/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py
+index b454f09..2cb0e76
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py
+@@ -39,23 +39,50 @@ class am_demod_cf(gr.hier_block2):
+     @param audio_stop: audio low pass filter stop frequency
+     @type audio_stop: float
+     """ 
+-    def __init__(self, channel_rate, audio_decim, audio_pass, audio_stop):
+-	gr.hier_block2.__init__(self, "am_demod_cf",
+-				gr.io_signature(1, 1, gr.sizeof_gr_complex), # Input signature
+-				gr.io_signature(1, 1, gr.sizeof_float))      # Input signature
++    def __init__(self, channel_rate, audio_decim, audio_pass, audio_stop, gain=0.5):
++        gr.hier_block2.__init__(self, "am_demod_cf",
++            gr.io_signature(1, 1, gr.sizeof_gr_complex), # Input signature
++            gr.io_signature(1, 1, gr.sizeof_float))      # Input signature
+ 
+-	MAG = gr.complex_to_mag()
+-	DCR = gr.add_const_ff(-1.0)
+-
+-	audio_taps = optfir.low_pass(0.5, 	   # Filter gain
+-	                             channel_rate, # Sample rate
+-				     audio_pass,   # Audio passband
+-				     audio_stop,   # Audio stopband
+-				     0.1, 	   # Passband ripple
+-				     60)	   # Stopband attenuation
+-	LPF = gr.fir_filter_fff(audio_decim, audio_taps)
+-
+-	self.connect(self, MAG, DCR, LPF, self)
++        MAG = gr.complex_to_mag()
++        DCR = gr.add_const_ff(-1.0)
++        
++        self.channel_rate = channel_rate
++        self.audio_pass = audio_pass
++        self.audio_stop = audio_stop
++        self.gain = gain
++    
++        audio_taps = optfir.low_pass(gain, 	   # Filter gain
++            channel_rate, # Sample rate
++            audio_pass,   # Audio passband
++            audio_stop,   # Audio stopband
++            0.1, 	   # Passband ripple
++            60)	   # Stopband attenuation
++        self.LPF = gr.fir_filter_fff(audio_decim, audio_taps)
++    
++        self.connect(self, MAG, DCR, self.LPF, self)
++    def set_audio_pass(self, audio_pass):
++        self.set_params(audio_pass, self.audio_stop, self.gain)
++    def set_audio_stop(self, audio_stop):
++        self.set_params(self.audio_pass, audio_stop, self.gain)
++    def set_gain(self, gain):
++        self.set_params(self.audio_pass, self.audio_stop, gain)
++    def set_params(self, audio_pass, audio_stop, gain):
++        #print "New AM demod parameters: pass %f, stop %f" % (audio_pass, audio_stop)
++        self.audio_pass = audio_pass
++        self.audio_stop = audio_stop
++        self.gain = gain
++        try:
++            audio_taps = optfir.low_pass(gain, 	   # Filter gain
++                self.channel_rate, # Sample rate
++                audio_pass,   # Audio passband
++                audio_stop,   # Audio stopband
++                0.1, 	   # Passband ripple
++                60)	   # Stopband attenuation
++        except:
++            print "Failed to generate taps with new AM demod parameters: pass %f, stop %f" % (audio_pass, audio_stop)
++            return
++        self.LPF.set_taps(audio_taps)
+ 
+ class demod_10k0a3e_cf(am_demod_cf):
+     """
+@@ -73,4 +100,3 @@ class demod_10k0a3e_cf(am_demod_cf):
+     	am_demod_cf.__init__(self, channel_rate, audio_decim, 
+     	                     5000, # Audio passband
+     	                     5500) # Audio stopband
+-    	
+\ No newline at end of file
+diff --git a/gr-usrp/src/__init__.py b/gr-usrp/src/__init__.py
+index c81b2f2..83dcf34
+--- a/gr-usrp/src/__init__.py
++++ b/gr-usrp/src/__init__.py
+@@ -25,4 +25,6 @@
+ from usrp_swig import *
+ 
+ # Add other content from pure-Python modules here
+-
++import sys
++if not sys.modules.has_key('baz.borip'):
++	from baz import borip
+diff --git a/grc/blocks/blks2_am_demod_cf.xml b/grc/blocks/blks2_am_demod_cf.xml
+index 898c613..6c6e6e2
+--- a/grc/blocks/blks2_am_demod_cf.xml
++++ b/grc/blocks/blks2_am_demod_cf.xml
+@@ -13,7 +13,11 @@
+ 	audio_decim=$audio_decim,
+ 	audio_pass=$audio_pass,
+ 	audio_stop=$audio_stop,
++	gain=$gain,
+ )</make>
++	<callback>set_audio_pass($audio_pass)</callback>
++	<callback>set_audio_stop($audio_stop)</callback>
++	<callback>set_gain($gain)</callback>
+ 	<param>
+ 		<name>Channel Rate</name>
+ 		<key>chan_rate</key>
+@@ -36,6 +40,12 @@
+ 		<value>5500</value>
+ 		<type>real</type>
+ 	</param>
++	<param>
++		<name>Gain</name>
++		<key>gain</key>
++		<value>0.5</value>
++		<type>real</type>
++	</param>
+ 	<sink>
+ 		<name>in</name>
+ 		<type>complex</type>
+diff --git a/grc/blocks/gr_udp_source.xml b/grc/blocks/gr_udp_source.xml
+index a1b9616..b76be66
+--- a/grc/blocks/gr_udp_source.xml
++++ b/grc/blocks/gr_udp_source.xml
+@@ -8,7 +8,7 @@
+ 	<name>UDP Source</name>
+ 	<key>gr_udp_source</key>
+ 	<import>from gnuradio import gr</import>
+-	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait)</make>
++	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait, $borip, $verbose)</make>
+ 	<callback>set_mtu($mtu)</callback>
+ 	<param>
+ 		<name>Output Type</name>
+@@ -59,16 +59,64 @@
+ 		<type>int</type>
+ 	</param>
+ 	<param>
+-	        <name>Null Pkt is EOF</name>
++	    <name>Null Pkt is EOF</name>
+ 		<key>eof</key>
+ 		<value>True</value>
+ 		<type>bool</type>
++		<hide>#if str($eof) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
+ 	</param>
+ 	<param>
+-	        <name>Wait for Data</name>
++	    <name>Wait for Data</name>
+ 		<key>wait</key>
+ 		<value>True</value>
+ 		<type>bool</type>
++		<hide>#if str($wait) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>BorIP</name>
++		<key>borip</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($borip) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>Verbose</name>
++		<key>verbose</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($verbose) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
+ 	</param>
+ 	<param>
+ 		<name>Vec Length</name>
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py b/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py
+index b7de0de..d6e9b64 100644
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py
+@@ -43,7 +43,7 @@ def design_filter(interpolation, decimation, fractional_bw):
+     beta = 5.0
+     trans_width = 0.5 - fractional_bw
+     mid_transition_band = 0.5 - trans_width/2
+-
++    #print "Generating rational resampler taps (interp: %d, decim %d, fractional_bw: %f)" % (interpolation, decimation, fractional_bw)
+     taps = gr.firdes.low_pass(interpolation,                     # gain
+                               1,                                 # Fs
+                               mid_transition_band/interpolation, # trans mid point
+@@ -51,7 +51,7 @@ def design_filter(interpolation, decimation, fractional_bw):
+                               gr.firdes.WIN_KAISER,
+                               beta                               # beta
+                               )
+-
++    #print "Completed rational resampler taps: %d (interp: %d, decim %d, fractional_bw: %f)" % (len(taps), interpolation, decimation, fractional_bw)
+     return taps
+ 
+ 
+@@ -88,6 +88,10 @@ class _rational_resampler_base(gr.hier_block2):
+         if taps is None and fractional_bw is None:
+             fractional_bw = 0.4
+ 
++        self.fractional_bw = fractional_bw
++        self._decimation = decimation
++        self._interpolation = interpolation
++
+         d = gru.gcd(interpolation, decimation)
+         interpolation = interpolation // d
+         decimation = decimation // d
+@@ -95,13 +99,32 @@ class _rational_resampler_base(gr.hier_block2):
+         if taps is None:
+             taps = design_filter(interpolation, decimation, fractional_bw)
+ 
+-        resampler = resampler_base(interpolation, decimation, taps)
+-	gr.hier_block2.__init__(self, "rational_resampler",
+-				gr.io_signature(1, 1, resampler.input_signature().sizeof_stream_item(0)),
+-				gr.io_signature(1, 1, resampler.output_signature().sizeof_stream_item(0)))
+-
+-	self.connect(self, resampler, self)
+-
++        self.resampler = resampler_base(interpolation, decimation, taps)
++
++        gr.hier_block2.__init__(self, "rational_resampler",
++                    gr.io_signature(1, 1, self.resampler.input_signature().sizeof_stream_item(0)),
++                    gr.io_signature(1, 1, self.resampler.output_signature().sizeof_stream_item(0)))
++
++        self.connect(self, self.resampler, self)
++    def set_decim(self, decim):
++        self.set_params(decim, None)
++    def set_interp(self, interp):
++        self.set_params(None, interp)
++    def set_params(self, decim, interp):
++        if decim is None:
++            decim = self._decimation
++        else:
++            self._decimation = decim
++        if interp is None:
++            interp = self._interpolation
++        else:
++            self._interpolation = interp
++        d = gru.gcd(interp, decim)
++        interp = interp // d
++        decim = decim // d
++        taps = design_filter(interp, decim, self.fractional_bw)
++        print "New filter parameters: decim: %d, interp: %d, taps length: %d" % (decim, interp, len(taps))
++        self.resampler.set_params(interp, decim, taps)
+ 
+ class rational_resampler_fff(_rational_resampler_base):
+     def __init__(self, interpolation, decimation, taps=None, fractional_bw=None):
+diff --git a/grc/blocks/blks2_rational_resampler_xxx.xml b/grc/blocks/blks2_rational_resampler_xxx.xml
+index b92ec8e..b57c10e 100644
+--- a/grc/blocks/blks2_rational_resampler_xxx.xml
++++ b/grc/blocks/blks2_rational_resampler_xxx.xml
+@@ -23,6 +23,8 @@
+ 	fractional_bw=None,
+ #end if
+ )</make>
++	<callback>set_decim($decim)</callback>
++	<callback>set_interp($interp)</callback>
+ 	<param>
+ 		<name>Type</name>
+ 		<key>type</key>

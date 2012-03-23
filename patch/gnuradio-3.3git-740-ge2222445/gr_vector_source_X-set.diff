@@ -1,0 +1,116 @@
+diff --git a/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t b/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t
+index 889a6f2..27f2cec
+--- a/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t
++++ b/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t
+@@ -38,12 +38,28 @@
+     d_data (data),
+     d_repeat (repeat),
+     d_offset (0),
++	d_new(false),
+     d_vlen (vlen)
+ {
+   if ((data.size() % vlen) != 0)
+     throw std::invalid_argument("data length must be a multiple of vlen");
+ }
+ 
++void @NAME@::set_data(const std::vector<@TYPE@> &data)
++{
++  gruel::scoped_lock guard(d_mutex);
++  
++  if (d_offset == 0)
++  {
++	d_data = data;
++  }
++  else
++  {
++    d_data_new = data;
++	d_new = true;
++  }
++}
++
+ int
+ @NAME@::work (int noutput_items,
+ 		    gr_vector_const_void_star &input_items,
+@@ -53,6 +69,9 @@ int
+ 
+   if (d_repeat){
+     unsigned int size = d_data.size ();
++	
++	gruel::scoped_lock guard(d_mutex);
++	
+     unsigned int offset = d_offset;
+     
+     if (size == 0)
+@@ -61,7 +80,15 @@ int
+     for (int i = 0; i < noutput_items*d_vlen; i++){
+       optr[i] = d_data[offset++];
+       if (offset >= size)
+-	offset = 0;
++	  {
++		offset = 0;
++		
++		if (d_new)
++		{
++		  d_data = d_data_new;
++		  d_new = false;
++		}
++	  }
+     }
+     d_offset = offset;
+     return noutput_items;
+diff --git a/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t b/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t
+index 63edcb6..6f682fc
+--- a/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t
++++ b/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t
+@@ -26,6 +26,7 @@
+ #define @GUARD_NAME@
+ 
+ #include <gr_sync_block.h>
++#include <gruel/thread.h>
+ 
+ class @NAME@;
+ typedef boost::shared_ptr<@NAME@> @NAME@_sptr;
+@@ -39,15 +40,17 @@ class @NAME@ : public gr_sync_block {
+   friend @NAME@_sptr 
+   gr_make_@BASE_NAME@ (const std::vector<@TYPE@> &data, bool repeat, int vlen);
+ 
+-  std::vector<@TYPE@>	d_data;
+-  bool			d_repeat;
++  std::vector<@TYPE@>	d_data, d_data_new;
++  bool			d_repeat, d_new;
+   unsigned int		d_offset;
++  gruel::mutex	d_mutex;
+   int			d_vlen;
+ 
+   @NAME@ (const std::vector<@TYPE@> &data, bool repeat, int vlen);
+ 
+  public:
+   void rewind() {d_offset=0;}
++  void set_data(const std::vector<@TYPE@> &data);
+   virtual int work (int noutput_items,
+ 		    gr_vector_const_void_star &input_items,
+ 		    gr_vector_void_star &output_items);
+diff --git a/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t b/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t
+index a221578..b180e37
+--- a/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t
++++ b/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t
+@@ -31,6 +31,7 @@ gr_make_@BASE_NAME@ (const std::vector<@TYPE@> &data, bool repeat = false, int v
+ class @NAME@ : public gr_sync_block {
+  public:
+   void rewind() {d_offset=0;}
++  void set_data(const std::vector<@TYPE@> &data);
+  private:
+   @NAME@ (const std::vector<@TYPE@> &data, int vlen);
+ };
+diff --git a/grc/blocks/gr_vector_source_x.xml b/grc/blocks/gr_vector_source_x.xml
+index 7a6a3ae..5055e74
+--- a/grc/blocks/gr_vector_source_x.xml
++++ b/grc/blocks/gr_vector_source_x.xml
+@@ -9,6 +9,7 @@
+ 	<key>gr_vector_source_x</key>
+ 	<import>from gnuradio import gr</import>
+ 	<make>gr.vector_source_$(type.fcn)($vector, $repeat, $vlen)</make>
++	<callback>set_data($vector)</callback>
+ 	<param>
+ 		<name>Output Type</name>
+ 		<key>type</key>

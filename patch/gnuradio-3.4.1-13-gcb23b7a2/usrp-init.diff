@@ -1,0 +1,12 @@
+diff --git a/gr-usrp/src/__init__.py b/gr-usrp/src/__init__.py
+index c81b2f2..83dcf34
+--- a/gr-usrp/src/__init__.py
++++ b/gr-usrp/src/__init__.py
+@@ -25,4 +25,6 @@
+ from usrp_swig import *
+ 
+ # Add other content from pure-Python modules here
+-
++import sys
++if not sys.modules.has_key('baz.borip'):
++	from baz import borip

@@ -1,0 +1,189 @@
+diff --git a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc
+index 1efa827..e8a84e2
+--- a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc
++++ b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc
+@@ -60,9 +60,10 @@ gr_mpsk_receiver_cc::gr_mpsk_receiver_cc (unsigned int M, float theta,
+ 					  float omega, float gain_omega, float omega_rel)
+   : gr_block ("mpsk_receiver_cc",
+ 	      gr_make_io_signature (1, 1, sizeof (gr_complex)),
+-	      gr_make_io_signature (1, 1, sizeof (gr_complex))),
++	      gr_make_io_signature2 (1, 7, sizeof (gr_complex), sizeof(float))),
+     d_M(M), d_theta(theta), 
+     d_alpha(alpha), d_beta(beta), d_freq(0), d_max_freq(fmax), d_min_freq(fmin), d_phase(0),
++	d_prev_phase(0), d_prev_mu(0), d_work_count(0),
+     d_current_const_point(0),
+     d_mu(mu), d_gain_mu(gain_mu), d_gain_omega(gain_omega), 
+     d_omega_rel(omega_rel), d_max_omega(0), d_min_omega(0),
+@@ -199,7 +200,7 @@ gr_mpsk_receiver_cc::make_constellation()
+ }
+ 
+ void
+-gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol)
++gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol, int* mod_adj /*= NULL*/)
+ {
+   gr_complex sample, nco;
+ 
+@@ -207,10 +208,16 @@ gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol)
+   d_phase += d_freq;  // increment the phase based on the frequency of the rotation
+ 
+   // Keep phase clamped and not walk to infinity
+-  while(d_phase > M_TWOPI)
++  while(d_phase > M_TWOPI) {
+     d_phase -= M_TWOPI;
+-  while(d_phase < -M_TWOPI)
++	if (mod_adj)
++	  --(*mod_adj);
++  }
++  while(d_phase < -M_TWOPI) {
+     d_phase += M_TWOPI;
++	if (mod_adj)
++	  ++(*mod_adj);
++  }
+   
+   nco = gr_expj(d_phase+d_theta);   // get the NCO value for derotating the current sample
+   sample = nco*symbol;      // get the downconverted symbol
+@@ -221,7 +228,7 @@ gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol)
+   d_dl_idx = (d_dl_idx+1) % DLLEN;    // Keep the delay line index in bounds
+ }
+ 
+-void
++float
+ gr_mpsk_receiver_cc::mm_error_tracking(gr_complex sample)
+ {
+   gr_complex u, x, y;
+@@ -255,11 +262,12 @@ gr_mpsk_receiver_cc::mm_error_tracking(gr_complex sample)
+ 	 d_mu, d_omega, mm_error, sample.real(), sample.imag(), 
+ 	 d_constellation[d_current_const_point].real(), d_constellation[d_current_const_point].imag());
+ #endif
++  return mm_error;
+ }
+ 
+ 
+-void
+-gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample)
++float
++gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample, int* mod_adj /*= NULL*/)
+ {
+   float phase_error = 0;
+ 
+@@ -270,10 +278,16 @@ gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample)
+   d_phase += d_freq + d_alpha*phase_error;  // adjust phase based on error
+ 
+   // Make sure we stay within +-2pi
+-  while(d_phase > M_TWOPI)
++  while(d_phase > M_TWOPI) {
+     d_phase -= M_TWOPI;
+-  while(d_phase < -M_TWOPI)
++	if (mod_adj)
++	  --(*mod_adj);
++  }
++  while(d_phase < -M_TWOPI) {
+     d_phase += M_TWOPI;
++	if (mod_adj)
++	  ++(*mod_adj);
++  }
+   
+   // Limit the frequency range
+   d_freq = gr_branchless_clip(d_freq, d_max_freq);
+@@ -283,6 +297,7 @@ gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample)
+ 	 phase_error, d_phase, d_freq, sample.real(), sample.imag(), 
+ 	 d_constellation[d_current_const_point].real(), d_constellation[d_current_const_point].imag());
+ #endif
++  return phase_error;
+ }
+ 
+ int
+@@ -293,22 +308,55 @@ gr_mpsk_receiver_cc::general_work (int noutput_items,
+ {
+   const gr_complex *in = (const gr_complex *) input_items[0];
+   gr_complex *out = (gr_complex *) output_items[0];
++  
++  float* freq_out =			(float*)((output_items.size() > 1) ? output_items[1] : NULL);
++  float* phase_out =		(float*)((output_items.size() > 2) ? output_items[2] : NULL);
++  float* phase_error_out =	(float*)((output_items.size() > 3) ? output_items[3] : NULL);
++  float* mu_out =			(float*)((output_items.size() > 4) ? output_items[4] : NULL);
++  float* omega_out =		(float*)((output_items.size() > 5) ? output_items[5] : NULL);
++  float* mm_error_out =		(float*)((output_items.size() > 6) ? output_items[6] : NULL);
+ 
+   int i=0, o=0;
+ 
+   while((o < noutput_items) && (i < ninput_items[0])) {
++	int mu_adj = 0;
++	int phase_mod_adj = 0;
+     while((d_mu > 1) && (i < ninput_items[0]))  {
+-      mm_sampler(in[i]);   // puts symbols into a buffer and adjusts d_mu
++      mm_sampler(in[i], &phase_mod_adj);   // puts symbols into a buffer and adjusts d_mu
+       i++;
++	  ++mu_adj;
+     }
+     
+     if(i < ninput_items[0]) {
+       gr_complex interp_sample = d_interp->interpolate(&d_dl[d_dl_idx], d_mu);
+        
+-      mm_error_tracking(interp_sample);     // corrects M&M sample time
+-      phase_error_tracking(interp_sample);  // corrects phase and frequency offsets
+-
+-      out[o++] = interp_sample;
++      float mm_error = mm_error_tracking(interp_sample);     // corrects M&M sample time
++      float phase_error = phase_error_tracking(interp_sample, &phase_mod_adj);  // corrects phase and frequency offsets
++
++      out[o] = interp_sample;
++	  
++	  if ((o == 0) && (d_work_count == 0)) {
++		d_prev_phase = d_phase;
++		d_prev_mu = d_mu;
++	  }
++	  
++	  if (freq_out) freq_out[o] = d_freq;
++	  if (phase_out) {
++		phase_out[o] = d_phase - d_prev_phase;
++		phase_out[o] += (-phase_mod_adj * M_TWOPI);
++	  }
++	  if (phase_error_out) phase_error_out[o] = phase_error;
++	  if (mu_out) {
++		mu_out[o] = d_mu - d_prev_mu;
++		mu_out[o] += mu_adj;
++	  }
++	  if (omega_out) omega_out[o] = d_omega;
++	  if (mm_error_out) mm_error_out[o] = mm_error;
++	  
++	  d_prev_phase = d_phase;
++	  d_prev_mu = d_mu;
++	  
++	  o++;
+     }
+   }
+ 
+@@ -318,5 +366,6 @@ gr_mpsk_receiver_cc::general_work (int noutput_items,
+   #endif
+ 
+   consume_each(i);
++  ++d_work_count;
+   return o;
+ }
+diff --git a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h
+index 024d74a..6049982
+--- a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h
++++ b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h
+@@ -165,9 +165,9 @@ protected:
+ 		       float omega, float gain_omega, float omega_rel);
+ 
+   void make_constellation();
+-  void mm_sampler(const gr_complex symbol);
+-  void mm_error_tracking(gr_complex sample);
+-  void phase_error_tracking(gr_complex sample);
++  void mm_sampler(const gr_complex symbol, int* mod_adj = NULL);
++  float mm_error_tracking(gr_complex sample);
++  float phase_error_tracking(gr_complex sample, int* mod_adj = NULL);
+ 
+ 
+ /*!
+@@ -258,6 +258,8 @@ protected:
+   float d_beta;
+   float d_freq, d_max_freq, d_min_freq;
+   float d_phase;
++  float d_prev_phase, d_prev_mu;
++  unsigned long long d_work_count;
+ 
+ /*!
+    * \brief Decision maker function pointer

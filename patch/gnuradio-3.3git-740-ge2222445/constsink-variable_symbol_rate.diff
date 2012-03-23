@@ -1,0 +1,62 @@
+diff --git a/gr-wxgui/src/python/const_window.py b/gr-wxgui/src/python/const_window.py
+index f7c7caf..46c2ad7
+--- a/gr-wxgui/src/python/const_window.py
++++ b/gr-wxgui/src/python/const_window.py
+@@ -133,6 +133,7 @@ class const_window(wx.Panel, pubsub.pubsub):
+ 		gain_omega_key,
+ 		omega_key,
+ 		sample_rate_key,
++		symbol_rate_key,
+ 	):
+ 		pubsub.pubsub.__init__(self)
+ 		#proxy the keys
+@@ -143,6 +144,7 @@ class const_window(wx.Panel, pubsub.pubsub):
+ 		self.proxy(GAIN_OMEGA_KEY, controller, gain_omega_key)
+ 		self.proxy(OMEGA_KEY, controller, omega_key)
+ 		self.proxy(SAMPLE_RATE_KEY, controller, sample_rate_key)
++		self.proxy(SYMBOL_RATE_KEY, controller, symbol_rate_key)
+ 		#initialize values
+ 		self[RUNNING_KEY] = True
+ 		self[X_DIVS_KEY] = 8
+diff --git a/gr-wxgui/src/python/constants.py b/gr-wxgui/src/python/constants.py
+index 825f71c..65f49a0
+--- a/gr-wxgui/src/python/constants.py
++++ b/gr-wxgui/src/python/constants.py
+@@ -70,3 +70,4 @@ NUM_BINS_KEY = 'num_bins'
+ FRAME_SIZE_KEY = 'frame_size'
+ CHANNEL_OPTIONS_KEY = 'channel_options'
+ SHOW_CONTROL_PANEL_KEY = 'show_control_panel'
++SYMBOL_RATE_KEY = 'symbol_rate'
+diff --git a/gr-wxgui/src/python/constsink_gl.py b/gr-wxgui/src/python/constsink_gl.py
+index 91bc65d..0abfb3c
+--- a/gr-wxgui/src/python/constsink_gl.py
++++ b/gr-wxgui/src/python/constsink_gl.py
+@@ -110,6 +110,8 @@ class const_sink_c(gr.hier_block2, common.wxgui_hb):
+ 		self.controller.subscribe(SAMPLE_RATE_KEY, sd.set_sample_rate)
+ 		self.controller.subscribe(SAMPLE_RATE_KEY, lambda x: setter(self.controller, OMEGA_KEY, float(x)/symbol_rate))
+ 		self.controller.publish(SAMPLE_RATE_KEY, sd.sample_rate)
++		self.controller.subscribe(SYMBOL_RATE_KEY, lambda x: setter(self.controller, OMEGA_KEY, float(self.controller[SAMPLE_RATE_KEY])/float(x)))
++		self.controller.publish(SYMBOL_RATE_KEY, lambda: self.controller[SAMPLE_RATE_KEY] * self.controller[OMEGA])
+ 		#initial update
+ 		self.controller[SAMPLE_RATE_KEY] = sample_rate
+ 		#start input watcher
+@@ -127,6 +129,7 @@ class const_sink_c(gr.hier_block2, common.wxgui_hb):
+ 			gain_omega_key=GAIN_OMEGA_KEY,
+ 			omega_key=OMEGA_KEY,
+ 			sample_rate_key=SAMPLE_RATE_KEY,
++			symbol_rate_key=SYMBOL_RATE_KEY,
+ 		)
+ 		common.register_access_methods(self, self.win)
+ 		#connect
+diff --git a/grc/blocks/wxgui_constellationsink2.xml b/grc/blocks/wxgui_constellationsink2.xml
+index 598b550..8403ba0
+--- a/grc/blocks/wxgui_constellationsink2.xml
++++ b/grc/blocks/wxgui_constellationsink2.xml
+@@ -33,6 +33,7 @@ $(parent).Add(self.$(id).win)
+ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
+ #end if</make>
+ 	<callback>set_sample_rate($samp_rate)</callback>
++	<callback>set_symbol_rate($symbol_rate)</callback>
+ 	<param>
+ 		<name>Title</name>
+ 		<key>title</key>

@@ -1,0 +1,876 @@
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.cc b/gnuradio-core/src/lib/io/gr_udp_source.cc
+index d76d0ee..ea305ea
+--- a/gnuradio-core/src/lib/io/gr_udp_source.cc
++++ b/gnuradio-core/src/lib/io/gr_udp_source.cc
+@@ -1,6 +1,6 @@
+ /* -*- c++ -*- */
+ /*
+- * Copyright 2007,2008,2009 Free Software Foundation, Inc.
++ * Copyright 2007,2008,2009,2010 Free Software Foundation, Inc.
+  * 
+  * This file is part of GNU Radio
+  * 
+@@ -29,80 +29,165 @@
+ #include <errno.h>
+ #include <stdio.h>
+ #include <string.h>
+-#if defined(HAVE_SOCKET)
++
++#if defined(HAVE_NETDB_H)
+ #include <netdb.h>
++#ifdef HAVE_SYS_TYPES_H
++#include <sys/types.h>
++#endif
++#ifdef HAVE_SYS_SOCKET_H
++#include <sys/socket.h>
++#endif
+ typedef void* optval_t;
+-#else
++
++// ntohs() on FreeBSD may require both netinet/in.h and arpa/inet.h, in order
++#if defined(HAVE_NETINET_IN_H)
++#include <netinet/in.h>
++#endif
++#if defined(HAVE_ARPA_INET_H)
++#include <arpa/inet.h>
++#endif
++
++#elif defined(HAVE_WINDOWS_H)
++// if not posix, assume winsock
++#define USING_WINSOCK
++#include <winsock2.h>
++#include <ws2tcpip.h>
+ #define SHUT_RDWR 2
+-#define inet_aton(N,A) ( (A)->s_addr = inet_addr(N), ( (A)->s_addr != INADDR_NONE ) )
+ typedef char* optval_t;
+ #endif
+ 
++/////////////////////////////////////////////////
++
++#pragma pack(push)
++#pragma pack(1)
++
++typedef unsigned char BYTE;
++typedef unsigned short USHORT;
++
++typedef struct BorPacketHeader {
++	BYTE flags;
++	BYTE notification;
++	USHORT idx;
++} BOR_PACKET_HEADER, *PBOR_PACKET_HEADER;
++
++typedef struct BorPacket {
++	BOR_PACKET_HEADER header;
++	BYTE data[1];
++} BOR_PACKET, *PBOR_PACKET;
++
++#pragma pack(pop)
++
++enum BorFlags
++{
++	BF_NONE				= 0x00,
++	BF_HARDWARE_OVERRUN	= 0x01,
++	BF_NETWORK_OVERRUN	= 0x02,
++	BF_BUFFER_OVERRUN	= 0x04,
++	BF_EMPTY_PAYLOAD	= 0x08,
++	BF_STREAM_START		= 0x10,
++	BF_STREAM_END		= 0x20
++};
++
++/////////////////////////////////////////////////
++
++#define USE_SELECT    1  // non-blocking receive on all platforms
++#define USE_RCV_TIMEO 0  // non-blocking receive on all but Cygwin
+ #define SRC_VERBOSE 0
+ 
+-gr_udp_source::gr_udp_source(size_t itemsize, const char *src, 
+-			     unsigned short port_src, int payload_size)
++static int is_error( int perr )
++{
++  // Compare error to posix error code; return nonzero if match.
++#if defined(USING_WINSOCK)
++#define ENOPROTOOPT 109
++  // All codes to be checked for must be defined below
++  int werr = WSAGetLastError();
++  switch( werr ) {
++  case WSAETIMEDOUT:
++    return( perr == EAGAIN );
++  case WSAENOPROTOOPT:
++    return( perr == ENOPROTOOPT );
++  default:
++    fprintf(stderr,"gr_udp_source/is_error: unknown error %d\n", perr );
++    throw std::runtime_error("internal error");
++  }
++  return 0;
++#else
++  return( perr == errno );
++#endif
++}
++
++static void report_error( const char *msg1, const char *msg2 )
++{
++  // Deal with errors, both posix and winsock
++#if defined(USING_WINSOCK)
++  int werr = WSAGetLastError();
++  fprintf(stderr, "%s: winsock error %d\n", msg1, werr );
++#else
++  perror(msg1);
++#endif
++  if( msg2 != NULL )
++    throw std::runtime_error(msg2);
++  return;
++}
++
++gr_udp_source::gr_udp_source(size_t itemsize, const char *host, 
++			     unsigned short port, int payload_size,
++			     bool eof, bool wait, bool bor, bool verbose)
+   : gr_sync_block ("udp_source",
+ 		   gr_make_io_signature(0, 0, 0),
+ 		   gr_make_io_signature(1, 1, itemsize)),
+-    d_itemsize(itemsize), d_updated(false), d_payload_size(payload_size), d_residual(0), d_temp_offset(0)
++    d_itemsize(itemsize), d_payload_size(payload_size),
++    d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0),
++	d_bor(bor), d_bor_counter(0), d_bor_first(false),
++	d_eos(false)
+ {
++  if (bor)
++	d_payload_size += sizeof(BOR_PACKET_HEADER);
++  
+   int ret = 0;
++
++#if defined(USING_WINSOCK) // for Windows (with MinGW)
++  // initialize winsock DLL
++  WSADATA wsaData;
++  int iResult = WSAStartup( MAKEWORD(2,2), &wsaData );
++  if( iResult != NO_ERROR ) {
++    report_error( "gr_udp_source WSAStartup", "can't open socket" );
++  }
++#endif
+   
+   // Set up the address stucture for the source address and port numbers
+   // Get the source IP address from the host name
+-  struct hostent *hsrc = gethostbyname(src);
+-  if(hsrc) {   // if the source was provided as a host namex
+-    d_ip_src = *(struct in_addr*)hsrc->h_addr_list[0];    
+-  }
+-  else { // assume it was specified as an IP address
+-    if((ret=inet_aton(src, &d_ip_src)) == 0) {            // format IP address
+-      perror("Not a valid source IP address or host name");
+-      throw std::runtime_error("can't initialize source socket");
+-    }
+-  }
++  struct addrinfo *ip_src;      // store the source IP address to use
++  struct addrinfo hints;
++  memset( (void*)&hints, 0, sizeof(hints) );
++  hints.ai_family = AF_INET;
++  hints.ai_socktype = SOCK_DGRAM;
++  hints.ai_protocol = IPPROTO_UDP;
++  hints.ai_flags = AI_PASSIVE;
++  char port_str[12];
++  sprintf( port_str, "%d", port );
+ 
+-  d_port_src = htons(port_src);     // format port number
+-  
+-  d_sockaddr_src.sin_family = AF_INET;
+-  d_sockaddr_src.sin_addr   = d_ip_src;
+-  d_sockaddr_src.sin_port   = d_port_src;
++  // FIXME leaks if report_error throws below
++  ret = getaddrinfo( host, port_str, &hints, &ip_src );
++  if( ret != 0 )
++    report_error("gr_udp_source/getaddrinfo",
++		 "can't initialize source socket" );
+ 
++  // FIXME leaks if report_error throws below
+   d_temp_buff = new char[d_payload_size];   // allow it to hold up to payload_size bytes
+-  
+-  open();
+-}
+ 
+-gr_udp_source_sptr
+-gr_make_udp_source (size_t itemsize, const char *ipaddr, 
+-		    unsigned short port, int payload_size)
+-{
+-  return gr_udp_source_sptr (new gr_udp_source (itemsize, ipaddr, 
+-						port, payload_size));
+-}
+-
+-gr_udp_source::~gr_udp_source ()
+-{
+-  delete [] d_temp_buff;
+-  close();
+-}
+-
+-bool
+-gr_udp_source::open()
+-{
+-  gruel::scoped_lock guard(d_mutex);	// hold mutex for duration of this function
+   // create socket
+-  d_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
++  d_socket = socket(ip_src->ai_family, ip_src->ai_socktype,
++		    ip_src->ai_protocol);
+   if(d_socket == -1) {
+-    perror("socket open");
+-    throw std::runtime_error("can't open socket");
++    report_error("socket open","can't open socket");
+   }
+ 
+   // Turn on reuse address
+   int opt_val = 1;
+   if(setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, (optval_t)&opt_val, sizeof(int)) == -1) {
+-    perror("SO_REUSEADDR");
+-    throw std::runtime_error("can't set socket option SO_REUSEADDR");
++    report_error("SO_REUSEADDR","can't set socket option SO_REUSEADDR");
+   }
+ 
+   // Don't wait when shutting down
+@@ -110,40 +195,81 @@ gr_udp_source::open()
+   lngr.l_onoff  = 1;
+   lngr.l_linger = 0;
+   if(setsockopt(d_socket, SOL_SOCKET, SO_LINGER, (optval_t)&lngr, sizeof(linger)) == -1) {
+-    perror("SO_LINGER");
+-    throw std::runtime_error("can't set socket option SO_LINGER");
++    if( !is_error(ENOPROTOOPT) ) {  // no SO_LINGER for SOCK_DGRAM on Windows
++      report_error("SO_LINGER","can't set socket option SO_LINGER");
++    }
+   }
+ 
++#if USE_RCV_TIMEO
+   // Set a timeout on the receive function to not block indefinitely
+   // This value can (and probably should) be changed
++  // Ignored on Cygwin
++#if defined(USING_WINSOCK)
++  DWORD timeout = 1000;  // milliseconds
++#else
+   timeval timeout;
+   timeout.tv_sec = 1;
+   timeout.tv_usec = 0;
++#endif
+   if(setsockopt(d_socket, SOL_SOCKET, SO_RCVTIMEO, (optval_t)&timeout, sizeof(timeout)) == -1) {
+-    perror("SO_RCVTIMEO");
+-    throw std::runtime_error("can't set socket option SO_RCVTIMEO");
++    report_error("SO_RCVTIMEO","can't set socket option SO_RCVTIMEO");
++  }
++#endif // USE_RCV_TIMEO
++
++  int requested_recv_buff_size = 1024 * 1024;
++  if (setsockopt(d_socket, SOL_SOCKET, SO_RCVBUFFORCE, (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
++	if (d_verbose) {
++	  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_recv_buff_size);
++	}
++  }
++  else {
++	int recv_buff_size = 0;
++	socklen_t var_size = 0;
++	if ((getsockopt(d_socket, SOL_SOCKET, SO_RCVBUF, (optval_t)&recv_buff_size, &var_size) == 0) && (var_size == sizeof(int)) && (recv_buff_size != requested_recv_buff_size)) {
++	  fprintf(stderr, "BorUDP Source: successfully requested %i bytes buffer, but is still %i\n", requested_recv_buff_size, recv_buff_size);
++	}
+   }
+ 
+   // bind socket to an address and port number to listen on
+-  if(bind (d_socket, (sockaddr*)&d_sockaddr_src, sizeof(struct sockaddr)) == -1) {
+-    perror("socket bind");
+-    throw std::runtime_error("can't bind socket");
++  if(bind (d_socket, ip_src->ai_addr, ip_src->ai_addrlen) == -1) {
++    report_error("socket bind","can't bind socket");
+   }
+-  
+-  d_updated = true;
+-  return d_socket != 0;
++  freeaddrinfo(ip_src);
++
+ }
+ 
+-void
+-gr_udp_source::close()
++gr_udp_source_sptr
++gr_make_udp_source (size_t itemsize, const char *ipaddr, 
++		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose)
++{
++  return gnuradio::get_initial_sptr(new gr_udp_source (itemsize, ipaddr, 
++						port, payload_size, eof, wait, bor, verbose));
++}
++
++gr_udp_source::~gr_udp_source ()
+ {
+-  gruel::scoped_lock guard(d_mutex);	// hold mutex for duration of this function
++  delete [] d_temp_buff;
+ 
+-  if (d_socket){
++  if (d_socket != -1){
+     shutdown(d_socket, SHUT_RDWR);
+-    d_socket = 0;
++#if defined(USING_WINSOCK)
++    closesocket(d_socket);
++#else
++    ::close(d_socket);
++#endif
++    d_socket = -1;
+   }
+-  d_updated = true;
++
++#if defined(USING_WINSOCK) // for Windows (with MinGW)
++  // free winsock resources
++  WSACleanup();
++#endif
++}
++
++void
++gr_udp_source::signal_eos() {
++  d_wait = false;
++  d_eos = true;
+ }
+ 
+ int 
+@@ -151,6 +277,9 @@ gr_udp_source::work (int noutput_items,
+ 		     gr_vector_const_void_star &input_items,
+ 		     gr_vector_void_star &output_items)
+ {
++  if (d_eos)
++	return -1;
++  
+   char *out = (char *) output_items[0];
+   ssize_t r=0, nbytes=0, bytes_received=0;
+   ssize_t total_bytes = (ssize_t)(d_itemsize*noutput_items);
+@@ -175,30 +304,131 @@ gr_udp_source::work (int noutput_items,
+     
+     // Update indexing of amount of bytes left in the buffer
+     d_residual -= nbytes;
+-    d_temp_offset = d_temp_offset+d_residual;
++    d_temp_offset += nbytes;
++
++    // Return now with what we've got.
++    assert(nbytes % d_itemsize == 0);
++    return nbytes/d_itemsize;
+   }
+ 
+   while(1) {
+     // get the data into our output buffer and record the number of bytes
++
++#if USE_SELECT
++    // RCV_TIMEO doesn't work on all systems (e.g., Cygwin)
++    // use select() instead of, or in addition to RCV_TIMEO
++    fd_set readfds;
++    timeval timeout;
++    timeout.tv_sec = 1;	  // Init timeout each iteration.  Select can modify it.
++    timeout.tv_usec = 0;
++    FD_ZERO(&readfds);
++    FD_SET(d_socket, &readfds);
++    r = select(FD_SETSIZE, &readfds, NULL, NULL, &timeout);
++    if(r < 0) {
++	report_error("udp_source/select",NULL);
++	return -1;
++    }
++    else if(r == 0 ) {  // timed out
++      if( d_wait ) {
++	// Allow boost thread interrupt, then try again
++	boost::this_thread::interruption_point();
++	continue;
++      }
++      else
++	return -1;
++    }
++#endif // USE_SELECT
++
++	int recvd = -1;
+     // This is a non-blocking call with a timeout set in the constructor
+-    r = recv(d_socket, d_temp_buff, d_payload_size, 0);  // get the entire payload or the what's available
++    recvd = r = recv(d_socket, d_temp_buff, d_payload_size, 0);  // get the entire payload or the what's available
++
++    // If r > 0, round it down to a multiple of d_itemsize 
++    // (If sender is broken, don't propagate problem)
++    if (r > 0) {
++	  if (d_bor) {
++		r -= sizeof(BOR_PACKET_HEADER);
++	  }
++	  else {
++		r = (r/d_itemsize) * d_itemsize;
++	  }
++    }
+ 
+     // Check if there was a problem; forget it if the operation just timed out
+     if(r == -1) {
+-      if(errno == EAGAIN) {  // handle non-blocking call timeout
++      if( is_error(EAGAIN) ) {  // handle non-blocking call timeout
+         #if SRC_VERBOSE
+ 	printf("UDP receive timed out\n"); 
+         #endif
+ 
+-	// Break here to allow the rest of the flow graph time to run and so ctrl-C breaks
+-	break;
++	if( d_wait ) {
++	  // Allow boost thread interrupt, then try again
++	  boost::this_thread::interruption_point();
++	  continue;
++	}
++	else
++	  return -1;
+       }
+       else {
+-	perror("udp_source");
++	report_error("udp_source/recv",NULL);
+ 	return -1;
+       }
+     }
++    else if(r==0) {
++      if(d_eof) {
++	// zero-length packet interpreted as EOF
++
++	#if SNK_VERBOSE
++	printf("\tzero-length packet received; returning EOF\n");
++	#endif
++
++	return -1;
++      }
++      else{
++	// do we need to allow boost thread interrupt?
++	boost::this_thread::interruption_point();
++	continue;
++      }
++    }
+     else {
++	  int offset = 0;
++	  if (d_bor) {
++		if (recvd != d_payload_size) {
++		  if (d_verbose)
++			fprintf(stderr, "Received size %d != payload %d\n", recvd, d_payload_size);
++		  else
++			fprintf(stderr, "b!");
++		}
++		else {
++		  PBOR_PACKET_HEADER pHeader = (PBOR_PACKET_HEADER)d_temp_buff;
++		  if (pHeader->flags & BF_HARDWARE_OVERRUN) {
++			fprintf(stderr, "uO");
++		  }
++		  if (pHeader->flags & BF_STREAM_START) {
++			fprintf(stderr, "Stream start (%d)\n", (int)pHeader->idx);
++			if (d_bor_first)
++			  d_bor_first = false;
++		  }
++		  if (pHeader->idx != d_bor_counter) {
++			if (d_bor_first == false) {
++			  if ((pHeader->flags & BF_STREAM_START) == 0) {
++			    fprintf(stderr, "First packet (%d)\n", (int)pHeader->idx);
++			  }
++			  d_bor_first = true;
++			}
++			else {
++			  if (d_verbose)
++				fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (int)(pHeader->idx - d_bor_counter), (int)d_bor_counter, (int)pHeader->idx);
++			  else
++				fprintf(stderr, "bO");
++			}
++			d_bor_counter = pHeader->idx;
++		  }
++		  ++d_bor_counter;
++		  offset = sizeof(BOR_PACKET_HEADER);
++		}
++	  }
++	  
+       // Calculate the number of bytes we can take from the buffer in this call
+       nbytes = std::min(r, total_bytes-bytes_received);
+       
+@@ -206,10 +436,10 @@ gr_udp_source::work (int noutput_items,
+       nbytes -= ((bytes_received+nbytes) % d_itemsize);   
+ 
+       // copy the number of bytes we want to look at here
+-      memcpy(out, d_temp_buff, nbytes);    
++      memcpy(out, (d_temp_buff + offset), nbytes);
+ 
+       d_residual = r - nbytes;                      // save the number of bytes stored
+-      d_temp_offset=nbytes;                         // reset buffer index
++      d_temp_offset = nbytes + offset;              // reset buffer index
+ 
+       // keep track of the total number of bytes received
+       bytes_received += nbytes;
+@@ -227,11 +457,22 @@ gr_udp_source::work (int noutput_items,
+   }
+ 
+   #if SRC_VERBOSE
+-  printf("Total Bytes Received: %d (bytes_received / noutput_items = %d / %d)\n", 
+-	 bytes_received, bytes_received, noutput_items);
++  printf("Total Bytes Received: %d (bytes_received / noutput_items = %d / %d)\n", bytes_received, bytes_received, noutput_items);
+   #endif
+ 
+   // bytes_received is already set to some integer multiple of itemsize
+-  return bytes_received/d_itemsize;
++  return (d_eos ? -1 : bytes_received/d_itemsize);
+ }
+ 
++// Return port number of d_socket
++int gr_udp_source::get_port(void)
++{
++  sockaddr_in name;
++  socklen_t len = sizeof(name);
++  int ret = getsockname( d_socket, (sockaddr*)&name, &len );
++  if( ret ) {
++    report_error("gr_udp_source/getsockname",NULL);
++    return -1;
++  }
++  return ntohs(name.sin_port);
++}
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.h b/gnuradio-core/src/lib/io/gr_udp_source.h
+index 61d719e..501ab2a
+--- a/gnuradio-core/src/lib/io/gr_udp_source.h
++++ b/gnuradio-core/src/lib/io/gr_udp_source.h
+@@ -1,6 +1,6 @@
+ /* -*- c++ -*- */
+ /*
+- * Copyright 2007,2008,2009 Free Software Foundation, Inc.
++ * Copyright 2007,2008,2009,2010 Free Software Foundation, Inc.
+  * 
+  * This file is part of GNU Radio
+  * 
+@@ -24,92 +24,87 @@
+ #define INCLUDED_GR_UDP_SOURCE_H
+ 
+ #include <gr_sync_block.h>
+-#if defined(HAVE_SOCKET)
+-#include <sys/socket.h>
+-#include <arpa/inet.h>
+-#elif defined(HAVE_WINDOWS_H)
+-#include <winsock2.h>
+-#include <windows.h>
+-#endif
+-#if defined(HAVE_NETINET_IN_H)
+-#include <netinet/in.h>
+-#endif
+-
+ #include <gruel/thread.h>
+ 
+ class gr_udp_source;
+ typedef boost::shared_ptr<gr_udp_source> gr_udp_source_sptr;
+ 
+-gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *src, 
+-				      unsigned short port_src, int payload_size=1472);
++gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *host, 
++				      unsigned short port,
++				      int payload_size=1472,
++				      bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
+ 
+ /*! 
+  * \brief Read stream from an UDP socket.
+  * \ingroup source_blk
+  *
+  * \param itemsize     The size (in bytes) of the item datatype
+- * \param src          The source address as either the host name or the 'numbers-and-dots'
+- *                     IP address
+- * \param port_src     The port number on which the socket listens for data
+- * \param payload_size UDP payload size by default set to 
+- *                     1472 = (1500 MTU - (8 byte UDP header) - (20 byte IP header))
++ * \param host         The name or IP address of the receiving host; can be
++ *                     NULL, None, or "0.0.0.0" to allow reading from any
++ *                     interface on the host
++ * \param port         The port number on which to receive data; use 0 to
++ *                     have the system assign an unused port number
++ * \param payload_size UDP payload size by default set to 1472 =
++ *                     (1500 MTU - (8 byte UDP header) - (20 byte IP header))
++ * \param eof          Interpret zero-length packet as EOF (default: true)
++ * \param wait         Wait for data if not immediately available
++ *                     (default: true)
+  *
+ */
+ 
+ class gr_udp_source : public gr_sync_block
+ {
+-  friend gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *src, 
+-					       unsigned short port_src, int payload_size);
++  friend gr_udp_source_sptr gr_make_udp_source(size_t itemsize,
++					       const char *host, 
++					       unsigned short port,
++					       int payload_size,
++					       bool eof, bool wait, bool bor, bool verbose);
+ 
+  private:
+   size_t	d_itemsize;
+-  bool		d_updated;
+-  gruel::mutex	d_mutex;
+-
+-  int            d_payload_size;  // maximum transmission unit (packet length)
+-  int            d_socket;        // handle to socket
+-  int            d_socket_rcv;    // handle to socket retuned in the accept call
+-  struct in_addr d_ip_src;        // store the source IP address to use
+-  unsigned short d_port_src;      // the port number to open for connections to this service
+-  struct sockaddr_in    d_sockaddr_src;  // store the source sockaddr data (formatted IP address and port number)
++  int           d_payload_size;  // maximum transmission unit (packet length)
++  bool          d_eof;           // zero-length packet is EOF
++  bool          d_wait;          // wait if data if not immediately available
++  int           d_socket;        // handle to socket
+   char *d_temp_buff;    // hold buffer between calls
+   ssize_t d_residual;   // hold information about number of bytes stored in the temp buffer
+   size_t d_temp_offset; // point to temp buffer location offset
++  bool			d_bor;
++  unsigned short d_bor_counter;
++  bool			d_bor_first;
++  bool			d_verbose;
++  bool			d_eos;
+ 
+  protected:
+   /*!
+    * \brief UDP Source Constructor
+    * 
+    * \param itemsize     The size (in bytes) of the item datatype
+-   * \param src          The source address as either the host name or the 'numbers-and-dots'
+-   *                     IP address
+-   * \param port_src     The port number on which the socket listens for data
+-   * \param payload_size UDP payload size by default set to 
+-   *                     1472 = (1500 MTU - (8 byte UDP header) - (20 byte IP header))
++   * \param host         The name or IP address of the receiving host; can be
++   *                     NULL, None, or "0.0.0.0" to allow reading from any
++   *                     interface on the host
++   * \param port         The port number on which to receive data; use 0 to
++   *                     have the system assign an unused port number
++   * \param payload_size UDP payload size by default set to 1472 =
++   *                     (1500 MTU - (8 byte UDP header) - (20 byte IP header))
++   * \param eof          Interpret zero-length packet as EOF (default: true)
++   * \param wait         Wait for data if not immediately available
++   *                     (default: true)
+    */
+-  gr_udp_source(size_t itemsize, const char *src, unsigned short port_src, int payload_size);
++  gr_udp_source(size_t itemsize, const char *host, unsigned short port,
++		int payload_size, bool eof, bool wait, bool bor, bool verbose);
+ 
+  public:
+   ~gr_udp_source();
+ 
+-  /*!
+-   * \brief open a socket specified by the port and ip address info
+-   *
+-   * Opens a socket, binds to the address, and waits for a connection
+-   * over UDP. If any of these fail, the fuction retuns the error and exits.
+-   */
+-  bool open();
+-
+-  /*!
+-   * \brief Close current socket.
+-   *
+-   * Shuts down read/write on the socket
+-   */
+-  void close();
+-
+   /*! \brief return the PAYLOAD_SIZE of the socket */
+   int payload_size() { return d_payload_size; }
+ 
++  /*! \brief return the port number of the socket */
++  int get_port();
++  
++  void signal_eos();
++
+   // should we export anything else?
+ 
+   int work(int noutput_items,
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.i b/gnuradio-core/src/lib/io/gr_udp_source.i
+index fb39dad..fb9e3e7
+--- a/gnuradio-core/src/lib/io/gr_udp_source.i
++++ b/gnuradio-core/src/lib/io/gr_udp_source.i
+@@ -1,6 +1,6 @@
+ /* -*- c++ -*- */
+ /*
+- * Copyright 2007 Free Software Foundation, Inc.
++ * Copyright 2007,2010 Free Software Foundation, Inc.
+  * 
+  * This file is part of GNU Radio
+  * 
+@@ -23,20 +23,20 @@
+ GR_SWIG_BLOCK_MAGIC(gr,udp_source)
+ 
+ gr_udp_source_sptr 
+-gr_make_udp_source (size_t itemsize, const char *src, 
+-		    unsigned short port_src, int payload_size=1472);
++gr_make_udp_source (size_t itemsize, const char *host, 
++		    unsigned short port, int payload_size=1472,
++		    bool eof=true, bool wait=true, bool bor=false, bool verbose=false) throw (std::runtime_error);
+ 
+ class gr_udp_source : public gr_sync_block
+ {
+  protected:
+-  gr_udp_source (size_t itemsize, const char *src, 
+-		 unsigned short port_src, int payload_size);
++  gr_udp_source (size_t itemsize, const char *host, 
++		 unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose) throw (std::runtime_error);
+ 
+  public:
+   ~gr_udp_source ();
+ 
+-  bool open();
+-  void close();
+   int payload_size() { return d_payload_size; }
+-
++  int get_port();
++  void signal_eos();
+ };
+--- a/grc/blocks/gr_udp_source.xml
++++ b/grc/blocks/gr_udp_source.xml
+@@ -8,7 +8,7 @@
+ 	<name>UDP Source</name>
+ 	<key>gr_udp_source</key>
+ 	<import>from gnuradio import gr</import>
+-	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $mtu)</make>
++	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait, $borip, $verbose)</make>
+ 	<callback>set_mtu($mtu)</callback>
+ 	<param>
+ 		<name>Output Type</name>
+@@ -53,12 +53,72 @@
+ 		<type>int</type>
+ 	</param>
+ 	<param>
+-		<name>MTU</name>
+-		<key>mtu</key>
+-		<value>1024</value>
++		<name>Payload Size</name>
++		<key>psize</key>
++		<value>1472</value>
+ 		<type>int</type>
+ 	</param>
+ 	<param>
++	    <name>Null Pkt is EOF</name>
++		<key>eof</key>
++		<value>True</value>
++		<type>bool</type>
++		<hide>#if str($eof) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>Wait for Data</name>
++		<key>wait</key>
++		<value>True</value>
++		<type>bool</type>
++		<hide>#if str($wait) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>BorIP</name>
++		<key>borip</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($borip) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>Verbose</name>
++		<key>verbose</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($verbose) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
+ 		<name>Vec Length</name>
+ 		<key>vlen</key>
+ 		<value>1</value>
+diff --git a/grc/blocks/gr_udp_source.xml b/grc/blocks/gr_udp_source.xml
+index f03adf8..b76be66
+--- a/grc/blocks/gr_udp_source.xml
++++ b/grc/blocks/gr_udp_source.xml
+@@ -8,7 +8,7 @@
+ 	<name>UDP Source</name>
+ 	<key>gr_udp_source</key>
+ 	<import>from gnuradio import gr</import>
+-	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $mtu)</make>
++	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait, $borip, $verbose)</make>
+ 	<callback>set_mtu($mtu)</callback>
+ 	<param>
+ 		<name>Output Type</name>
+@@ -53,12 +53,72 @@
+ 		<type>int</type>
+ 	</param>
+ 	<param>
+-		<name>MTU</name>
+-		<key>mtu</key>
+-		<value>1024</value>
++		<name>Payload Size</name>
++		<key>psize</key>
++		<value>1472</value>
+ 		<type>int</type>
+ 	</param>
+ 	<param>
++	    <name>Null Pkt is EOF</name>
++		<key>eof</key>
++		<value>True</value>
++		<type>bool</type>
++		<hide>#if str($eof) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>Wait for Data</name>
++		<key>wait</key>
++		<value>True</value>
++		<type>bool</type>
++		<hide>#if str($wait) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>BorIP</name>
++		<key>borip</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($borip) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>Verbose</name>
++		<key>verbose</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($verbose) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
+ 		<name>Vec Length</name>
+ 		<key>vlen</key>
+ 		<value>1</value>

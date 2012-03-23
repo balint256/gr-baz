@@ -1,0 +1,58 @@
+diff --git a/grc/blocks/blks2_dxpsk2_demod.xml b/grc/blocks/blks2_dxpsk2_demod.xml
+index ce8305c..bd7c1e2
+--- a/grc/blocks/blks2_dxpsk2_demod.xml
++++ b/grc/blocks/blks2_dxpsk2_demod.xml
+@@ -3,6 +3,13 @@
+ ###################################################
+ ##DPSK2 Demod - 2, 4
+ ###################################################
++costas_alpha=$costas_alpha,
++<param>
++		<name>Costas Alpha</name>
++		<key>costas_alpha</key>
++		<value>0.175</value>
++		<type>real</type>
++	</param>
+  -->
+ <block>
+ 	<name>DPSK2 Demod</name>
+@@ -11,7 +18,8 @@
+ 	<make>blks2.$(type)2_demod(
+ 	samples_per_symbol=$samples_per_symbol,
+ 	excess_bw=$excess_bw,
+-	costas_alpha=$costas_alpha,
++	freq_alpha=$freq_alpha,
++	phase_alpha=$phase_alpha,
+ 	timing_alpha=$timing_alpha,
+ 	timing_max_dev=$timing_max_dev,
+ 	gray_code=$gray_code,
+@@ -19,8 +27,8 @@
+ 	log=$log,
+ 	sync_out=$sync_out,
+ )</make>
+-	<callback>clock_recov.set_alpha($costas_alpha)</callback>
+-	<callback>clock_recov.set_beta(0.25*$costas_alpha**2)</callback>
++	<callback>phase_recov.set_alpha($phase_alpha)</callback>
++	<callback>phase_recov.set_beta(0.25*$phase_alpha**2)</callback>
+ 	<callback>time_recov.set_alpha($timing_alpha)</callback>
+ 	<param>
+ 		<name>Type</name>
+@@ -48,9 +56,15 @@
+ 		<type>real</type>
+ 	</param>
+ 	<param>
+-		<name>Costas Alpha</name>
+-		<key>costas_alpha</key>
+-		<value>0.175</value>
++		<name>Freq Alpha</name>
++		<key>freq_alpha</key>
++		<value>0.010</value>
++		<type>real</type>
++	</param>
++	<param>
++		<name>Phase Alpha</name>
++		<key>phase_alpha</key>
++		<value>0.1</value>
+ 		<type>real</type>
+ 	</param>
+ 	<param>

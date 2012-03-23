@@ -1,0 +1,137 @@
+diff --git a/gnuradio-core/src/lib/general/gr_agc_cc.cc b/gnuradio-core/src/lib/general/gr_agc_cc.cc
+index 92cec00..dd6903f
+--- a/gnuradio-core/src/lib/general/gr_agc_cc.cc
++++ b/gnuradio-core/src/lib/general/gr_agc_cc.cc
+@@ -27,7 +27,8 @@
+ #include <gr_agc_cc.h>
+ #include <gr_io_signature.h>
+ #include <gri_agc_cc.h>
+-
++#include <stdio.h>
++//#include <math.h>
+ gr_agc_cc_sptr
+ gr_make_agc_cc (float rate, float reference, 
+ 		float gain, float max_gain)
+@@ -51,6 +52,91 @@ gr_agc_cc::work (int noutput_items,
+ {
+   const gr_complex *in = (const gr_complex *) input_items[0];
+   gr_complex *out = (gr_complex *) output_items[0];
+-  scaleN (out, in, noutput_items);
++  //scaleN (out, in, noutput_items);
++  //return noutput_items;
++// [CODE BELOW IS NO LONGER EXECUTED] ///////////////////////////////////////////
++  double d[2];
++  for (unsigned i = 0; i < noutput_items; i++) {
++      //out[i] = scale(in[i]);
++	  
++	//gr_complex output = in[i] * _gain;
++	d[0] = in[i].real() * _gain;
++	d[1] = in[i].imag() * _gain;
++	
++	double mag = d[0]*d[0] + d[1]*d[1];
++	
++    if (!finite(mag) || isnan(mag) || isinf(mag)) {
++	  if (_gain == _max_gain) {
++fprintf(stderr, "[%05i] + %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++		out[i] = /*in[i]*//*0*/gr_complex(0, 0);
++		continue;
++	  }
++	  else {
++//fprintf(stderr, "gO");
++        mag = (double)in[i].real() * (double)in[i].real() + (double)in[i].imag() + (double)in[i].imag();
++        _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++        if (isnan(mag) || !finite(mag) || isinf(mag)) {
++          float r_abs = std::fabs(in[i].real());
++          float i_abs = std::fabs(in[i].imag());
++          if (r_abs > i_abs)
++            mag = r_abs + 0.4 * i_abs;
++          else
++            mag = i_abs + 0.4 * r_abs;
++          _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++fprintf(stderr, "[%05i] ! %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++          d[0] = in[i].real() * _gain;
++          d[1] = in[i].imag() * _gain;
++        }
++        else {
++fprintf(stderr, "[%05i]   %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++		//_gain = _max_gain;
++		i--;
++		continue;
++        }
++	  }
++	}
++	else {
++	  double diff = (double)_reference - sqrt(mag);
++//if (diff < 0.0) fprintf(stderr, "[%05i] D {%f} %f,%f -> %f,%f (%f) %f %f\n", i, diff, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++	  _gain += (double)_rate * diff;
++	  if (_max_gain > 0.0 && _gain > (double)_max_gain)
++	    _gain = _max_gain;
++	  else if (_gain <= 0.0) {
++//fprintf(stderr, "[%05i] - {%f} %f,%f -> %f,%f (%f) %f %f\n", i, diff, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++		mag = (double)in[i].real() * (double)in[i].real() + (double)in[i].imag() + (double)in[i].imag();
++        _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++        if (isnan(mag) || isnan(_gain) ||
++            !finite(mag) || !finite(_gain) ||
++            isinf(mag) || isinf(_gain)) {
++          float r_abs = std::fabs(in[i].real());
++          float i_abs = std::fabs(in[i].imag());
++          if (r_abs > i_abs)
++            mag = r_abs + 0.4 * i_abs;
++          else
++            mag = i_abs + 0.4 * r_abs;
++          _gain = std::min((double)_reference / sqrt(mag), (double)_max_gain);
++fprintf(stderr, "[%05i] - %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++        }
++        else {
++fprintf(stderr, "Reset gain to: %f\n", _gain);
++        }
++        d[0] = in[i].real() * _gain;
++        d[1] = in[i].imag() * _gain;
++	  }
++//	  else if (_gain < -1e3) {
++//fprintf(stderr, "[%05i] - %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
++//		_gain = -1e3;
++//	  }
++	  out[i] = /*output*/gr_complex(d[0], d[1]);
++	}
++	  
++	  /*float f = out[i].real() * out[i].imag();
++	  if (!finite(out[i].real()) || !finite(out[i].imag()) || !finite(f) ||
++		  isnan(out[i].real()) || isnan(out[i].imag()) || isnan(f) ||
++		  isinf(out[i].real()) || isinf(out[i].imag()) || isinf(f)) {
++		fprintf(stderr, "%f,%f %f\n", out[i].real(), out[i].imag(), _gain);
++		out[i] = 0.0f;
++	  }*/
++  }
+   return noutput_items;
+ }
+diff --git a/gnuradio-core/src/lib/general/gri_agc_cc.h b/gnuradio-core/src/lib/general/gri_agc_cc.h
+index bc31d9a..cdd21bf
+--- a/gnuradio-core/src/lib/general/gri_agc_cc.h
++++ b/gnuradio-core/src/lib/general/gri_agc_cc.h
+@@ -50,12 +50,12 @@ class gri_agc_cc {
+   void set_max_gain(float max_gain) { _max_gain = max_gain; }
+ 
+   gr_complex scale (gr_complex input){
+-    gr_complex output = input * _gain;
+-    
+-    _gain +=  _rate * (_reference - sqrt(output.real()*output.real() + 
+-					 output.imag()*output.imag()));
++    gr_complex output = input * (float)_gain;
++    float diff = _reference - sqrt(output.real()*output.real() + output.imag()*output.imag());
++    //if (!finite(diff) || isnan(diff) || isinf(diff)) return output;
++	_gain +=  _rate * diff;
+     if (_max_gain > 0.0 && _gain > _max_gain)
+-       _gain = _max_gain;						     
++       _gain = _max_gain;
+     return output;
+   }
+ 
+@@ -67,7 +67,7 @@ class gri_agc_cc {
+  protected:
+   float _rate;			// adjustment rate
+   float	_reference;		// reference value
+-  float	_gain;			// current gain
++  /*float*/double	_gain;			// current gain
+   float _max_gain;		// max allowable gain
+ };

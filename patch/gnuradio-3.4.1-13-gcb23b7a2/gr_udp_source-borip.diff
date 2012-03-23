@@ -1,0 +1,375 @@
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.cc b/gnuradio-core/src/lib/io/gr_udp_source.cc
+index ca31233..3d621e0
+--- a/gnuradio-core/src/lib/io/gr_udp_source.cc
++++ b/gnuradio-core/src/lib/io/gr_udp_source.cc
+@@ -57,6 +57,40 @@ typedef void* optval_t;
+ typedef char* optval_t;
+ #endif
+ 
++/////////////////////////////////////////////////
++
++#pragma pack(push)
++#pragma pack(1)
++
++typedef unsigned char BYTE;
++typedef unsigned short USHORT;
++
++typedef struct BorPacketHeader {
++	BYTE flags;
++	BYTE notification;
++	USHORT idx;
++} BOR_PACKET_HEADER, *PBOR_PACKET_HEADER;
++
++typedef struct BorPacket {
++	BOR_PACKET_HEADER header;
++	BYTE data[1];
++} BOR_PACKET, *PBOR_PACKET;
++
++#pragma pack(pop)
++
++enum BorFlags
++{
++	BF_NONE				= 0x00,
++	BF_HARDWARE_OVERRUN	= 0x01,
++	BF_NETWORK_OVERRUN	= 0x02,
++	BF_BUFFER_OVERRUN	= 0x04,
++	BF_EMPTY_PAYLOAD	= 0x08,
++	BF_STREAM_START		= 0x10,
++	BF_STREAM_END		= 0x20
++};
++
++/////////////////////////////////////////////////
++
+ #define USE_SELECT    1  // non-blocking receive on all platforms
+ #define USE_RCV_TIMEO 0  // non-blocking receive on all but Cygwin
+ #define SRC_VERBOSE 0
+@@ -99,13 +133,18 @@ static void report_error( const char *msg1, const char *msg2 )
+ 
+ gr_udp_source::gr_udp_source(size_t itemsize, const char *host, 
+ 			     unsigned short port, int payload_size,
+-			     bool eof, bool wait)
++			     bool eof, bool wait, bool bor, bool verbose)
+   : gr_sync_block ("udp_source",
+ 		   gr_make_io_signature(0, 0, 0),
+ 		   gr_make_io_signature(1, 1, itemsize)),
+     d_itemsize(itemsize), d_payload_size(payload_size),
+-    d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0)
++    d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0),
++	d_bor(bor), d_bor_counter(0), d_bor_first(false),
++	d_eos(false)
+ {
++  if (bor)
++	d_payload_size += sizeof(BOR_PACKET_HEADER);
++  
+   int ret = 0;
+ 
+ #if defined(USING_WINSOCK) // for Windows (with MinGW)
+@@ -177,6 +216,20 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
+   }
+ #endif // USE_RCV_TIMEO
+ 
++  int requested_recv_buff_size = 1024 * 1024;
++  if (setsockopt(d_socket, SOL_SOCKET, SO_RCVBUFFORCE, (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
++	if (d_verbose) {
++	  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_recv_buff_size);
++	}
++  }
++  else {
++	int recv_buff_size = 0;
++	socklen_t var_size = 0;
++	if ((getsockopt(d_socket, SOL_SOCKET, SO_RCVBUF, (optval_t)&recv_buff_size, &var_size) == 0) && (var_size == sizeof(int)) && (recv_buff_size != requested_recv_buff_size)) {
++	  fprintf(stderr, "BorUDP Source: successfully requested %i bytes buffer, but is still %i\n", requested_recv_buff_size, recv_buff_size);
++	}
++  }
++
+   // bind socket to an address and port number to listen on
+   if(bind (d_socket, ip_src->ai_addr, ip_src->ai_addrlen) == -1) {
+     report_error("socket bind","can't bind socket");
+@@ -187,10 +240,10 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
+ 
+ gr_udp_source_sptr
+ gr_make_udp_source (size_t itemsize, const char *ipaddr, 
+-		    unsigned short port, int payload_size, bool eof, bool wait)
++		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose)
+ {
+   return gnuradio::get_initial_sptr(new gr_udp_source (itemsize, ipaddr, 
+-						port, payload_size, eof, wait));
++						port, payload_size, eof, wait, bor, verbose));
+ }
+ 
+ gr_udp_source::~gr_udp_source ()
+@@ -213,11 +266,20 @@ gr_udp_source::~gr_udp_source ()
+ #endif
+ }
+ 
++void
++gr_udp_source::signal_eos() {
++  d_wait = false;
++  d_eos = true;
++}
++
+ int 
+ gr_udp_source::work (int noutput_items,
+ 		     gr_vector_const_void_star &input_items,
+ 		     gr_vector_void_star &output_items)
+ {
++  if (d_eos)
++	return -1;
++  
+   char *out = (char *) output_items[0];
+   ssize_t r=0, nbytes=0, bytes_received=0;
+   ssize_t total_bytes = (ssize_t)(d_itemsize*noutput_items);
+@@ -277,13 +339,20 @@ gr_udp_source::work (int noutput_items,
+     }
+ #endif // USE_SELECT
+ 
++	int recvd = -1;
+     // This is a non-blocking call with a timeout set in the constructor
+-    r = recv(d_socket, d_temp_buff, d_payload_size, 0);  // get the entire payload or the what's available
++    recvd = r = recv(d_socket, d_temp_buff, d_payload_size, 0);  // get the entire payload or the what's available
+ 
+     // If r > 0, round it down to a multiple of d_itemsize 
+     // (If sender is broken, don't propagate problem)
+-    if (r > 0)
+-      r = (r/d_itemsize) * d_itemsize;
++    if (r > 0) {
++	  if (d_bor) {
++		r -= sizeof(BOR_PACKET_HEADER);
++	  }
++	  else {
++		r = (r/d_itemsize) * d_itemsize;
++	  }
++    }
+ 
+     // Check if there was a problem; forget it if the operation just timed out
+     if(r == -1) {
+@@ -322,6 +391,44 @@ gr_udp_source::work (int noutput_items,
+       }
+     }
+     else {
++	  int offset = 0;
++	  if (d_bor) {
++		if (recvd != d_payload_size) {
++		  if (d_verbose)
++			fprintf(stderr, "Received size %d != payload %d\n", recvd, d_payload_size);
++		  else
++		  fprintf(stderr, "b!");
++		}
++		else {
++		  PBOR_PACKET_HEADER pHeader = (PBOR_PACKET_HEADER)d_temp_buff;
++		  if (pHeader->flags & BF_HARDWARE_OVERRUN) {
++			fprintf(stderr, "uO");
++		  }
++		  if (pHeader->flags & BF_STREAM_START) {
++			fprintf(stderr, "Stream start (%d)\n", (int)pHeader->idx);
++			if (d_bor_first)
++			  d_bor_first = false;
++		  }
++		  if (pHeader->idx != d_bor_counter) {
++			if (d_bor_first == false) {
++			  if ((pHeader->flags & BF_STREAM_START) == 0) {
++			    fprintf(stderr, "First packet (%d)\n", (int)pHeader->idx);
++			  }
++			  d_bor_first = true;
++			}
++			else {
++			  if (d_verbose)
++				fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (int)(pHeader->idx - d_bor_counter), (int)d_bor_counter, (int)pHeader->idx);
++			  else
++			  fprintf(stderr, "bO");
++			}
++			d_bor_counter = pHeader->idx;
++		  }
++		  ++d_bor_counter;
++		  offset = sizeof(BOR_PACKET_HEADER);
++		}
++	  }
++	  
+       // Calculate the number of bytes we can take from the buffer in this call
+       nbytes = std::min(r, total_bytes-bytes_received);
+       
+@@ -329,10 +436,10 @@ gr_udp_source::work (int noutput_items,
+       nbytes -= ((bytes_received+nbytes) % d_itemsize);   
+ 
+       // copy the number of bytes we want to look at here
+-      memcpy(out, d_temp_buff, nbytes);    
++      memcpy(out, (d_temp_buff + offset), nbytes);
+ 
+       d_residual = r - nbytes;                      // save the number of bytes stored
+-      d_temp_offset=nbytes;                         // reset buffer index
++      d_temp_offset = nbytes + offset;              // reset buffer index
+ 
+       // keep track of the total number of bytes received
+       bytes_received += nbytes;
+@@ -350,12 +457,11 @@ gr_udp_source::work (int noutput_items,
+   }
+ 
+   #if SRC_VERBOSE
+-  printf("Total Bytes Received: %d (bytes_received / noutput_items = %d / %d)\n", 
+-	 bytes_received, bytes_received, noutput_items);
++  printf("Total Bytes Received: %d (bytes_received / noutput_items = %d / %d)\n", bytes_received, bytes_received, noutput_items);
+   #endif
+ 
+   // bytes_received is already set to some integer multiple of itemsize
+-  return bytes_received/d_itemsize;
++  return (d_eos ? -1 : bytes_received/d_itemsize);
+ }
+ 
+ // Return port number of d_socket
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.h b/gnuradio-core/src/lib/io/gr_udp_source.h
+index 5d30fad..501ab2a
+--- a/gnuradio-core/src/lib/io/gr_udp_source.h
++++ b/gnuradio-core/src/lib/io/gr_udp_source.h
+@@ -32,7 +32,7 @@ typedef boost::shared_ptr<gr_udp_source> gr_udp_source_sptr;
+ gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *host, 
+ 				      unsigned short port,
+ 				      int payload_size=1472,
+-				      bool eof=true, bool wait=true);
++				      bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
+ 
+ /*! 
+  * \brief Read stream from an UDP socket.
+@@ -58,7 +58,7 @@ class gr_udp_source : public gr_sync_block
+ 					       const char *host, 
+ 					       unsigned short port,
+ 					       int payload_size,
+-					       bool eof, bool wait);
++					       bool eof, bool wait, bool bor, bool verbose);
+ 
+  private:
+   size_t	d_itemsize;
+@@ -69,6 +69,11 @@ class gr_udp_source : public gr_sync_block
+   char *d_temp_buff;    // hold buffer between calls
+   ssize_t d_residual;   // hold information about number of bytes stored in the temp buffer
+   size_t d_temp_offset; // point to temp buffer location offset
++  bool			d_bor;
++  unsigned short d_bor_counter;
++  bool			d_bor_first;
++  bool			d_verbose;
++  bool			d_eos;
+ 
+  protected:
+   /*!
+@@ -87,7 +92,7 @@ class gr_udp_source : public gr_sync_block
+    *                     (default: true)
+    */
+   gr_udp_source(size_t itemsize, const char *host, unsigned short port,
+-		int payload_size, bool eof, bool wait);
++		int payload_size, bool eof, bool wait, bool bor, bool verbose);
+ 
+  public:
+   ~gr_udp_source();
+@@ -97,6 +102,8 @@ class gr_udp_source : public gr_sync_block
+ 
+   /*! \brief return the port number of the socket */
+   int get_port();
++  
++  void signal_eos();
+ 
+   // should we export anything else?
+ 
+diff --git a/gnuradio-core/src/lib/io/gr_udp_source.i b/gnuradio-core/src/lib/io/gr_udp_source.i
+index 2001f33..fb9e3e7
+--- a/gnuradio-core/src/lib/io/gr_udp_source.i
++++ b/gnuradio-core/src/lib/io/gr_udp_source.i
+@@ -25,17 +25,18 @@ GR_SWIG_BLOCK_MAGIC(gr,udp_source)
+ gr_udp_source_sptr 
+ gr_make_udp_source (size_t itemsize, const char *host, 
+ 		    unsigned short port, int payload_size=1472,
+-		    bool eof=true, bool wait=true) throw (std::runtime_error);
++		    bool eof=true, bool wait=true, bool bor=false, bool verbose=false) throw (std::runtime_error);
+ 
+ class gr_udp_source : public gr_sync_block
+ {
+  protected:
+   gr_udp_source (size_t itemsize, const char *host, 
+-		 unsigned short port, int payload_size, bool eof, bool wait) throw (std::runtime_error);
++		 unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose) throw (std::runtime_error);
+ 
+  public:
+   ~gr_udp_source ();
+ 
+   int payload_size() { return d_payload_size; }
+   int get_port();
++  void signal_eos();
+ };
+diff --git a/grc/blocks/gr_udp_source.xml b/grc/blocks/gr_udp_source.xml
+index a1b9616..b76be66
+--- a/grc/blocks/gr_udp_source.xml
++++ b/grc/blocks/gr_udp_source.xml
+@@ -8,7 +8,7 @@
+ 	<name>UDP Source</name>
+ 	<key>gr_udp_source</key>
+ 	<import>from gnuradio import gr</import>
+-	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait)</make>
++	<make>gr.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait, $borip, $verbose)</make>
+ 	<callback>set_mtu($mtu)</callback>
+ 	<param>
+ 		<name>Output Type</name>
+@@ -59,16 +59,64 @@
+ 		<type>int</type>
+ 	</param>
+ 	<param>
+-	        <name>Null Pkt is EOF</name>
++	    <name>Null Pkt is EOF</name>
+ 		<key>eof</key>
+ 		<value>True</value>
+ 		<type>bool</type>
++		<hide>#if str($eof) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
+ 	</param>
+ 	<param>
+-	        <name>Wait for Data</name>
++	    <name>Wait for Data</name>
+ 		<key>wait</key>
+ 		<value>True</value>
+ 		<type>bool</type>
++		<hide>#if str($wait) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>BorIP</name>
++		<key>borip</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($borip) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
++	<param>
++	    <name>Verbose</name>
++		<key>verbose</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($verbose) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
+ 	</param>
+ 	<param>
+ 		<name>Vec Length</name>

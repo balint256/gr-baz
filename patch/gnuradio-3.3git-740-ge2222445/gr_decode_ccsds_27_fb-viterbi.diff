@@ -1,0 +1,102 @@
+diff --git a/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc b/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc
+index add036f..7828f93
+--- a/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc
++++ b/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc
+@@ -24,6 +24,7 @@
+ 
+ #include <gr_decode_ccsds_27_fb.h>
+ #include <gr_io_signature.h>
++#include <memory.h>
+ 
+ gr_decode_ccsds_27_fb_sptr
+ gr_make_decode_ccsds_27_fb()
+@@ -34,15 +35,18 @@ gr_make_decode_ccsds_27_fb()
+ gr_decode_ccsds_27_fb::gr_decode_ccsds_27_fb()
+   : gr_sync_decimator("decode_ccsds_27_fb",
+ 		      gr_make_io_signature(1, 1, sizeof(float)),
+-		      gr_make_io_signature(1, 1, sizeof(char)),
++		      gr_make_io_signature2(1, 2, sizeof(char), sizeof(float)),
+ 		      2*8)  // Rate 1/2 code, unpacked to packed translation
++  , d_count(0)
+ {
+     float RATE = 0.5;
+     float ebn0 = 12.0;
+     float esn0 = RATE*pow(10.0, ebn0/10);
+ 
+     gen_met(d_mettab, 100, esn0, 0.0, 256);
+-    viterbi_chunks_init(d_state0);
++    viterbi_chunks_init(d_state0);	// d_state1 left un-initialised
++	
++	memset(d_viterbi_in, 0x00, sizeof(d_viterbi_in));
+ }
+ 
+ gr_decode_ccsds_27_fb::~gr_decode_ccsds_27_fb()
+@@ -56,7 +60,8 @@ gr_decode_ccsds_27_fb::work(int noutput_items,
+ {
+   const float *in = (const float *)input_items[0];
+   unsigned char *out = (unsigned char *)output_items[0];
+-
++  float* metric_out = (float*)((output_items.size() == 2) ? output_items[1] : NULL);
++//fprintf(stderr, "gr_decode_ccsds_27_fb::work - Output items: %i (count: %i, loops: %i)\n", noutput_items, d_count, (noutput_items*16));
+   for (int i = 0; i < noutput_items*16; i++) {
+     // Translate and clip [-1.0..1.0] to [28..228]
+     float sample = in[i]*100.0+128.0;
+@@ -73,9 +78,10 @@ gr_decode_ccsds_27_fb::work(int noutput_items,
+       
+       // Every sixteenth symbol, read out a byte
+       if (d_count % 16 == 11) {
+-	// long metric = 
+-	viterbi_get_output(d_state0, out++);
++	  long metric = viterbi_get_output(d_state0, out++);
+ 	// printf("%li\n", *(out-1), metric);
++		if (metric_out)
++		  *metric_out++ = metric;
+       }
+     }
+diff --git a/gnuradio-core/src/lib/viterbi/viterbi.c b/gnuradio-core/src/lib/viterbi/viterbi.c
+index 9f5c1e7..2abb9f5
+--- a/gnuradio-core/src/lib/viterbi/viterbi.c
++++ b/gnuradio-core/src/lib/viterbi/viterbi.c
+@@ -326,7 +326,7 @@ viterbi_butterfly2(unsigned char *symbols, int mettab[2][256], struct viterbi_st
+   BUTTERFLY(28,1);BUTTERFLY(29,0);BUTTERFLY(30,2);BUTTERFLY(31,3);
+ }
+ 
+-unsigned char
++/*unsigned char*/long
+ viterbi_get_output(struct viterbi_state *state, unsigned char *outbuf) {
+   // Produce output every 8 bits once path memory is full 
+   //  if((bitcnt % 8) == 5 && bitcnt > 32) {
+@@ -343,6 +343,8 @@ viterbi_get_output(struct viterbi_state *state, unsigned char *outbuf) {
+       beststate = i;
+     }
+   *outbuf =  state[beststate].path >> 24;
++  for(i=0;i<64;i++)
++	state[i].metric -= bestmetric;
+   return bestmetric;
+ }
+ 
+diff --git a/gnuradio-core/src/lib/viterbi/viterbi.h b/gnuradio-core/src/lib/viterbi/viterbi.h
+index 155b0d9..7243f41
+--- a/gnuradio-core/src/lib/viterbi/viterbi.h
++++ b/gnuradio-core/src/lib/viterbi/viterbi.h
+@@ -45,5 +45,5 @@ void
+ viterbi_butterfly2(unsigned char *symbols, int mettab[2][256], 
+ 		   struct viterbi_state *state0, struct viterbi_state *state1);
+ 
+-unsigned char
++long
+ viterbi_get_output(struct viterbi_state *state, unsigned char *outbuf);
+diff --git a/grc/blocks/gr_decode_ccsds_27_fb.xml b/grc/blocks/gr_decode_ccsds_27_fb.xml
+index 03b31db..6e53452
+--- a/grc/blocks/gr_decode_ccsds_27_fb.xml
++++ b/grc/blocks/gr_decode_ccsds_27_fb.xml
+@@ -17,4 +17,9 @@
+ 		<name>out</name>
+ 		<type>byte</type>
+ 	</source>
++	<source>
++		<name>metric</name>
++		<type>float</type>
++		<optional>1</optional>
++	</source>
+ </block>

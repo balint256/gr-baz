@@ -1,0 +1,58 @@
+diff --git a/gnuradio-core/src/lib/io/gr_wavfile_source.cc b/gnuradio-core/src/lib/io/gr_wavfile_source.cc
+index 900f84e..215c390
+--- a/gnuradio-core/src/lib/io/gr_wavfile_source.cc
++++ b/gnuradio-core/src/lib/io/gr_wavfile_source.cc
+@@ -124,13 +124,14 @@ gr_wavfile_source::work(int noutput_items,
+   for (i = 0; i < noutput_items; i++) {
+     if (d_sample_idx >= d_samples_per_chan) {
+       if (!d_repeat) {
+-	// if nothing was read at all, say we're done.
+-	return i ? i : -1;
++    	// if nothing was read at all, say we're done.
++if (i) fprintf(stderr, "WAVE file source DONE\n");
++        return i ? i : -1;
+       }
+-
++fprintf(stderr, "WAVE file source looping...\n");
+       if (fseek (d_fp, d_first_sample_pos, SEEK_SET) == -1) {
+-	fprintf(stderr, "[%s] fseek failed\n", __FILE__);
+-	exit(-1);
++        fprintf(stderr, "[%s] fseek failed\n", __FILE__);
++    	exit(-1);
+       }
+ 
+       d_sample_idx = 0;
+diff --git a/gnuradio-core/src/lib/io/gri_wavfile.cc b/gnuradio-core/src/lib/io/gri_wavfile.cc
+index b8375ed..b5649f7
+--- a/gnuradio-core/src/lib/io/gri_wavfile.cc
++++ b/gnuradio-core/src/lib/io/gri_wavfile.cc
+@@ -199,9 +199,26 @@ gri_wavheader_parse(FILE *fp,
+   }
+   
+   // data chunk
+-  fresult = fread(str_buf, 1, 4, fp);
+-  if (strncmp(str_buf, "data", 4)) {
+-    return false;
++  while (true) {
++	fresult = fread(str_buf, 1, 4, fp);
++	if (fresult <= 0) {
++	  return false;
++	}
++    if (strncmp(str_buf, "data", 4) == 0) {
++	  break;
++	}
++	uint32_t skip = 0;
++	fread(&skip, 1, 4, fp);
++	skip = wav_to_host(skip);
++str_buf[4] = '\0';
++fprintf(stderr, "Encountered RIFF section \'%s\', skipping %d bytes\n", str_buf, skip);
++	if (skip == 0) {
++	  return false;
++	}
++	fresult = fseek(fp, skip, SEEK_CUR);
++	if (fresult < 0) {
++	  return false;
++	}
+   }
+ 
+   fread(&chunk_size, 1, 4, fp);

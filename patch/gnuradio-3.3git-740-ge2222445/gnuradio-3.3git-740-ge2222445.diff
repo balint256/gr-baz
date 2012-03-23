@@ -1,0 +1,1146 @@
+diff --git a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t
+index 69276f5..c63a4b9 100644
+--- a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t
++++ b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.cc.t
+@@ -79,20 +79,49 @@ gr_make_@BASE_NAME@ (unsigned interpolation,
+     delete d_firs[i];
+ }
+ 
++void @NAME@::set_params(unsigned interp, unsigned decim, const std::vector<@TAP_TYPE@> &taps)
++{
++  gruel::scoped_lock guard(d_mutex);
++
++  int old_interp = interpolation();
++  for (int i = 0; i < old_interp; i++)
++    delete d_firs[i];
++
++  set_relative_rate (1.0 * interp / decim);
++
++  d_interpolation = interp;
++  d_decimation = decim;
++  d_ctr = 0;
++  
++  std::vector<@TAP_TYPE@>	dummy_taps;
++  
++  d_firs.clear();
++  for (unsigned i = 0; i < interp; i++)
++    d_firs.push_back(gr_fir_util::create_@FIR_TYPE@ (dummy_taps));
++
++  set_taps (taps);
++  //install_taps (d_new_taps);	// Do in work so it can return 0
++}
++
+ void
+ @NAME@::set_taps (const std::vector<@TAP_TYPE@> &taps)
+ {
+-  d_new_taps = taps;
++  d_new_taps.clear();
++//fprintf(stderr, "Setting taps of length %d\n", taps.size());
++  //d_new_taps = taps;
+   d_updated = true;
+ 
+   // round up length to a multiple of the interpolation factor
+   int n = taps.size () % interpolation ();
+   if (n > 0){
+     n = interpolation () - n;
++//fprintf(stderr, "Adding additional taps of length %d\n", n);
+     while (n-- > 0)
+       d_new_taps.insert(d_new_taps.begin(), 0);
+   }
+-
++//fprintf(stderr, "Setting taps of length %d\n", taps.size());
++  d_new_taps.insert(d_new_taps.end(), taps.begin(), taps.end());
++//fprintf(stderr, "Setting taps complete: %d\n", d_new_taps.size());
+   assert (d_new_taps.size () % interpolation () == 0);
+ }
+ 
+@@ -148,6 +177,8 @@ int
+ {
+   const @I_TYPE@ *in = (const @I_TYPE@ *) input_items[0];
+   @O_TYPE@ *out = (@O_TYPE@ *) output_items[0];
++  
++  gruel::scoped_lock guard(d_mutex);
+ 
+   if (d_updated) {
+     install_taps (d_new_taps);
+diff --git a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t
+index 983b350..8b1bf96 100644
+--- a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t
++++ b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.h.t
+@@ -31,6 +31,8 @@
+ 
+ #include <gr_block.h>
+ 
++#include <gruel/thread.h>
++
+ class @NAME@;
+ typedef boost::shared_ptr<@NAME@> @SPTR_NAME@;
+ @SPTR_NAME@
+@@ -53,6 +55,7 @@ class @NAME@ : public gr_block
+   std::vector<@TAP_TYPE@>	d_new_taps;
+   bool				d_updated;
+   std::vector<@FIR_TYPE@ *> d_firs;
++  gruel::mutex	d_mutex;
+ 
+   friend @SPTR_NAME@ 
+   gr_make_@BASE_NAME@ (unsigned interpolation, unsigned decimation, const std::vector<@TAP_TYPE@> &taps);
+@@ -75,6 +78,8 @@ class @NAME@ : public gr_block
+   unsigned decimation() const { return d_decimation; }
+ 
+   void set_taps (const std::vector<@TAP_TYPE@> &taps);
++  
++  void set_params(unsigned interpolation, unsigned decimation, const std::vector<@TAP_TYPE@> &taps);
+ 
+   void forecast (int noutput_items, gr_vector_int &ninput_items_required);
+   int  general_work (int noutput_items,
+diff --git a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t
+index 1416933..e47c60c 100644
+--- a/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t
++++ b/gnuradio-core/src/lib/filter/gr_rational_resampler_base_XXX.i.t
+@@ -39,4 +39,6 @@ class @NAME@ : public gr_block
+   ~@NAME@ ();
+ 
+   void set_taps (const std::vector<@TAP_TYPE@> &taps);
++
++  void set_params(unsigned interpolation, unsigned decimation, const std::vector<@TAP_TYPE@> &taps);
+ };
+diff --git a/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc b/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc
+index add036f..7828f93
+--- a/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc
++++ b/gnuradio-core/src/lib/general/gr_decode_ccsds_27_fb.cc
+@@ -24,6 +24,7 @@
+ 
+ #include <gr_decode_ccsds_27_fb.h>
+ #include <gr_io_signature.h>
++#include <memory.h>
+ 
+ gr_decode_ccsds_27_fb_sptr 
+ gr_make_decode_ccsds_27_fb()
+@@ -34,15 +35,18 @@ gr_make_decode_ccsds_27_fb()
+ gr_decode_ccsds_27_fb::gr_decode_ccsds_27_fb()
+   : gr_sync_decimator("decode_ccsds_27_fb",
+ 		      gr_make_io_signature(1, 1, sizeof(float)),
+-		      gr_make_io_signature(1, 1, sizeof(char)),
++		      gr_make_io_signature2(1, 2, sizeof(char), sizeof(float)),
+ 		      2*8)  // Rate 1/2 code, unpacked to packed translation
++  , d_count(0)
+ {
+     float RATE = 0.5;
+     float ebn0 = 12.0;
+     float esn0 = RATE*pow(10.0, ebn0/10);
+ 
+     gen_met(d_mettab, 100, esn0, 0.0, 256);
+-    viterbi_chunks_init(d_state0);
++    viterbi_chunks_init(d_state0);	// d_state1 left un-initialised
++	
++	memset(d_viterbi_in, 0x00, sizeof(d_viterbi_in));
+ }
+ 
+ gr_decode_ccsds_27_fb::~gr_decode_ccsds_27_fb()
+@@ -56,7 +60,8 @@ gr_decode_ccsds_27_fb::work(int noutput_items,
+ {
+   const float *in = (const float *)input_items[0];
+   unsigned char *out = (unsigned char *)output_items[0];
+-
++  float* metric_out = (float*)((output_items.size() == 2) ? output_items[1] : NULL);
++//fprintf(stderr, "gr_decode_ccsds_27_fb::work - Output items: %i (count: %i, loops: %i)\n", noutput_items, d_count, (noutput_items*16));
+   for (int i = 0; i < noutput_items*16; i++) {
+     // Translate and clip [-1.0..1.0] to [28..228]
+     float sample = in[i]*100.0+128.0;
+@@ -73,9 +78,10 @@ gr_decode_ccsds_27_fb::work(int noutput_items,
+       
+       // Every sixteenth symbol, read out a byte
+       if (d_count % 16 == 11) {
+-	// long metric = 
+-	viterbi_get_output(d_state0, out++);
++	  long metric = viterbi_get_output(d_state0, out++);
+ 	// printf("%li\n", *(out-1), metric);
++		if (metric_out)
++		  *metric_out++ = metric;
+       }
+     }
+     
+diff --git a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc
+index 1efa827..e8a84e2
+--- a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc
++++ b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.cc
+@@ -60,9 +60,10 @@ gr_mpsk_receiver_cc::gr_mpsk_receiver_cc (unsigned int M, float theta,
+ 					  float omega, float gain_omega, float omega_rel)
+   : gr_block ("mpsk_receiver_cc",
+ 	      gr_make_io_signature (1, 1, sizeof (gr_complex)),
+-	      gr_make_io_signature (1, 1, sizeof (gr_complex))),
++	      gr_make_io_signature2 (1, 7, sizeof (gr_complex), sizeof(float))),
+     d_M(M), d_theta(theta), 
+     d_alpha(alpha), d_beta(beta), d_freq(0), d_max_freq(fmax), d_min_freq(fmin), d_phase(0),
++	d_prev_phase(0), d_prev_mu(0), d_work_count(0),
+     d_current_const_point(0),
+     d_mu(mu), d_gain_mu(gain_mu), d_gain_omega(gain_omega), 
+     d_omega_rel(omega_rel), d_max_omega(0), d_min_omega(0),
+@@ -199,7 +200,7 @@ gr_mpsk_receiver_cc::make_constellation()
+ }
+ 
+ void
+-gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol)
++gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol, int* mod_adj /*= NULL*/)
+ {
+   gr_complex sample, nco;
+ 
+@@ -207,10 +208,16 @@ gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol)
+   d_phase += d_freq;  // increment the phase based on the frequency of the rotation
+ 
+   // Keep phase clamped and not walk to infinity
+-  while(d_phase > M_TWOPI)
++  while(d_phase > M_TWOPI) {
+     d_phase -= M_TWOPI;
+-  while(d_phase < -M_TWOPI)
++	if (mod_adj)
++	  --(*mod_adj);
++  }
++  while(d_phase < -M_TWOPI) {
+     d_phase += M_TWOPI;
++	if (mod_adj)
++	  ++(*mod_adj);
++  }
+   
+   nco = gr_expj(d_phase+d_theta);   // get the NCO value for derotating the current sample
+   sample = nco*symbol;      // get the downconverted symbol
+@@ -221,7 +228,7 @@ gr_mpsk_receiver_cc::mm_sampler(const gr_complex symbol)
+   d_dl_idx = (d_dl_idx+1) % DLLEN;    // Keep the delay line index in bounds
+ }
+ 
+-void
++float
+ gr_mpsk_receiver_cc::mm_error_tracking(gr_complex sample)
+ {
+   gr_complex u, x, y;
+@@ -255,11 +262,12 @@ gr_mpsk_receiver_cc::mm_error_tracking(gr_complex sample)
+ 	 d_mu, d_omega, mm_error, sample.real(), sample.imag(), 
+ 	 d_constellation[d_current_const_point].real(), d_constellation[d_current_const_point].imag());
+ #endif
++  return mm_error;
+ }
+ 
+ 
+-void
+-gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample)
++float
++gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample, int* mod_adj /*= NULL*/)
+ {
+   float phase_error = 0;
+ 
+@@ -270,10 +278,16 @@ gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample)
+   d_phase += d_freq + d_alpha*phase_error;  // adjust phase based on error
+ 
+   // Make sure we stay within +-2pi
+-  while(d_phase > M_TWOPI)
++  while(d_phase > M_TWOPI) {
+     d_phase -= M_TWOPI;
+-  while(d_phase < -M_TWOPI)
++	if (mod_adj)
++	  --(*mod_adj);
++  }
++  while(d_phase < -M_TWOPI) {
+     d_phase += M_TWOPI;
++	if (mod_adj)
++	  ++(*mod_adj);
++  }
+   
+   // Limit the frequency range
+   d_freq = gr_branchless_clip(d_freq, d_max_freq);
+@@ -283,6 +297,7 @@ gr_mpsk_receiver_cc::phase_error_tracking(gr_complex sample)
+ 	 phase_error, d_phase, d_freq, sample.real(), sample.imag(), 
+ 	 d_constellation[d_current_const_point].real(), d_constellation[d_current_const_point].imag());
+ #endif
++  return phase_error;
+ }
+ 
+ int
+@@ -293,22 +308,55 @@ gr_mpsk_receiver_cc::general_work (int noutput_items,
+ {
+   const gr_complex *in = (const gr_complex *) input_items[0];
+   gr_complex *out = (gr_complex *) output_items[0];
++  
++  float* freq_out =			(float*)((output_items.size() > 1) ? output_items[1] : NULL);
++  float* phase_out =		(float*)((output_items.size() > 2) ? output_items[2] : NULL);
++  float* phase_error_out =	(float*)((output_items.size() > 3) ? output_items[3] : NULL);
++  float* mu_out =			(float*)((output_items.size() > 4) ? output_items[4] : NULL);
++  float* omega_out =		(float*)((output_items.size() > 5) ? output_items[5] : NULL);
++  float* mm_error_out =		(float*)((output_items.size() > 6) ? output_items[6] : NULL);
+ 
+   int i=0, o=0;
+ 
+   while((o < noutput_items) && (i < ninput_items[0])) {
++	int mu_adj = 0;
++	int phase_mod_adj = 0;
+     while((d_mu > 1) && (i < ninput_items[0]))  {
+-      mm_sampler(in[i]);   // puts symbols into a buffer and adjusts d_mu
++      mm_sampler(in[i], &phase_mod_adj);   // puts symbols into a buffer and adjusts d_mu
+       i++;
++	  ++mu_adj;
+     }
+     
+     if(i < ninput_items[0]) {
+       gr_complex interp_sample = d_interp->interpolate(&d_dl[d_dl_idx], d_mu);
+        
+-      mm_error_tracking(interp_sample);     // corrects M&M sample time
+-      phase_error_tracking(interp_sample);  // corrects phase and frequency offsets
+-
+-      out[o++] = interp_sample;
++      float mm_error = mm_error_tracking(interp_sample);     // corrects M&M sample time
++      float phase_error = phase_error_tracking(interp_sample, &phase_mod_adj);  // corrects phase and frequency offsets
++
++      out[o] = interp_sample;
++	  
++	  if ((o == 0) && (d_work_count == 0)) {
++		d_prev_phase = d_phase;
++		d_prev_mu = d_mu;
++	  }
++	  
++	  if (freq_out) freq_out[o] = d_freq;
++	  if (phase_out) {
++		phase_out[o] = d_phase - d_prev_phase;
++		phase_out[o] += (-phase_mod_adj * M_TWOPI);
++	  }
++	  if (phase_error_out) phase_error_out[o] = phase_error;
++	  if (mu_out) {
++		mu_out[o] = d_mu - d_prev_mu;
++		mu_out[o] += mu_adj;
++	  }
++	  if (omega_out) omega_out[o] = d_omega;
++	  if (mm_error_out) mm_error_out[o] = mm_error;
++	  
++	  d_prev_phase = d_phase;
++	  d_prev_mu = d_mu;
++	  
++	  o++;
+     }
+   }
+ 
+@@ -318,5 +366,6 @@ gr_mpsk_receiver_cc::general_work (int noutput_items,
+   #endif
+ 
+   consume_each(i);
++  ++d_work_count;
+   return o;
+ }
+diff --git a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h
+index 024d74a..6049982
+--- a/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h
++++ b/gnuradio-core/src/lib/general/gr_mpsk_receiver_cc.h
+@@ -165,9 +165,9 @@ protected:
+ 		       float omega, float gain_omega, float omega_rel);
+ 
+   void make_constellation();
+-  void mm_sampler(const gr_complex symbol);
+-  void mm_error_tracking(gr_complex sample);
+-  void phase_error_tracking(gr_complex sample);
++  void mm_sampler(const gr_complex symbol, int* mod_adj = NULL);
++  float mm_error_tracking(gr_complex sample);
++  float phase_error_tracking(gr_complex sample, int* mod_adj = NULL);
+ 
+ 
+ /*!
+@@ -258,6 +258,8 @@ protected:
+   float d_beta;
+   float d_freq, d_max_freq, d_min_freq;
+   float d_phase;
++  float d_prev_phase, d_prev_mu;
++  unsigned long long d_work_count;
+ 
+ /*!
+    * \brief Decision maker function pointer 
+diff --git a/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t b/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t
+index 889a6f2..27f2cec
+--- a/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t
++++ b/gnuradio-core/src/lib/gengen/gr_vector_source_X.cc.t
+@@ -38,12 +38,28 @@
+     d_data (data),
+     d_repeat (repeat),
+     d_offset (0),
++	d_new(false),
+     d_vlen (vlen)
+ {
+   if ((data.size() % vlen) != 0)
+     throw std::invalid_argument("data length must be a multiple of vlen");
+ }
+ 
++void @NAME@::set_data(const std::vector<@TYPE@> &data)
++{
++  gruel::scoped_lock guard(d_mutex);
++  
++  if (d_offset == 0)
++  {
++	d_data = data;
++  }
++  else
++  {
++    d_data_new = data;
++	d_new = true;
++  }
++}
++
+ int
+ @NAME@::work (int noutput_items,
+ 		    gr_vector_const_void_star &input_items,
+@@ -53,6 +69,9 @@ int
+ 
+   if (d_repeat){
+     unsigned int size = d_data.size ();
++	
++	gruel::scoped_lock guard(d_mutex);
++	
+     unsigned int offset = d_offset;
+     
+     if (size == 0)
+@@ -61,7 +80,15 @@ int
+     for (int i = 0; i < noutput_items*d_vlen; i++){
+       optr[i] = d_data[offset++];
+       if (offset >= size)
+-	offset = 0;
++	  {
++		offset = 0;
++		
++		if (d_new)
++		{
++		  d_data = d_data_new;
++		  d_new = false;
++		}
++	  }
+     }
+     d_offset = offset;
+     return noutput_items;
+diff --git a/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t b/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t
+index 63edcb6..6f682fc
+--- a/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t
++++ b/gnuradio-core/src/lib/gengen/gr_vector_source_X.h.t
+@@ -26,6 +26,7 @@
+ #define @GUARD_NAME@
+ 
+ #include <gr_sync_block.h>
++#include <gruel/thread.h>
+ 
+ class @NAME@;
+ typedef boost::shared_ptr<@NAME@> @NAME@_sptr;
+@@ -39,15 +40,17 @@ class @NAME@ : public gr_sync_block {
+   friend @NAME@_sptr 
+   gr_make_@BASE_NAME@ (const std::vector<@TYPE@> &data, bool repeat, int vlen);
+ 
+-  std::vector<@TYPE@>	d_data;
+-  bool			d_repeat;
++  std::vector<@TYPE@>	d_data, d_data_new;
++  bool			d_repeat, d_new;
+   unsigned int		d_offset;
++  gruel::mutex	d_mutex;
+   int			d_vlen;
+ 
+   @NAME@ (const std::vector<@TYPE@> &data, bool repeat, int vlen);
+ 
+  public:
+   void rewind() {d_offset=0;}
++  void set_data(const std::vector<@TYPE@> &data);
+   virtual int work (int noutput_items,
+ 		    gr_vector_const_void_star &input_items,
+ 		    gr_vector_void_star &output_items);
+diff --git a/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t b/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t
+index a221578..b180e37
+--- a/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t
++++ b/gnuradio-core/src/lib/gengen/gr_vector_source_X.i.t
+@@ -31,6 +31,7 @@ gr_make_@BASE_NAME@ (const std::vector<@TYPE@> &data, bool repeat = false, int v
+ class @NAME@ : public gr_sync_block {
+  public:
+   void rewind() {d_offset=0;}
++  void set_data(const std::vector<@TYPE@> &data);
+  private:
+   @NAME@ (const std::vector<@TYPE@> &data, int vlen);
+ };
+diff --git a/gnuradio-core/src/lib/io/gr_wavfile_source.cc b/gnuradio-core/src/lib/io/gr_wavfile_source.cc
+index 900f84e..215c390
+--- a/gnuradio-core/src/lib/io/gr_wavfile_source.cc
++++ b/gnuradio-core/src/lib/io/gr_wavfile_source.cc
+@@ -124,13 +124,14 @@ gr_wavfile_source::work(int noutput_items,
+   for (i = 0; i < noutput_items; i++) {
+     if (d_sample_idx >= d_samples_per_chan) {
+       if (!d_repeat) {
+-	// if nothing was read at all, say we're done.
+-	return i ? i : -1;
++    	// if nothing was read at all, say we're done.
++if (i) fprintf(stderr, "WAVE file source DONE\n");
++        return i ? i : -1;
+       }
+-
++fprintf(stderr, "WAVE file source looping...\n");
+       if (fseek (d_fp, d_first_sample_pos, SEEK_SET) == -1) {
+-	fprintf(stderr, "[%s] fseek failed\n", __FILE__);
+-	exit(-1);
++        fprintf(stderr, "[%s] fseek failed\n", __FILE__);
++    	exit(-1);
+       }
+ 
+       d_sample_idx = 0;
+diff --git a/gnuradio-core/src/lib/io/gri_wavfile.cc b/gnuradio-core/src/lib/io/gri_wavfile.cc
+index b8375ed..b5649f7
+--- a/gnuradio-core/src/lib/io/gri_wavfile.cc
++++ b/gnuradio-core/src/lib/io/gri_wavfile.cc
+@@ -199,9 +199,26 @@ gri_wavheader_parse(FILE *fp,
+   }
+   
+   // data chunk
+-  fresult = fread(str_buf, 1, 4, fp);
+-  if (strncmp(str_buf, "data", 4)) {
+-    return false;
++  while (true) {
++	fresult = fread(str_buf, 1, 4, fp);
++	if (fresult <= 0) {
++	  return false;
++	}
++    if (strncmp(str_buf, "data", 4) == 0) {
++	  break;
++	}
++	uint32_t skip = 0;
++	fread(&skip, 1, 4, fp);
++	skip = wav_to_host(skip);
++str_buf[4] = '\0';
++fprintf(stderr, "Encountered RIFF section \'%s\', skipping %d bytes\n", str_buf, skip);
++	if (skip == 0) {
++	  return false;
++	}
++	fresult = fseek(fp, skip, SEEK_CUR);
++	if (fresult < 0) {
++	  return false;
++	}
+   }
+ 
+   fread(&chunk_size, 1, 4, fp);
+diff --git a/gnuradio-core/src/lib/viterbi/viterbi.c b/gnuradio-core/src/lib/viterbi/viterbi.c
+index 9f5c1e7..2abb9f5
+--- a/gnuradio-core/src/lib/viterbi/viterbi.c
++++ b/gnuradio-core/src/lib/viterbi/viterbi.c
+@@ -326,7 +326,7 @@ viterbi_butterfly2(unsigned char *symbols, int mettab[2][256], struct viterbi_st
+   BUTTERFLY(28,1);BUTTERFLY(29,0);BUTTERFLY(30,2);BUTTERFLY(31,3);
+ }
+ 
+-unsigned char
++/*unsigned char*/long
+ viterbi_get_output(struct viterbi_state *state, unsigned char *outbuf) {
+   // Produce output every 8 bits once path memory is full 
+   //  if((bitcnt % 8) == 5 && bitcnt > 32) {
+@@ -343,6 +343,8 @@ viterbi_get_output(struct viterbi_state *state, unsigned char *outbuf) {
+       beststate = i;
+     }
+   *outbuf =  state[beststate].path >> 24;
++  for(i=0;i<64;i++)
++	state[i].metric -= bestmetric;
+   return bestmetric;
+ }
+ 
+diff --git a/gnuradio-core/src/lib/viterbi/viterbi.h b/gnuradio-core/src/lib/viterbi/viterbi.h
+index 155b0d9..7243f41
+--- a/gnuradio-core/src/lib/viterbi/viterbi.h
++++ b/gnuradio-core/src/lib/viterbi/viterbi.h
+@@ -45,5 +45,5 @@ void
+ viterbi_butterfly2(unsigned char *symbols, int mettab[2][256], 
+ 		   struct viterbi_state *state0, struct viterbi_state *state1);
+ 
+-unsigned char
++long
+ viterbi_get_output(struct viterbi_state *state, unsigned char *outbuf);
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py b/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py
+index 8f593cd..c6e7ee0
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/cpm.py
+@@ -27,7 +27,7 @@
+ from gnuradio import gr
+ from gnuradio import modulation_utils
+ from math import pi
+-import numpy
++import numpy, Numeric
+ from pprint import pprint
+ import inspect
+ 
+@@ -97,7 +97,7 @@ class cpm_mod(gr.hier_block2):
+         @type debug: bool       
+ 	"""
+ 
+-	gr.hier_block2.__init__("cpm_mod", 
++	gr.hier_block2.__init__(self, "cpm_mod", 
+ 				gr.io_signature(1, 1, gr.sizeof_char),       # Input signature
+ 				gr.io_signature(1, 1, gr.sizeof_gr_complex)) #  Output signature
+ 
+@@ -120,7 +120,8 @@ class cpm_mod(gr.hier_block2):
+             raise TypeError, ("samples_per_symbol must be an integer >= 2, is %r" % (samples_per_symbol,))
+ 
+         self.nsymbols = 2**bits_per_symbol
+-        self.sym_alphabet=numpy.arange(-(self.nsymbols-1),self.nsymbols,2)
++        #self.sym_alphabet=numpy.arange(-(self.nsymbols-1),self.nsymbols,2)
++        self.sym_alphabet=Numeric.arrayrange(-(self.nsymbols-1),self.nsymbols,2)
+ 
+ 
+ 	self.ntaps = self._symbols_per_pulse * samples_per_symbol
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/d8psk.py b/gnuradio-core/src/python/gnuradio/blks2impl/d8psk.py
+index 67cf9f5..9457f49
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/d8psk.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/d8psk.py
+@@ -35,6 +35,7 @@ from pprint import pprint
+ _def_samples_per_symbol = 3
+ _def_excess_bw = 0.35
+ _def_gray_code = True
++_def_diff_code = True
+ _def_verbose = False
+ _def_log = False
+ 
+@@ -55,37 +56,39 @@ class d8psk_mod(gr.hier_block2):
+                  excess_bw=_def_excess_bw,
+                  gray_code=_def_gray_code,
+                  verbose=_def_verbose,
+-                 log=_def_log):
++                 log=_def_log,
++                 diff_code=_def_diff_code):
++        """
++        Hierarchical block for RRC-filtered QPSK modulation.
++    
++        The input is a byte stream (unsigned char) and the
++        output is the complex modulated signal at baseband.
++    
++        @param samples_per_symbol: samples per symbol >= 2
++        @type samples_per_symbol: integer
++        @param excess_bw: Root-raised cosine filter excess bandwidth
++        @type excess_bw: float
++            @param gray_code: Tell modulator to Gray code the bits
++            @type gray_code: bool
++            @param verbose: Print information about modulator?
++            @type verbose: bool
++            @param debug: Print modualtion data to files?
++            @type debug: bool
+         """
+-	Hierarchical block for RRC-filtered QPSK modulation.
+-
+-	The input is a byte stream (unsigned char) and the
+-	output is the complex modulated signal at baseband.
+ 
+-	@param samples_per_symbol: samples per symbol >= 2
+-	@type samples_per_symbol: integer
+-	@param excess_bw: Root-raised cosine filter excess bandwidth
+-	@type excess_bw: float
+-        @param gray_code: Tell modulator to Gray code the bits
+-        @type gray_code: bool
+-        @param verbose: Print information about modulator?
+-        @type verbose: bool
+-        @param debug: Print modualtion data to files?
+-        @type debug: bool
+-	"""
++        gr.hier_block2.__init__(self, "d8psk_mod",
++                    gr.io_signature(1, 1, gr.sizeof_char),       # Input signature
++                    gr.io_signature(1, 1, gr.sizeof_gr_complex)) # Output signature
+ 
+-	gr.hier_block2.__init__(self, "d8psk_mod",
+-				gr.io_signature(1, 1, gr.sizeof_char),       # Input signature
+-				gr.io_signature(1, 1, gr.sizeof_gr_complex)) # Output signature
+-				
+         self._samples_per_symbol = samples_per_symbol
+         self._excess_bw = excess_bw
+         self._gray_code = gray_code
++        self._diff_code = diff_code
+ 
+         if not isinstance(samples_per_symbol, int) or samples_per_symbol < 2:
+             raise TypeError, ("sbp must be an integer >= 2, is %d" % samples_per_symbol)
+ 
+-	ntaps = 11 * samples_per_symbol
++        ntaps = 11 * samples_per_symbol
+  
+         arity = pow(2,self.bits_per_symbol())
+ 
+@@ -97,22 +100,24 @@ class d8psk_mod(gr.hier_block2):
+             self.symbol_mapper = gr.map_bb(psk.binary_to_gray[arity])
+         else:
+             self.symbol_mapper = gr.map_bb(psk.binary_to_ungray[arity])
+-            
+-        self.diffenc = gr.diff_encoder_bb(arity)
++        
++        self.diffenc = None
++        if diff_code:
++            self.diffenc = gr.diff_encoder_bb(arity)
+ 
+         rot = 1
+         rotated_const = map(lambda pt: pt * rot, psk.constellation[arity])
+         self.chunks2symbols = gr.chunks_to_symbols_bc(rotated_const)
+ 
+         # pulse shaping filter
+-	self.rrc_taps = gr.firdes.root_raised_cosine(
+-	    self._samples_per_symbol, # gain  (sps since we're interpolating by sps)
++        self.rrc_taps = gr.firdes.root_raised_cosine(
++           self._samples_per_symbol, # gain  (sps since we're interpolating by sps)
+             self._samples_per_symbol, # sampling rate
+             1.0,		      # symbol rate
+             self._excess_bw,          # excess bandwidth (roll-off factor)
+             ntaps)
+ 
+-	self.rrc_filter = gr.interp_fir_filter_ccf(self._samples_per_symbol, self.rrc_taps)
++        self.rrc_filter = gr.interp_fir_filter_ccf(self._samples_per_symbol, self.rrc_taps)
+ 
+         if verbose:
+             self._print_verbage()
+@@ -120,9 +125,13 @@ class d8psk_mod(gr.hier_block2):
+         if log:
+             self._setup_logging()
+             
+-	# Connect & Initialize base class
+-        self.connect(self, self.bytes2chunks, self.symbol_mapper, self.diffenc,
+-            	     self.chunks2symbols, self.rrc_filter, self)
++        # Connect & Initialize base class
++        self.connect(self, self.bytes2chunks, self.symbol_mapper)
++        if self.diffenc:
++            self.connect(self.symbol_mapper, self.diffenc, self.chunks2symbols)
++        else:
++            self.connect(self.symbol_mapper, self.chunks2symbols)
++        self.connect(self.chunks2symbols, self.rrc_filter, self)
+ 
+     def samples_per_symbol(self):
+         return self._samples_per_symbol
+@@ -135,6 +144,7 @@ class d8psk_mod(gr.hier_block2):
+         print "bits per symbol = %d" % self.bits_per_symbol()
+         print "Gray code = %s" % self._gray_code
+         print "RS roll-off factor = %f" % self._excess_bw
++        print "Differential encode: %s" % self._diff_code
+ 
+     def _setup_logging(self):
+         print "Modulation logging turned on."
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/dbpsk.py b/gnuradio-core/src/python/gnuradio/blks2impl/dbpsk.py
+index 55e4890..4b1cd13
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/dbpsk.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/dbpsk.py
+@@ -35,6 +35,7 @@ from pprint import pprint
+ _def_samples_per_symbol = 2
+ _def_excess_bw = 0.35
+ _def_gray_code = True
++_def_diff_code = True
+ _def_verbose = False
+ _def_log = False
+ 
+@@ -55,7 +56,8 @@ class dbpsk_mod(gr.hier_block2):
+                  excess_bw=_def_excess_bw,
+                  gray_code=_def_gray_code,
+                  verbose=_def_verbose,
+-                 log=_def_log):
++                 log=_def_log,
++				 diff_code=_def_diff_code):
+         """
+ 	Hierarchical block for RRC-filtered differential BPSK modulation.
+ 
+@@ -81,11 +83,12 @@ class dbpsk_mod(gr.hier_block2):
+         self._samples_per_symbol = samples_per_symbol
+         self._excess_bw = excess_bw
+         self._gray_code = gray_code
++        self._diff_code = diff_code
+ 
+         if not isinstance(self._samples_per_symbol, int) or self._samples_per_symbol < 2:
+             raise TypeError, ("sbp must be an integer >= 2, is %d" % self._samples_per_symbol)
+         
+-	ntaps = 11 * self._samples_per_symbol
++        ntaps = 11 * self._samples_per_symbol
+ 
+         arity = pow(2,self.bits_per_symbol())
+         
+@@ -98,24 +101,30 @@ class dbpsk_mod(gr.hier_block2):
+         else:
+             self.symbol_mapper = gr.map_bb(psk.binary_to_ungray[arity])
+ 
+-        self.diffenc = gr.diff_encoder_bb(arity)
++        self.diffenc = None
++        if diff_code:
++            self.diffenc = gr.diff_encoder_bb(arity)
+ 
+         self.chunks2symbols = gr.chunks_to_symbols_bc(psk.constellation[arity])
+ 
+         # pulse shaping filter
+-	self.rrc_taps = gr.firdes.root_raised_cosine(
+-	    self._samples_per_symbol,   # gain (samples_per_symbol since we're
++        self.rrc_taps = gr.firdes.root_raised_cosine(
++            self._samples_per_symbol,   # gain (samples_per_symbol since we're
+                                         # interpolating by samples_per_symbol)
+-	    self._samples_per_symbol,   # sampling rate
+-	    1.0,		        # symbol rate
+-	    self._excess_bw,            # excess bandwidth (roll-off factor)
++            self._samples_per_symbol,   # sampling rate
++            1.0,		        # symbol rate
++            self._excess_bw,            # excess bandwidth (roll-off factor)
+             ntaps)
+-	self.rrc_filter = gr.interp_fir_filter_ccf(self._samples_per_symbol,
++        self.rrc_filter = gr.interp_fir_filter_ccf(self._samples_per_symbol,
+                                                    self.rrc_taps)
+ 
+-	# Connect
+-        self.connect(self, self.bytes2chunks, self.symbol_mapper, self.diffenc,
+-                     self.chunks2symbols, self.rrc_filter, self)
++        # Connect
++        self.connect(self, self.bytes2chunks, self.symbol_mapper)
++        if self.diffenc:
++            self.connect(self.symbol_mapper, self.diffenc, self.chunks2symbols)
++        else:
++            self.connect(self.symbol_mapper, self.chunks2symbols)
++        self.connect(self.chunks2symbols, self.rrc_filter, self)
+ 
+         if verbose:
+             self._print_verbage()
+@@ -156,6 +165,7 @@ class dbpsk_mod(gr.hier_block2):
+         print "bits per symbol:     %d" % self.bits_per_symbol()
+         print "Gray code:           %s" % self._gray_code
+         print "RRC roll-off factor: %.2f" % self._excess_bw
++        print "Differential encode: %s" % self._diff_code
+ 
+     def _setup_logging(self):
+         print "Modulation logging turned on."
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/dqpsk.py b/gnuradio-core/src/python/gnuradio/blks2impl/dqpsk.py
+index 42d5341..a171260
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/dqpsk.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/dqpsk.py
+@@ -35,6 +35,7 @@ from pprint import pprint
+ _def_samples_per_symbol = 2
+ _def_excess_bw = 0.35
+ _def_gray_code = True
++_def_diff_code = True
+ _def_verbose = False
+ _def_log = False
+ 
+@@ -55,7 +56,8 @@ class dqpsk_mod(gr.hier_block2):
+                  excess_bw=_def_excess_bw,
+                  gray_code=_def_gray_code,
+                  verbose=_def_verbose,
+-                 log=_def_log):
++                 log=_def_log,
++				 diff_code=_def_diff_code):
+         """
+ 	Hierarchical block for RRC-filtered QPSK modulation.
+ 
+@@ -81,12 +83,13 @@ class dqpsk_mod(gr.hier_block2):
+         self._samples_per_symbol = samples_per_symbol
+         self._excess_bw = excess_bw
+         self._gray_code = gray_code
++        self._diff_code = diff_code
+ 
+         if not isinstance(samples_per_symbol, int) or samples_per_symbol < 2:
+             raise TypeError, ("sbp must be an integer >= 2, is %d" % samples_per_symbol)
+ 
+-	ntaps = 11 * samples_per_symbol
+- 
++    	ntaps = 11 * samples_per_symbol
++
+         arity = pow(2,self.bits_per_symbol())
+ 
+         # turn bytes into k-bit vectors
+@@ -97,32 +100,38 @@ class dqpsk_mod(gr.hier_block2):
+             self.symbol_mapper = gr.map_bb(psk.binary_to_gray[arity])
+         else:
+             self.symbol_mapper = gr.map_bb(psk.binary_to_ungray[arity])
+-            
+-        self.diffenc = gr.diff_encoder_bb(arity)
++        
++        self.diffenc = None
++        if diff_code:
++            self.diffenc = gr.diff_encoder_bb(arity)
+ 
+         rot = .707 + .707j
+         rotated_const = map(lambda pt: pt * rot, psk.constellation[arity])
+         self.chunks2symbols = gr.chunks_to_symbols_bc(rotated_const)
+ 
+         # pulse shaping filter
+-	self.rrc_taps = gr.firdes.root_raised_cosine(
+-	    self._samples_per_symbol, # gain  (sps since we're interpolating by sps)
++        self.rrc_taps = gr.firdes.root_raised_cosine(
++            self._samples_per_symbol, # gain  (sps since we're interpolating by sps)
+             self._samples_per_symbol, # sampling rate
+             1.0,		      # symbol rate
+             self._excess_bw,          # excess bandwidth (roll-off factor)
+             ntaps)
+ 
+-	self.rrc_filter = gr.interp_fir_filter_ccf(self._samples_per_symbol, self.rrc_taps)
++        self.rrc_filter = gr.interp_fir_filter_ccf(self._samples_per_symbol, self.rrc_taps)
+ 
+         if verbose:
+             self._print_verbage()
+         
+         if log:
+             self._setup_logging()
+-            
+-	# Connect & Initialize base class
+-        self.connect(self, self.bytes2chunks, self.symbol_mapper, self.diffenc,
+-                     self.chunks2symbols, self.rrc_filter, self)
++        
++        # Connect & Initialize base class
++        self.connect(self, self.bytes2chunks, self.symbol_mapper)
++        if self.diffenc:
++            self.connect(self.symbol_mapper, self.diffenc, self.chunks2symbols)
++        else:
++            self.connect(self.symbol_mapper, self.chunks2symbols)
++        self.connect(self.chunks2symbols, self.rrc_filter, self)
+ 
+     def samples_per_symbol(self):
+         return self._samples_per_symbol
+@@ -136,6 +145,7 @@ class dqpsk_mod(gr.hier_block2):
+         print "bits per symbol:     %d" % self.bits_per_symbol()
+         print "Gray code:           %s" % self._gray_code
+         print "RRS roll-off factor: %f" % self._excess_bw
++        print "Differential encode: %s" % self._diff_code
+ 
+     def _setup_logging(self):
+         print "Modulation logging turned on."
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py b/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py
+index b7de0de..0c3f1a2
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/rational_resampler.py
+@@ -43,7 +43,7 @@ def design_filter(interpolation, decimation, fractional_bw):
+     beta = 5.0
+     trans_width = 0.5 - fractional_bw
+     mid_transition_band = 0.5 - trans_width/2
+-
++    #print "Generating rational resampler taps (interp: %d, decim %d, fractional_bw: %f)" % (interpolation, decimation, fractional_bw)
+     taps = gr.firdes.low_pass(interpolation,                     # gain
+                               1,                                 # Fs
+                               mid_transition_band/interpolation, # trans mid point
+@@ -51,7 +51,7 @@ def design_filter(interpolation, decimation, fractional_bw):
+                               gr.firdes.WIN_KAISER,
+                               beta                               # beta
+                               )
+-
++    #print "Completed rational resampler taps: %d (interp: %d, decim %d, fractional_bw: %f)" % (len(taps), interpolation, decimation, fractional_bw)
+     return taps
+ 
+ 
+@@ -87,6 +87,10 @@ class _rational_resampler_base(gr.hier_block2):
+ 
+         if taps is None and fractional_bw is None:
+             fractional_bw = 0.4
++        
++        self.fractional_bw = fractional_bw
++        self._decimation = decimation
++        self._interpolation = interpolation
+ 
+         d = gru.gcd(interpolation, decimation)
+         interpolation = interpolation // d
+@@ -95,13 +99,32 @@ class _rational_resampler_base(gr.hier_block2):
+         if taps is None:
+             taps = design_filter(interpolation, decimation, fractional_bw)
+ 
+-        resampler = resampler_base(interpolation, decimation, taps)
+-	gr.hier_block2.__init__(self, "rational_resampler",
+-				gr.io_signature(1, 1, resampler.input_signature().sizeof_stream_item(0)),
+-				gr.io_signature(1, 1, resampler.output_signature().sizeof_stream_item(0)))
+-
+-	self.connect(self, resampler, self)
+-
++        self.resampler = resampler_base(interpolation, decimation, taps)
++        
++        gr.hier_block2.__init__(self, "rational_resampler",
++                    gr.io_signature(1, 1, self.resampler.input_signature().sizeof_stream_item(0)),
++                    gr.io_signature(1, 1, self.resampler.output_signature().sizeof_stream_item(0)))
++
++        self.connect(self, self.resampler, self)
++    def set_decim(self, decim):
++        self.set_params(decim, None)
++    def set_interp(self, interp):
++        self.set_params(None, interp)
++    def set_params(self, decim, interp):
++        if decim is None:
++            decim = self._decimation
++        else:
++            self._decimation = decim
++        if interp is None:
++            interp = self._interpolation
++        else:
++            self._interpolation = interp
++        d = gru.gcd(interp, decim)
++        interp = interp // d
++        decim = decim // d
++        taps = design_filter(interp, decim, self.fractional_bw)
++        print "New filter parameters: decim: %d, interp: %d, taps length: %d" % (decim, interp, len(taps))
++        self.resampler.set_params(interp, decim, taps)
+ 
+ class rational_resampler_fff(_rational_resampler_base):
+     def __init__(self, interpolation, decimation, taps=None, fractional_bw=None):
+diff --git a/gr-wxgui/src/python/const_window.py b/gr-wxgui/src/python/const_window.py
+index f7c7caf..46c2ad7
+--- a/gr-wxgui/src/python/const_window.py
++++ b/gr-wxgui/src/python/const_window.py
+@@ -133,6 +133,7 @@ class const_window(wx.Panel, pubsub.pubsub):
+ 		gain_omega_key,
+ 		omega_key,
+ 		sample_rate_key,
++		symbol_rate_key,
+ 	):
+ 		pubsub.pubsub.__init__(self)
+ 		#proxy the keys
+@@ -143,6 +144,7 @@ class const_window(wx.Panel, pubsub.pubsub):
+ 		self.proxy(GAIN_OMEGA_KEY, controller, gain_omega_key)
+ 		self.proxy(OMEGA_KEY, controller, omega_key)
+ 		self.proxy(SAMPLE_RATE_KEY, controller, sample_rate_key)
++		self.proxy(SYMBOL_RATE_KEY, controller, symbol_rate_key)
+ 		#initialize values
+ 		self[RUNNING_KEY] = True
+ 		self[X_DIVS_KEY] = 8
+diff --git a/gr-wxgui/src/python/constants.py b/gr-wxgui/src/python/constants.py
+index 825f71c..65f49a0
+--- a/gr-wxgui/src/python/constants.py
++++ b/gr-wxgui/src/python/constants.py
+@@ -70,3 +70,4 @@ NUM_BINS_KEY = 'num_bins'
+ FRAME_SIZE_KEY = 'frame_size'
+ CHANNEL_OPTIONS_KEY = 'channel_options'
+ SHOW_CONTROL_PANEL_KEY = 'show_control_panel'
++SYMBOL_RATE_KEY = 'symbol_rate'
+diff --git a/gr-wxgui/src/python/constsink_gl.py b/gr-wxgui/src/python/constsink_gl.py
+index 91bc65d..0abfb3c
+--- a/gr-wxgui/src/python/constsink_gl.py
++++ b/gr-wxgui/src/python/constsink_gl.py
+@@ -110,6 +110,8 @@ class const_sink_c(gr.hier_block2, common.wxgui_hb):
+ 		self.controller.subscribe(SAMPLE_RATE_KEY, sd.set_sample_rate)
+ 		self.controller.subscribe(SAMPLE_RATE_KEY, lambda x: setter(self.controller, OMEGA_KEY, float(x)/symbol_rate))
+ 		self.controller.publish(SAMPLE_RATE_KEY, sd.sample_rate)
++		self.controller.subscribe(SYMBOL_RATE_KEY, lambda x: setter(self.controller, OMEGA_KEY, float(self.controller[SAMPLE_RATE_KEY])/float(x)))
++		self.controller.publish(SYMBOL_RATE_KEY, lambda: self.controller[SAMPLE_RATE_KEY] * self.controller[OMEGA])
+ 		#initial update
+ 		self.controller[SAMPLE_RATE_KEY] = sample_rate
+ 		#start input watcher
+@@ -127,6 +129,7 @@ class const_sink_c(gr.hier_block2, common.wxgui_hb):
+ 			gain_omega_key=GAIN_OMEGA_KEY,
+ 			omega_key=OMEGA_KEY,
+ 			sample_rate_key=SAMPLE_RATE_KEY,
++			symbol_rate_key=SYMBOL_RATE_KEY,
+ 		)
+ 		common.register_access_methods(self, self.win)
+ 		#connect
+diff --git a/grc/blocks/blks2_dxpsk_mod.xml b/grc/blocks/blks2_dxpsk_mod.xml
+index 77505d8..fb8f3c7
+--- a/grc/blocks/blks2_dxpsk_mod.xml
++++ b/grc/blocks/blks2_dxpsk_mod.xml
+@@ -14,6 +14,7 @@
+ 	gray_code=$gray_code,
+ 	verbose=$verbose,
+ 	log=$log,
++	diff_code=$diff_code,
+ )</make>
+ 	<param>
+ 		<name>Type</name>
+@@ -58,6 +59,23 @@
+ 			<key>False</key>
+ 		</option>
+ 	</param>
++	
++	<param>
++		<name>Differential Encode</name>
++		<key>diff_code</key>
++		<value>True</value>
++		<type>bool</type>
++		<hide>#if str($diff_code) == 'True' then 'part' else 'none'#</hide>
++		<option>
++			<name>Yes</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>No</name>
++			<key>False</key>
++		</option>
++	</param>
++	
+ 	<param>
+ 		<name>Verbose</name>
+ 		<key>verbose</key>
+diff --git a/grc/blocks/blks2_rational_resampler_xxx.xml b/grc/blocks/blks2_rational_resampler_xxx.xml
+index b92ec8e..b57c10e
+--- a/grc/blocks/blks2_rational_resampler_xxx.xml
++++ b/grc/blocks/blks2_rational_resampler_xxx.xml
+@@ -23,6 +23,8 @@
+ 	fractional_bw=None,
+ #end if
+ )</make>
++	<callback>set_decim($decim)</callback>
++	<callback>set_interp($interp)</callback>
+ 	<param>
+ 		<name>Type</name>
+ 		<key>type</key>
+diff --git a/grc/blocks/gr_clock_recovery_mm_xx.xml b/grc/blocks/gr_clock_recovery_mm_xx.xml
+index 613cc23..a09450d
+--- a/grc/blocks/gr_clock_recovery_mm_xx.xml
++++ b/grc/blocks/gr_clock_recovery_mm_xx.xml
+@@ -53,6 +53,38 @@
+ 		<key>omega_relative_limit</key>
+ 		<type>real</type>
+ 	</param>
++	<!--<param>
++		<name>Error Out</name>
++		<key>error_out</key>
++		<value>0</value>
++		<type>enum</type>
++		<hide>#if str($(error_out.err_out)) == '1' then 'part' else 'none'#</hide>
++		<option>
++			<name>Off</name>
++			<key>off</key>
++			<opt>err_out:1</opt>
++		</option>
++		<option>
++			<name>On</name>
++			<key>on</key>
++			<opt>err_out:2</opt>
++		</option>
++	</param>-->
++	<param>
++	    <name>Error Out</name>
++		<key>error_out</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($error_out) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
+ 	<sink>
+ 		<name>in</name>
+ 		<type>$type</type>
+@@ -60,5 +92,7 @@
+ 	<source>
+ 		<name>out</name>
+ 		<type>$type</type>
++		<!--<nports>$(error_out.err_out)</nports>-->
++		<nports>#if str($error_out) == 'False' then 1 else 2#</nports>
+ 	</source>
+ </block>
+diff --git a/grc/blocks/gr_decode_ccsds_27_fb.xml b/grc/blocks/gr_decode_ccsds_27_fb.xml
+index 03b31db..6e53452
+--- a/grc/blocks/gr_decode_ccsds_27_fb.xml
++++ b/grc/blocks/gr_decode_ccsds_27_fb.xml
+@@ -17,4 +17,9 @@
+ 		<name>out</name>
+ 		<type>byte</type>
+ 	</source>
++	<source>
++		<name>metric</name>
++		<type>float</type>
++		<optional>1</optional>
++	</source>
+ </block>
+diff --git a/grc/blocks/gr_vector_source_x.xml b/grc/blocks/gr_vector_source_x.xml
+index 7a6a3ae..5055e74
+--- a/grc/blocks/gr_vector_source_x.xml
++++ b/grc/blocks/gr_vector_source_x.xml
+@@ -9,6 +9,7 @@
+ 	<key>gr_vector_source_x</key>
+ 	<import>from gnuradio import gr</import>
+ 	<make>gr.vector_source_$(type.fcn)($vector, $repeat, $vlen)</make>
++	<callback>set_data($vector)</callback>
+ 	<param>
+ 		<name>Output Type</name>
+ 		<key>type</key>
+diff --git a/grc/blocks/wxgui_constellationsink2.xml b/grc/blocks/wxgui_constellationsink2.xml
+index 598b550..8403ba0
+--- a/grc/blocks/wxgui_constellationsink2.xml
++++ b/grc/blocks/wxgui_constellationsink2.xml
+@@ -33,6 +33,7 @@ $(parent).Add(self.$(id).win)
+ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
+ #end if</make>
+ 	<callback>set_sample_rate($samp_rate)</callback>
++	<callback>set_symbol_rate($symbol_rate)</callback>
+ 	<param>
+ 		<name>Title</name>
+ 		<key>title</key>

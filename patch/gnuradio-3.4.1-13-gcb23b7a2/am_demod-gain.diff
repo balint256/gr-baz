@@ -1,0 +1,106 @@
+diff --git a/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py b/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py
+index b454f09..2cb0e76
+--- a/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py
++++ b/gnuradio-core/src/python/gnuradio/blks2impl/am_demod.py
+@@ -39,23 +39,50 @@ class am_demod_cf(gr.hier_block2):
+     @param audio_stop: audio low pass filter stop frequency
+     @type audio_stop: float
+     """ 
+-    def __init__(self, channel_rate, audio_decim, audio_pass, audio_stop):
+-	gr.hier_block2.__init__(self, "am_demod_cf",
+-				gr.io_signature(1, 1, gr.sizeof_gr_complex), # Input signature
+-				gr.io_signature(1, 1, gr.sizeof_float))      # Input signature
++    def __init__(self, channel_rate, audio_decim, audio_pass, audio_stop, gain=0.5):
++        gr.hier_block2.__init__(self, "am_demod_cf",
++            gr.io_signature(1, 1, gr.sizeof_gr_complex), # Input signature
++            gr.io_signature(1, 1, gr.sizeof_float))      # Input signature
+ 
+-	MAG = gr.complex_to_mag()
+-	DCR = gr.add_const_ff(-1.0)
+-
+-	audio_taps = optfir.low_pass(0.5, 	   # Filter gain
+-	                             channel_rate, # Sample rate
+-				     audio_pass,   # Audio passband
+-				     audio_stop,   # Audio stopband
+-				     0.1, 	   # Passband ripple
+-				     60)	   # Stopband attenuation
+-	LPF = gr.fir_filter_fff(audio_decim, audio_taps)
+-
+-	self.connect(self, MAG, DCR, LPF, self)
++        MAG = gr.complex_to_mag()
++        DCR = gr.add_const_ff(-1.0)
++        
++        self.channel_rate = channel_rate
++        self.audio_pass = audio_pass
++        self.audio_stop = audio_stop
++        self.gain = gain
++    
++        audio_taps = optfir.low_pass(gain, 	   # Filter gain
++            channel_rate, # Sample rate
++            audio_pass,   # Audio passband
++            audio_stop,   # Audio stopband
++            0.1, 	   # Passband ripple
++            60)	   # Stopband attenuation
++        self.LPF = gr.fir_filter_fff(audio_decim, audio_taps)
++    
++        self.connect(self, MAG, DCR, self.LPF, self)
++    def set_audio_pass(self, audio_pass):
++        self.set_params(audio_pass, self.audio_stop, self.gain)
++    def set_audio_stop(self, audio_stop):
++        self.set_params(self.audio_pass, audio_stop, self.gain)
++    def set_gain(self, gain):
++        self.set_params(self.audio_pass, self.audio_stop, gain)
++    def set_params(self, audio_pass, audio_stop, gain):
++        #print "New AM demod parameters: pass %f, stop %f" % (audio_pass, audio_stop)
++        self.audio_pass = audio_pass
++        self.audio_stop = audio_stop
++        self.gain = gain
++        try:
++            audio_taps = optfir.low_pass(gain, 	   # Filter gain
++                self.channel_rate, # Sample rate
++                audio_pass,   # Audio passband
++                audio_stop,   # Audio stopband
++                0.1, 	   # Passband ripple
++                60)	   # Stopband attenuation
++        except:
++            print "Failed to generate taps with new AM demod parameters: pass %f, stop %f" % (audio_pass, audio_stop)
++            return
++        self.LPF.set_taps(audio_taps)
+ 
+ class demod_10k0a3e_cf(am_demod_cf):
+     """
+@@ -73,4 +100,3 @@ class demod_10k0a3e_cf(am_demod_cf):
+     	am_demod_cf.__init__(self, channel_rate, audio_decim, 
+     	                     5000, # Audio passband
+     	                     5500) # Audio stopband
+-    	
+\ No newline at end of file
+diff --git a/grc/blocks/blks2_am_demod_cf.xml b/grc/blocks/blks2_am_demod_cf.xml
+index 898c613..6c6e6e2
+--- a/grc/blocks/blks2_am_demod_cf.xml
++++ b/grc/blocks/blks2_am_demod_cf.xml
+@@ -13,7 +13,11 @@
+ 	audio_decim=$audio_decim,
+ 	audio_pass=$audio_pass,
+ 	audio_stop=$audio_stop,
++	gain=$gain,
+ )</make>
++	<callback>set_audio_pass($audio_pass)</callback>
++	<callback>set_audio_stop($audio_stop)</callback>
++	<callback>set_gain($gain)</callback>
+ 	<param>
+ 		<name>Channel Rate</name>
+ 		<key>chan_rate</key>
+@@ -36,6 +40,12 @@
+ 		<value>5500</value>
+ 		<type>real</type>
+ 	</param>
++	<param>
++		<name>Gain</name>
++		<key>gain</key>
++		<value>0.5</value>
++		<type>real</type>
++	</param>
+ 	<sink>
+ 		<name>in</name>
+ 		<type>complex</type>

@@ -1,0 +1,51 @@
+diff --git a/grc/blocks/gr_clock_recovery_mm_xx.xml b/grc/blocks/gr_clock_recovery_mm_xx.xml
+index 613cc23..a09450d
+--- a/grc/blocks/gr_clock_recovery_mm_xx.xml
++++ b/grc/blocks/gr_clock_recovery_mm_xx.xml
+@@ -53,6 +53,38 @@
+ 		<key>omega_relative_limit</key>
+ 		<type>real</type>
+ 	</param>
++	<!--<param>
++		<name>Error Out</name>
++		<key>error_out</key>
++		<value>0</value>
++		<type>enum</type>
++		<hide>#if str($(error_out.err_out)) == '1' then 'part' else 'none'#</hide>
++		<option>
++			<name>Off</name>
++			<key>off</key>
++			<opt>err_out:1</opt>
++		</option>
++		<option>
++			<name>On</name>
++			<key>on</key>
++			<opt>err_out:2</opt>
++		</option>
++	</param>-->
++	<param>
++	    <name>Error Out</name>
++		<key>error_out</key>
++		<value>False</value>
++		<type>bool</type>
++		<hide>#if str($error_out) == 'False' then 'part' else 'none'#</hide>
++		<option>
++			<name>On</name>
++			<key>True</key>
++		</option>
++		<option>
++			<name>Off</name>
++			<key>False</key>
++		</option>
++	</param>
+ 	<sink>
+ 		<name>in</name>
+ 		<type>$type</type>
+@@ -60,5 +92,7 @@
+ 	<source>
+ 		<name>out</name>
+ 		<type>$type</type>
++		<!--<nports>$(error_out.err_out)</nports>-->
++		<nports>#if str($error_out) == 'False' then 1 else 2#</nports>
+ 	</source>
+ </block>
