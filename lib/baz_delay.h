@@ -20,6 +20,11 @@
  * Boston, MA 02110-1301, USA.
  */
 
+/*
+ * gr-baz by Balint Seeber (http://spench.net/contact)
+ * Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
+ */
+
 #ifndef INCLUDED_BAZ_DELAY_H
 #define INCLUDED_BAZ_DELAY_H
 

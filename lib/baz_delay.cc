@@ -20,6 +20,11 @@
  * Boston, MA 02110-1301, USA.
  */
 
+/*
+ * gr-baz by Balint Seeber (http://spench.net/contact)
+ * Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

@@ -20,6 +20,8 @@
 # Boston, MA 02110-1301, USA.
 # 
 
+# usrp_fft.py modified for AM by Balint Seeber (http://wiki.spench.net/wiki/gr-baz)
+
 from gnuradio import gr, gru
 from gnuradio import usrp
 from gnuradio import eng_notation

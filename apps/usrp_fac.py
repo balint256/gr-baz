@@ -20,6 +20,9 @@
 # Boston, MA 02110-1301, USA.
 # 
 
+# Modified by Balint Seeber (http://wiki.spench.net/wiki/gr-baz)
+# Part of http://wiki.spench.net/wiki/Fast_Auto-correlation
+
 from gnuradio import gr, gru
 from gnuradio import usrp
 from gnuradio import eng_notation

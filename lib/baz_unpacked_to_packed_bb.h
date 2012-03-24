@@ -20,7 +20,10 @@
  * Boston, MA 02110-1301, USA.
  */
 
-// WARNING: this file is machine generated.  Edits will be over written
+/*
+ * gr-baz by Balint Seeber (http://spench.net/contact)
+ * Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
+ */
 
 #ifndef INCLUDED_BAZ_UNPACKED_TO_PACKED_BB_H
 #define INCLUDED_BAZ_UNPACKED_TO_PACKED_BB_H

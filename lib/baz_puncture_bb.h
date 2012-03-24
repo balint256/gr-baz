@@ -19,6 +19,12 @@
  * the Free Software Foundation, Inc., 51 Franklin Street,
  * Boston, MA 02110-1301, USA.
  */
+
+/*
+ * gr-baz by Balint Seeber (http://spench.net/contact)
+ * Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
+ */
+
 #ifndef INCLUDED_BAZ_PUNCTURE_BB_H
 #define INCLUDED_BAZ_PUNCTURE_BB_H
 

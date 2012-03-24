@@ -20,6 +20,13 @@
  * Boston, MA 02110-1301, USA.
  */
 
+/*
+ * gr-baz by Balint Seeber (http://spench.net/contact)
+ * Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
+ */
+
+// THIS IS EXPERIMENTAL AND UNFINISHED
+
 #ifndef INCLUDED_BAZ_AGC_CC_H
 #define INCLUDED_BAZ_AGC_CC_H
 
