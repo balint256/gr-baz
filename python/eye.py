@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+"""
+Draws an eye diagram of an incoming float sample stream.
+Certain parameters are adjustable at runtime (also exposed in GRC block).
+This code is based on the Data Scope in OP25 (http://op25.osmocom.org/), which was created by the "Majorly Adept haXor".
+This file is part of gr-baz. More info: http://wiki.spench.net/wiki/gr-baz
+By Balint Seeber (http://spench.net/contact)
+"""
+
 from __future__ import with_statement
 
 import threading, math

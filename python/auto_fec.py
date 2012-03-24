@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 
+"""
+Automatically try each combination of FEC parameters until the correct one is found.
+The deFEC routine is inside decode_ccsds_27_fb (NASA Voyager, k=7, 1/2 rate).
+Parameters are controller by auto_fec_xform.
+Keep an eye on the console to watch the progress of the parameter search.
+The auto_fec block creation arguments control its behaviour.
+Ordinarily leave sample_rate at 0 to have the other durations/periods interpreted as sample counts.
+If the sample rate is specified, you can also engage the internal throttle if playing back from a file.
+Part of gr-baz. More info: http://wiki.spench.net/wiki/gr-baz
+By Balint Seeber (http://spench.net/contact)
+"""
+
 from __future__ import with_statement
 
 import threading, math, time
