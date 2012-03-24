@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 
+"""
+BorIP client for GNU Radio.
+Enables access to a remote USRP via BorIP server through a LAN.
+Uses gr_udp_source with modifications to enable BorIP packet support.
+Hooks usrp.source_c so BorIP will automatically attempt to connect to a remote server if a local USRP is not present.
+To specify a default server, add 'server=<server>' to the '[borip]' section of your ~/.gnuradio/config.conf (see other settings below).
+More information regarding operational modes, seamless integration and settings: http://wiki.spench.net/wiki/gr-baz#borip
+BorIP protocol specification: http://spench.net/r/BorIP
+By Balint Seeber (http://spench.net/contact)
+"""
+
+# NOTES:
 # Wait-for-OK will fail if socket fails, despite 'destroy' reconnect recovery
 # GRC generated doesn't honour external config 'reconnect_attempts'
 
