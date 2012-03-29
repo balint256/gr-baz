@@ -15,10 +15,31 @@
 #include "baz_swap_ff.h"
 #include "baz_agc_cc.h"
 #include "baz_test_counter_cc.h"
+#include "baz_rtl_source_c.h"
 %}
 
 //%include "howto_square_ff.i"
 //%include "howto_square2_ff.i"
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,rtl_source_c);
+
+baz_rtl_source_c_sptr baz_make_rtl_source_c (bool auto_tuner_mode = false);
+
+class baz_rtl_source_c : public gr_sync_block
+{
+private:
+  baz_rtl_source_c (bool auto_tuner_mode = false);
+public:
+  bool set_sample_rate(int sample_rate);
+  bool set_frequency(float freq);
+  bool set_gain(float gain);
+public:
+  int sample_rate();
+  float frequency();
+  float gain();
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 

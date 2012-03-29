@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+## RTL2832U Source
+###################################################
+-->
+<block>
+	<name>RTL2832 Source</name>
+	<key>rtl2832_source</key>
+	<category>Sources</category>
+	<import>import baz</import>
+	
+	<make>baz.rtl_source_c(auto_tuner_mode=$auto_tuner_mode)
+self.$(id).set_sample_rate($sample_rate)
+self.$(id).set_frequency($frequency)
+self.$(id).set_gain($gain)
+</make>
+	
+	<callback>set_sample_rate($sample_rate)</callback>
+	<callback>set_frequency($frequency)</callback>
+	<callback>set_gain($gain)</callback>
+
+	<param>
+		<name>Sample rate</name>
+		<key>sample_rate</key>
+		<value>samp_rate</value>
+		<type>int</type>
+	</param>
+	
+	<param>
+		<name>Frequency (Hz)</name>
+		<key>frequency</key>
+		<type>real</type>
+	</param>
+	
+	<param>
+		<name>Gain (dB)</name>
+		<key>gain</key>
+		<value>0</value>
+		<type>real</type>
+	</param>
+	
+	<param>
+	    <name>Auto adjust tuner mode</name>
+		<key>auto_tuner_mode</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>#if str($auto_tuner_mode) == 'False' then 'part' else 'none'#</hide>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
+			<key>False</key>
+		</option>
+	</param>
+	
+	<source>
+		<name>out</name>
+		<!--<type>$type</type>-->
+		<type>complex</type>
+	</source>
+	
+	<doc>
+RTL2832-compatible USB receiver.
+
+Auto tuner mode auto selects between nominal/linear/sensitive modes for E4000 (however setting the gain may be slower).
+	</doc>
+</block>

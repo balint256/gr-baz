@@ -38,6 +38,7 @@ dist_grcblocks_DATA = \
 	baz_agc_xx.xml \
 	baz_test_counter_cc.xml \
 	gr_mpsk_receiver_debug_cc.xml \
-	baz_auto_fec.xml
+	baz_auto_fec.xml \
+	baz_rtl_source_c.xml
 #	howto_square_ff.xml \
 #	howto_square2_ff.xml

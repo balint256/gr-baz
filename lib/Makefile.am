@@ -38,7 +38,8 @@ modinclude_HEADERS = \
 	baz_depuncture_ff.h \
 	baz_swap_ff.h \
 	baz_agc_cc.h \
-	baz_test_counter_cc.h
+	baz_test_counter_cc.h \
+	baz_rtl_source_c.h
 #	howto_square_ff.h \
 #	howto_square2_ff.h
 
@@ -53,12 +54,15 @@ libgnuradio_baz_la_SOURCES = \
 	baz_depuncture_ff.cc \
 	baz_swap_ff.cc \
 	baz_agc_cc.cc \
-	baz_test_counter_cc.cc
+	baz_test_counter_cc.cc \
+	baz_rtl_source_c.cc \
+	rtl2832-tuner_e4000.cc \
+	rtl2832-tuner_fc0013.cc
 #	howto_square_ff.cc \
 #	howto_square2_ff.cc
 
 libgnuradio_baz_la_LIBADD = \
-	$(GNURADIO_CORE_LA)
+	$(GNURADIO_CORE_LA) -lusb-1.0
 
 libgnuradio_baz_la_LDFLAGS = \
 	$(NO_UNDEFINED)
