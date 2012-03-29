@@ -79,6 +79,7 @@ typedef uint32_t	UINT;
 ///////////////////////////////////////////////////////////////////////////////
 
 #define READLEN		(/*16 * */16384)	// Smaller read lengths result in minor break-up on constant tone AM, too large and spectrum display jumps on screen
+#define BUFFER_MUL	4					// Buffer size = BUFFER_MUL * READLEN (buffering stops when half-full)
 
 /*
  * The private constructor
@@ -236,7 +237,6 @@ baz_rtl_source_c::general_work (int noutput_items,
 #define NOXON_VID	0x0ccd
 #define NOXON_PID	0x00b3
 
-#define BUFFER_MUL	4
 #define CTRL_IN		(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN)
 #define CTRL_OUT	(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT)
 
