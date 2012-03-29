@@ -80,11 +80,13 @@ private:
 
 private:
 	enum TUNER_TYPE {
+		TUNER_UNKNOWN,
 		TUNER_E4000,
 		TUNER_FC0013
 	} tuner_type;
 	struct libusb_device_handle *devh;
 	bool m_auto_tuner_mode;
+	bool m_libusb_init_done;
 public:	// rtl-sdr
 	int find_device();
 	bool tuner_init(int frequency);

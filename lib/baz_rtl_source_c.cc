@@ -101,9 +101,10 @@ baz_rtl_source_c::baz_rtl_source_c (bool auto_tuner_mode /*= false*/)
 	, m_pUSBBuffer(NULL)
 	, m_nBufferStart(0)
 	, m_nBufferSize(0)
-	, tuner_type(TUNER_E4000)
+	, tuner_type(TUNER_UNKNOWN)
 	, m_bBuffering(false)
 	, m_iTunerGainMode(RTL2832_E4000_TUNER_GAIN_NORMAL)
+	, m_libusb_init_done(false)
 {
   m_recv_samples_per_packet = /*READLEN / (1+1)*/4096;
   set_output_multiple(m_recv_samples_per_packet);
@@ -133,7 +134,10 @@ baz_rtl_source_c::general_work (int noutput_items,
   gruel::scoped_lock lock(d_mutex);
 
 	if ((m_bRunning == false) || (devh == NULL))
+	{
+	  fprintf(stderr, _T("work called while not running!\n"));
 		return -1;
+	}
 	  
 	if (noutput_items > m_nBufferSize)
 	{
@@ -146,7 +150,10 @@ baz_rtl_source_c::general_work (int noutput_items,
 	  m_hPacketEvent.wait(lock);
 	  
 	  if ((m_bRunning == false) || (devh == NULL))	// m_hStopEvent
+	  {
+		fprintf(stderr, _T("No longer running after packet notification - signalling EOF...\n"));
 		return -1;
+	  }
 	  
 	  if (m_bBuffering == false)	// m_hAbortEvent
 		break;
@@ -274,6 +281,9 @@ enum blocks {
 
 int baz_rtl_source_c::find_device()
 {
+  if (devh != NULL)
+	return 0;
+  
 	devh = libusb_open_device_with_vid_pid(NULL, EZCAP_VID, EZCAP_PID);
 	if (devh > 0) {
 		tuner_type = TUNER_E4000;
@@ -294,6 +304,9 @@ int baz_rtl_source_c::find_device()
 
 int baz_rtl_source_c::rtl_read_array(uint8_t block, uint16_t addr, uint8_t *array, uint8_t len)
 {
+  if (devh == NULL)
+	return LIBUSB_ERROR_NO_DEVICE;
+  
 	int r;
 	uint16_t index = (block << 8);
 
@@ -304,6 +317,9 @@ int baz_rtl_source_c::rtl_read_array(uint8_t block, uint16_t addr, uint8_t *arra
 
 int baz_rtl_source_c::rtl_write_array(uint8_t block, uint16_t addr, uint8_t *array, uint8_t len)
 {
+  if (devh == NULL)
+	return LIBUSB_ERROR_NO_DEVICE;
+  
 	int r;
 	uint16_t index = (block << 8) | 0x10;
 
@@ -322,7 +338,7 @@ int baz_rtl_source_c::rtl_write_array(uint8_t block, uint16_t addr, uint8_t *arr
  * \returns another LIBUSB_ERROR code on other failures
 */
 		if (r == LIBUSB_ERROR_PIPE)
-			fprintf(stderr, _T("USB control request no supported\n"), r);
+			fprintf(stderr, _T("USB control request no supported\n"));
 		else
 			fprintf(stderr, _T("Error writing control: %i\n"), r);
 	}
@@ -344,6 +360,9 @@ int baz_rtl_source_c::rtl_i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len)
 
 uint16_t baz_rtl_source_c::rtl_read_reg(uint8_t block, uint16_t addr, uint8_t len)
 {
+  if (devh == NULL)
+	return 0;
+  
 	int r;
 	unsigned char data[2];
 	uint16_t index = (block << 8);
@@ -361,6 +380,9 @@ uint16_t baz_rtl_source_c::rtl_read_reg(uint8_t block, uint16_t addr, uint8_t le
 
 void baz_rtl_source_c::rtl_write_reg(uint8_t block, uint16_t addr, uint16_t val, uint8_t len)
 {
+  if (devh == NULL)
+	return;
+  
 	int r;
 	unsigned char data[2];
 
@@ -381,6 +403,9 @@ void baz_rtl_source_c::rtl_write_reg(uint8_t block, uint16_t addr, uint16_t val,
 
 uint16_t baz_rtl_source_c::demod_read_reg(uint8_t page, uint8_t addr, uint8_t len)
 {
+  if (devh == NULL)
+	return 0;
+  
 	int r;
 	unsigned char data[2];
 
@@ -400,6 +425,9 @@ uint16_t baz_rtl_source_c::demod_read_reg(uint8_t page, uint8_t addr, uint8_t le
 
 void baz_rtl_source_c::demod_write_reg(uint8_t page, uint16_t addr, uint16_t val, uint8_t len)
 {
+  if (devh == NULL)
+	return;
+  
 	int r;
 	unsigned char data[2];
 	uint16_t index = 0x10 | page;
@@ -552,6 +580,8 @@ tuner_init_error:
 ///////////////////////////////////////////////////////////////////////////////
 bool baz_rtl_source_c::Create(/*const char* strHint = NULL*/)
 {
+	Destroy();
+	
 	m_nBufferSize = (READLEN / (1+1)) * BUFFER_MUL;
 	m_pUSBBuffer = new BYTE[m_nBufferSize * (1+1)];
 	ZeroMemory(m_pUSBBuffer, m_nBufferSize * (1+1));
@@ -560,10 +590,15 @@ bool baz_rtl_source_c::Create(/*const char* strHint = NULL*/)
 
 	int r;
 
-	r = libusb_init(NULL);
-	if (r < 0) {
-		fprintf(stderr, "Failed to initialise libusb\n");
-		return false;
+	if (m_libusb_init_done == false)
+	{
+	  r = libusb_init(NULL);
+	  if (r < 0) {
+		  fprintf(stderr, "Failed to initialise libusb\n");
+		  return false;
+	  }
+	  
+	  m_libusb_init_done = true;
 	}
 
 	r = find_device();
@@ -598,7 +633,11 @@ void baz_rtl_source_c::Destroy()
 		devh = NULL;
 	}
 
-	libusb_exit(NULL);
+	if (m_libusb_init_done)
+	{
+	  libusb_exit(NULL);
+	  m_libusb_init_done = false;
+	}
 
 	SAFE_DELETE_ARRAY(m_pUSBBuffer);
 }
@@ -617,6 +656,8 @@ void baz_rtl_source_c::Reset()
 
 bool baz_rtl_source_c::Start()
 {
+  gruel::scoped_lock lock(d_mutex);
+  
 	if (m_bRunning)
 		return true;
 
@@ -643,6 +684,8 @@ void baz_rtl_source_c::Stop()
 		return;
 	  
 	m_bRunning = false;
+	
+	m_hPacketEvent.notify_one();	// In case general_work is waiting
 
 	lock.unlock();
 	
@@ -855,10 +898,13 @@ void baz_rtl_source_c::CaptureThreadProc()
 		}
 		else if (res != 0)
 		{
+			fprintf(stderr, _T("USB error: %i\n"), res);
 			lock.lock();
 			m_bRunning = false;	// This will signal EOF
+			m_hPacketEvent.notify_one();
 			lock.unlock();
 			//continue;
+			//fprintf(stderr, _T("Capture thread aborting\n"));
 			return;
 		}
 
