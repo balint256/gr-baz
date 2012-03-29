@@ -37,6 +37,7 @@
 
 #include <baz_rtl_source_c.h>
 #include <gr_io_signature.h>
+#include <stdio.h>
 
 #include "rtl2832-tuner_e4000.h"
 #include "rtl2832-tuner_fc0013.h"
