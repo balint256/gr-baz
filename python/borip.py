@@ -102,7 +102,7 @@ class remote_usrp(gr.hier_block2):
 		self._which = which
 		
 		self.s = None
-		self._adc_freq = 64e6
+		self._adc_freq = int(64e6)
 		self._buffer = ""
 		self._gain_range = (0, 1)
 		#self._tune_result = None
@@ -358,7 +358,7 @@ class remote_usrp(gr.hier_block2):
 			self._listen_only = True
 			if (self._packet_size == 0) or (packet_size > 0):
 				if packet_size == 0:
-					packet_size = 9216 * 2 * 2	# FCD testing
+					packet_size = 4096 * 2 * 2	# FCD testing: 9216
 				self._packet_size = packet_size
 			print "BorIP client only listening on port %d (MTU: %d)" % (udp_port, self._packet_size)
 		else:
