@@ -79,7 +79,9 @@ typedef uint32_t	UINT;
 ///////////////////////////////////////////////////////////////////////////////
 
 #define READLEN		(/*16 * */16384)	// Smaller read lengths result in minor break-up on constant tone AM, too large and spectrum display jumps on screen
-#define BUFFER_MUL	4					// Buffer size = BUFFER_MUL * READLEN (buffering stops when half-full)
+#define BUFFER_MUL	8					// Buffer size = BUFFER_MUL * READLEN (buffering stops when half-full)
+
+static float _char_to_float_lut[256] = { -128.0f, -127.0f, -126.0f, -125.0f, -124.0f, -123.0f, -122.0f, -121.0f, -120.0f, -119.0f, -118.0f, -117.0f, -116.0f, -115.0f, -114.0f, -113.0f, -112.0f, -111.0f, -110.0f, -109.0f, -108.0f, -107.0f, -106.0f, -105.0f, -104.0f, -103.0f, -102.0f, -101.0f, -100.0f, -99.0f, -98.0f, -97.0f, -96.0f, -95.0f, -94.0f, -93.0f, -92.0f, -91.0f, -90.0f, -89.0f, -88.0f, -87.0f, -86.0f, -85.0f, -84.0f, -83.0f, -82.0f, -81.0f, -80.0f, -79.0f, -78.0f, -77.0f, -76.0f, -75.0f, -74.0f, -73.0f, -72.0f, -71.0f, -70.0f, -69.0f, -68.0f, -67.0f, -66.0f, -65.0f, -64.0f, -63.0f, -62.0f, -61.0f, -60.0f, -59.0f, -58.0f, -57.0f, -56.0f, -55.0f, -54.0f, -53.0f, -52.0f, -51.0f, -50.0f, -49.0f, -48.0f, -47.0f, -46.0f, -45.0f, -44.0f, -43.0f, -42.0f, -41.0f, -40.0f, -39.0f, -38.0f, -37.0f, -36.0f, -35.0f, -34.0f, -33.0f, -32.0f, -31.0f, -30.0f, -29.0f, -28.0f, -27.0f, -26.0f, -25.0f, -24.0f, -23.0f, -22.0f, -21.0f, -20.0f, -19.0f, -18.0f, -17.0f, -16.0f, -15.0f, -14.0f, -13.0f, -12.0f, -11.0f, -10.0f, -9.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.0f, 21.0f, 22.0f, 23.0f, 24.0f, 25.0f, 26.0f, 27.0f, 28.0f, 29.0f, 30.0f, 31.0f, 32.0f, 33.0f, 34.0f, 35.0f, 36.0f, 37.0f, 38.0f, 39.0f, 40.0f, 41.0f, 42.0f, 43.0f, 44.0f, 45.0f, 46.0f, 47.0f, 48.0f, 49.0f, 50.0f, 51.0f, 52.0f, 53.0f, 54.0f, 55.0f, 56.0f, 57.0f, 58.0f, 59.0f, 60.0f, 61.0f, 62.0f, 63.0f, 64.0f, 65.0f, 66.0f, 67.0f, 68.0f, 69.0f, 70.0f, 71.0f, 72.0f, 73.0f, 74.0f, 75.0f, 76.0f, 77.0f, 78.0f, 79.0f, 80.0f, 81.0f, 82.0f, 83.0f, 84.0f, 85.0f, 86.0f, 87.0f, 88.0f, 89.0f, 90.0f, 91.0f, 92.0f, 93.0f, 94.0f, 95.0f, 96.0f, 97.0f, 98.0f, 99.0f, 100.0f, 101.0f, 102.0f, 103.0f, 104.0f, 105.0f, 106.0f, 107.0f, 108.0f, 109.0f, 110.0f, 111.0f, 112.0f, 113.0f, 114.0f, 115.0f, 116.0f, 117.0f, 118.0f, 119.0f, 120.0f, 121.0f, 122.0f, 123.0f, 124.0f, 125.0f, 126.0f, 127.0f };
 
 /*
  * The private constructor
@@ -131,6 +133,7 @@ baz_rtl_source_c::general_work (int noutput_items,
 {
   //const float *in = (const float *) input_items[0];
   gr_complex *out = (gr_complex *)output_items[0];
+  //float *out = (float *)output_items[0];	// gr_complex = float * 2 [_M_real, _M_imag]
   
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
   gruel::scoped_lock lock(d_mutex);
@@ -179,9 +182,10 @@ baz_rtl_source_c::general_work (int noutput_items,
 	LPBYTE p = m_pUSBBuffer + (m_nBufferStart * (1+1));
 	for (UINT n = 0; n < nPart1; n++)
 	{
-		short i = p[n*2+0];
-		short q = p[n*2+1];
-		out[n] = gr_complex(i - 127, q - 127);
+		//short i = p[n*2+0];
+		//short q = p[n*2+1];
+		//out[n] = gr_complex(i - 127, q - 127);
+		out[n] = gr_complex(_char_to_float_lut[p[n*2+0]], _char_to_float_lut[p[n*2+1]]);
 	}
 
 	UINT nResidual = /*m_recv_samples_per_packet*/noutput_items - nPart1;
@@ -189,9 +193,10 @@ baz_rtl_source_c::general_work (int noutput_items,
 	{
 		for (UINT n = 0; n < nResidual; n++)
 		{
-			short i = m_pUSBBuffer[n*2+0];
-			short q = m_pUSBBuffer[n*2+1];
-			out[nPart1 + n] = gr_complex(i - 127, q - 127);
+			//short i = m_pUSBBuffer[n*2+0];
+			//short q = m_pUSBBuffer[n*2+1];
+			//out[nPart1 + n] = gr_complex(i - 127, q - 127);
+			out[nPart1 + n] = gr_complex(_char_to_float_lut[m_pUSBBuffer[n*2+0]], _char_to_float_lut[m_pUSBBuffer[n*2+1]]);
 		}
 	}
 
@@ -230,6 +235,9 @@ baz_rtl_source_c::general_work (int noutput_items,
 /* ezcap USB 2.0 DVB-T/DAB/FM stick */
 #define EZCAP_VID	0x0bda
 #define EZCAP_PID	0x2838
+
+#define HAMA_VID	0x0bda
+#define HAMA_PID	0x2832
 
 #define BANDWIDTH	8000000
 
@@ -288,19 +296,31 @@ int baz_rtl_source_c::find_device()
 	devh = libusb_open_device_with_vid_pid(NULL, EZCAP_VID, EZCAP_PID);
 	if (devh > 0) {
 		tuner_type = TUNER_E4000;
+		//m_gainRange = uhd::gain_range_t(-5, 30, 0.5);
 		fprintf(stderr, "Found ezcap stick with E4000 tuner\n");
-		fprintf(stderr, "E4000 auto tuner mode: %s\n", (m_auto_tuner_mode ? "on" : "off"));
-		return 0;
+		goto found_device;
+	}
+	
+	devh = libusb_open_device_with_vid_pid(NULL, HAMA_VID, HAMA_PID);
+	if (devh > 0) {
+		tuner_type = TUNER_E4000;
+		//m_gainRange = uhd::gain_range_t(-5, 30, 0.5);
+		fprintf(stderr, "Found Hama nano stick with E4000 tuner\n");
+		goto found_device;
 	}
 
 	devh = libusb_open_device_with_vid_pid(NULL, NOXON_VID, NOXON_PID);
 	if (devh > 0) {
 		tuner_type = TUNER_FC0013;
 		fprintf(stderr, "Found Terratec NOXON stick with FC0013 tuner\n");
-		return 0;
+		goto found_device;
 	}
 
 	return -EIO;
+found_device:
+  if (tuner_type == TUNER_E4000)
+	fprintf(stderr, "E4000 auto tuner mode: %s\n", (m_auto_tuner_mode ? "on" : "off"));
+  return 0;
 }
 
 int baz_rtl_source_c::rtl_read_array(uint8_t block, uint16_t addr, uint8_t *array, uint8_t len)
@@ -715,7 +735,7 @@ static int GetMapIndex(int iValue, const int* map, int iCount)
 
 bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 {
-	static int mapGainsE4000[] = {	// rtl2832: num_rtl2832_e4000.c
+	static int mapGainsE4000[] = {	// rtl2832: nim_rtl2832_e4000.c
 		-50,	2,
 		-25,	3,
 		0,		4,
@@ -740,7 +760,7 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 	  FC0013_LNA_GAIN_HIGH_19 = 0x10,	// 19.7dB
   };*/
 	
-	static int mapGainsFC0013[] = {	// rtl2832: num_rtl2832_fc0013.c
+	static int mapGainsFC0013[] = {	// rtl2832: nim_rtl2832_fc0013.c
 	  -63, 0x00,
 	  +71, 0x08,
 	  191, 0x11,
@@ -771,7 +791,7 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 
 	unsigned char u8Write = mapGains[i + 1];
 
-	gruel::scoped_lock lock(d_mutex);
+	//gruel::scoped_lock lock(d_mutex);
 
 	set_i2c_repeater(1);
 
@@ -823,7 +843,7 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 
 bool baz_rtl_source_c::set_frequency(/*double*/float dFreq)
 {
-	gruel::scoped_lock lock(d_mutex);
+	//gruel::scoped_lock lock(d_mutex);
 
 	set_i2c_repeater(1);
 	
@@ -891,7 +911,7 @@ void baz_rtl_source_c::CaptureThreadProc()
 		int res = libusb_bulk_transfer(devh, 0x81, pBuffer, READLEN, &lLockSize, 3000);
 		if (res == LIBUSB_ERROR_OVERFLOW)
 		{
-			fprintf(stderr, _T("USB overrun\n"));
+			fprintf(stderr, _T("rO"));	// USB overrun\n
 
 			lock.lock();
 			++m_nOverflows;
@@ -947,7 +967,7 @@ void baz_rtl_source_c::CaptureThreadProc()
 		}
 		else// if (nRemaining == 0)
 		{
-fprintf(stderr, _T("OVERRUN: Remaining: %lu\n"), nRemaining);	// FIXME: Overrun
+fprintf(stderr, "rB");	//fprintf(stderr, _T("OVERRUN: Remaining: %lu\n"), nRemaining);	// FIXME: Overrun
 		}
 
 		lock.unlock();
