@@ -86,10 +86,9 @@ private:
 	} tuner_type;
 	struct libusb_device_handle *devh;
 	bool m_auto_tuner_mode;
-	bool m_libusb_init_done;
 public:	// rtl-sdr
 	int find_device();
-	bool tuner_init(int frequency);
+	bool tuner_init();
 	void rtl_init();
 	void set_i2c_repeater(int on);
 	bool set_samp_rate(uint32_t samp_rate);
@@ -116,6 +115,16 @@ public:
 	uint8_t* m_pUSBBuffer;
 	bool m_bBuffering;
 	int m_iTunerGainMode;
+	bool m_libusb_init_done;
+	uint32_t m_nReadLength;
+	uint32_t m_nBufferMultiplier;
+	bool m_bUseBuffer;
+	float m_fBufferLevel;
+	uint32_t m_nReadPacketCount;
+	uint32_t m_nBufferOverflowCount;
+	uint32_t m_nBufferUnderrunCount;
+	boost::xtime wait_delay, wait_next;
+	float m_gain_limits[2];
 public:	// COMPAT
 	bool Create(/*const char* strHint = NULL*/);
 	bool Start();

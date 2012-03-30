@@ -69,6 +69,7 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 // COMPAT /////////////////////////////////////////////////////////////////////
 #define _T(x)		x
 #define ZeroMemory(p,l)			memset(p, 0x00, l)
+#define ZERO_MEMORY(p)			ZeroMemory(p, sizeof(p))
 #define SAFE_DELETE_ARRAY(p)	{ if (p) { delete [] p; p = NULL; } }
 #define SAFE_DELETE(p)			{ if (p) { delete p; p = NULL; } }
 #define min(a,b)				(a < b ? a : b)
@@ -78,15 +79,19 @@ typedef uint8_t		BYTE, *LPBYTE;
 typedef uint32_t	UINT;
 ///////////////////////////////////////////////////////////////////////////////
 
-#define READLEN		(/*16 * */16384)	// Smaller read lengths result in minor break-up on constant tone AM, too large and spectrum display jumps on screen
-#define BUFFER_MUL	8					// Buffer size = BUFFER_MUL * READLEN (buffering stops when half-full)
+#define DEFAULT_READLEN			(/*16 * */16384 * 2)	// This is good compromise between maintaining a good buffer level and immediate response to parameter adjustment
+#define DEFAULT_BUFFER_MUL		(4*2)
+#define DEFAULT_BUFFER_LEVEL	0.5f
+#define WAIT_FUDGE				(1.2+0.3)
+#define RAW_SAMPLE_SIZE			(1+1)
+#define LIBUSB_TIMEOUT			3000
 
 static float _char_to_float_lut[256] = { -128.0f, -127.0f, -126.0f, -125.0f, -124.0f, -123.0f, -122.0f, -121.0f, -120.0f, -119.0f, -118.0f, -117.0f, -116.0f, -115.0f, -114.0f, -113.0f, -112.0f, -111.0f, -110.0f, -109.0f, -108.0f, -107.0f, -106.0f, -105.0f, -104.0f, -103.0f, -102.0f, -101.0f, -100.0f, -99.0f, -98.0f, -97.0f, -96.0f, -95.0f, -94.0f, -93.0f, -92.0f, -91.0f, -90.0f, -89.0f, -88.0f, -87.0f, -86.0f, -85.0f, -84.0f, -83.0f, -82.0f, -81.0f, -80.0f, -79.0f, -78.0f, -77.0f, -76.0f, -75.0f, -74.0f, -73.0f, -72.0f, -71.0f, -70.0f, -69.0f, -68.0f, -67.0f, -66.0f, -65.0f, -64.0f, -63.0f, -62.0f, -61.0f, -60.0f, -59.0f, -58.0f, -57.0f, -56.0f, -55.0f, -54.0f, -53.0f, -52.0f, -51.0f, -50.0f, -49.0f, -48.0f, -47.0f, -46.0f, -45.0f, -44.0f, -43.0f, -42.0f, -41.0f, -40.0f, -39.0f, -38.0f, -37.0f, -36.0f, -35.0f, -34.0f, -33.0f, -32.0f, -31.0f, -30.0f, -29.0f, -28.0f, -27.0f, -26.0f, -25.0f, -24.0f, -23.0f, -22.0f, -21.0f, -20.0f, -19.0f, -18.0f, -17.0f, -16.0f, -15.0f, -14.0f, -13.0f, -12.0f, -11.0f, -10.0f, -9.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f, 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.0f, 21.0f, 22.0f, 23.0f, 24.0f, 25.0f, 26.0f, 27.0f, 28.0f, 29.0f, 30.0f, 31.0f, 32.0f, 33.0f, 34.0f, 35.0f, 36.0f, 37.0f, 38.0f, 39.0f, 40.0f, 41.0f, 42.0f, 43.0f, 44.0f, 45.0f, 46.0f, 47.0f, 48.0f, 49.0f, 50.0f, 51.0f, 52.0f, 53.0f, 54.0f, 55.0f, 56.0f, 57.0f, 58.0f, 59.0f, 60.0f, 61.0f, 62.0f, 63.0f, 64.0f, 65.0f, 66.0f, 67.0f, 68.0f, 69.0f, 70.0f, 71.0f, 72.0f, 73.0f, 74.0f, 75.0f, 76.0f, 77.0f, 78.0f, 79.0f, 80.0f, 81.0f, 82.0f, 83.0f, 84.0f, 85.0f, 86.0f, 87.0f, 88.0f, 89.0f, 90.0f, 91.0f, 92.0f, 93.0f, 94.0f, 95.0f, 96.0f, 97.0f, 98.0f, 99.0f, 100.0f, 101.0f, 102.0f, 103.0f, 104.0f, 105.0f, 106.0f, 107.0f, 108.0f, 109.0f, 110.0f, 111.0f, 112.0f, 113.0f, 114.0f, 115.0f, 116.0f, 117.0f, 118.0f, 119.0f, 120.0f, 121.0f, 122.0f, 123.0f, 124.0f, 125.0f, 126.0f, 127.0f };
 
 /*
  * The private constructor
  */
-baz_rtl_source_c::baz_rtl_source_c (bool auto_tuner_mode /*= false*/)
+baz_rtl_source_c::baz_rtl_source_c (bool auto_tuner_mode /*= false*//*, verbose = false*/)
   : gr_block ("baz_rtl_source_c",
 	      gr_make_io_signature (MIN_IN, MAX_IN, sizeof (float)),
 	      gr_make_io_signature (MIN_OUT, MAX_OUT, sizeof (gr_complex)))
@@ -98,6 +103,7 @@ baz_rtl_source_c::baz_rtl_source_c (bool auto_tuner_mode /*= false*/)
 	, m_nSamplesReceived(0)
 	, m_nOverflows(0)
 	, m_bRunning(false)
+	, m_recv_samples_per_packet(0)
 	///////////////////////////
 	, devh(NULL)
 	, m_auto_tuner_mode(auto_tuner_mode)
@@ -109,9 +115,17 @@ baz_rtl_source_c::baz_rtl_source_c (bool auto_tuner_mode /*= false*/)
 	, m_bBuffering(false)
 	, m_iTunerGainMode(RTL2832_E4000_TUNER_GAIN_NORMAL)
 	, m_libusb_init_done(false)
+	/////
+	, m_nReadLength(DEFAULT_READLEN)
+	, m_nBufferMultiplier(DEFAULT_BUFFER_MUL)
+	, m_bUseBuffer(true)
+	, m_fBufferLevel(DEFAULT_BUFFER_LEVEL)
+	, m_nReadPacketCount(0)
+	, m_nBufferOverflowCount(0)
+	, m_nBufferUnderrunCount(0)
 {
-  m_recv_samples_per_packet = /*READLEN / (1+1)*/4096;
-  set_output_multiple(m_recv_samples_per_packet);
+  ZERO_MEMORY(m_gain_limits);
+  //ZeroMemory(&wait_delay, sizeof(wait_delay));	// This is not future proof (will be initialised properly in 'set_sample_rate')
   
   if (Create() == false)
 	throw std::runtime_error("Failed to create rtl2832 source");
@@ -143,16 +157,78 @@ baz_rtl_source_c::general_work (int noutput_items,
 	  fprintf(stderr, _T("work called while not running!\n"));
 		return -1;
 	}
+	
+	if (m_bUseBuffer == false)
+	{
+	  int iToRead = noutput_items;
+	  if (iToRead > (m_nBufferSize * RAW_SAMPLE_SIZE))
+	  {
+		fprintf(stderr, _T("work wants more than the buffer size!\n"));
+		iToRead = m_nBufferSize * RAW_SAMPLE_SIZE;
+	  }
 	  
+	  int iRead = 0;
+	  int res = libusb_bulk_transfer(devh, 0x81, m_pUSBBuffer, iToRead, &iRead, LIBUSB_TIMEOUT);
+	  if ((res != 0) && (res != LIBUSB_ERROR_OVERFLOW))
+	  {
+		fprintf(stderr, _T("USB error: %i\n"), res);
+		return -1;
+	  }
+
+	  if ((UINT)iRead < iToRead)
+	  {
+		  fprintf(stderr, _T("Short bulk read: %i < %i\n"), iRead, iToRead);
+	  }
+
+	  m_nSamplesReceived += (iRead / RAW_SAMPLE_SIZE);
+
+	  for (int n = 0; n < (iRead / RAW_SAMPLE_SIZE); n++)
+		  out[n] = gr_complex(_char_to_float_lut[m_pUSBBuffer[n*RAW_SAMPLE_SIZE+0]], _char_to_float_lut[m_pUSBBuffer[n*RAW_SAMPLE_SIZE+1]]);
+
+	  if (res == LIBUSB_ERROR_OVERFLOW)
+	  {
+		  ++m_nOverflows;
+		  fprintf(stderr, _T("rO"));
+	  }
+	  
+	  ++m_nReadPacketCount;
+	  
+	  return noutput_items;
+	}
+	
+	///////////////////////////////////
+	
 	if (noutput_items > m_nBufferSize)
 	{
 	  fprintf(stderr, _T("work wants more than the buffer size!\n"));
 	  noutput_items = m_nBufferSize;
 	}
-
-	while ((m_bBuffering) || (m_nBufferItems < /*m_recv_samples_per_packet*/noutput_items))
+retry_notify:
+	while ((m_bBuffering) || (m_nBufferItems <= ((UINT)(m_fBufferLevel * (float)m_nBufferSize) + m_recv_samples_per_packet)))	// If getting too full, send them all through
 	{
-	  m_hPacketEvent.wait(lock);
+	  bool notified = true;
+	  
+	  if (m_bBuffering)
+		m_hPacketEvent.wait(lock);
+	  else
+	  {
+		// PORTABILITY CHECK //////////////////////////////
+		xtime_get(&wait_next, CLOCK_MONOTONIC);
+		wait_next.nsec += wait_delay.nsec;
+		if (wait_next.nsec >= 1000000000)
+		{
+		  wait_next.sec += 1;
+		  wait_next.nsec -= 1000000000;
+		}
+		///////////////////////////////////////////////////
+		notified = m_hPacketEvent.timed_wait(lock, wait_next);
+	  }
+	  
+	  if (notified == false)	// Timeout
+	  {
+		fprintf(stderr, "rT");
+		break;	// Running late, use up some of the buffer
+	  }
 	  
 	  if ((m_bRunning == false) || (devh == NULL))	// m_hStopEvent
 	  {
@@ -168,18 +244,22 @@ baz_rtl_source_c::general_work (int noutput_items,
 
 	if (m_nBufferItems < m_recv_samples_per_packet)
 	{
-		fprintf(stderr, _T("Reading packet after signal, but not enough items in buffer (only %lu, need at least: %lu, start now %lu)\n"), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart);	// FIXME: Why does this happen?
+		//fprintf(stderr, _T("Reading packet after signal, but not enough items in buffer (only %lu, need at least: %lu, start now %lu) [#%lu]\n"), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart, m_nReadPacketCount);
+		fprintf(stderr, "rU");
 		m_bBuffering = true;
-		return 0;
+		++m_nBufferUnderrunCount;
+		goto retry_notify;
 	}
-	else if (m_nBufferItems < noutput_items)
+	else if (m_nBufferItems < noutput_items)	// Double check
 	{
-	  fprintf(stderr, _T("Not enough items for work (only %lu, need at least: %lu, start now %lu)\n"), m_nBufferItems, noutput_items, m_nBufferStart);
+	  fprintf(stderr, _T("Not enough items for work (only %lu, need at least: %lu, start now %lu) [#%lu]\n"), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart, m_nReadPacketCount);
 	  noutput_items = m_nBufferItems;
 	}
+	
+	++m_nReadPacketCount;
 
 	UINT nPart1 = min(/*m_recv_samples_per_packet*/noutput_items, m_nBufferSize - m_nBufferStart);
-	LPBYTE p = m_pUSBBuffer + (m_nBufferStart * (1+1));
+	LPBYTE p = m_pUSBBuffer + (m_nBufferStart * RAW_SAMPLE_SIZE);
 	for (UINT n = 0; n < nPart1; n++)
 	{
 		//short i = p[n*2+0];
@@ -200,28 +280,13 @@ baz_rtl_source_c::general_work (int noutput_items,
 		}
 	}
 
-	m_nSamplesReceived += m_recv_samples_per_packet;
+	m_nSamplesReceived += /*m_recv_samples_per_packet*/noutput_items;
 
-/*	if (false)	// FIXME: Flag
-	{
-		++m_nOverflows;
-
-		m_metadata.error_code = uhd::rx_metadata_t::ERROR_CODE_OVERFLOW;
-	}
-	else
-		m_metadata.error_code = uhd::rx_metadata_t::ERROR_CODE_NONE;
-*/
-	m_nBufferItems -= m_recv_samples_per_packet;
-
-	//ASSERT(m_nBufferItems != -1);
+	m_nBufferItems -= /*m_recv_samples_per_packet*/noutput_items;
 
 	if (m_nBufferItems > 0)
-		m_nBufferStart = (m_nBufferStart + m_recv_samples_per_packet) % m_nBufferSize;
+		m_nBufferStart = (m_nBufferStart + /*m_recv_samples_per_packet*/noutput_items) % m_nBufferSize;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  //for (int i = 0; i < noutput_items; i++){
-  //  out[i] = in[i] * in[i];
-  //}
 
   // Tell runtime system how many input items we consumed on
   // each input stream.
@@ -240,6 +305,7 @@ baz_rtl_source_c::general_work (int noutput_items,
 #define HAMA_PID	0x2832
 
 #define BANDWIDTH	8000000
+#define MAX_RATE	3200000
 
 /* Terratec NOXON DAB/DAB+ USB-Stick */
 #define NOXON_VID	0x0ccd
@@ -296,7 +362,8 @@ int baz_rtl_source_c::find_device()
 	devh = libusb_open_device_with_vid_pid(NULL, EZCAP_VID, EZCAP_PID);
 	if (devh > 0) {
 		tuner_type = TUNER_E4000;
-		//m_gainRange = uhd::gain_range_t(-5, 30, 0.5);
+		m_gain_limits[0] = -5;
+		m_gain_limits[1] = 30;
 		fprintf(stderr, "Found ezcap stick with E4000 tuner\n");
 		goto found_device;
 	}
@@ -304,7 +371,8 @@ int baz_rtl_source_c::find_device()
 	devh = libusb_open_device_with_vid_pid(NULL, HAMA_VID, HAMA_PID);
 	if (devh > 0) {
 		tuner_type = TUNER_E4000;
-		//m_gainRange = uhd::gain_range_t(-5, 30, 0.5);
+		m_gain_limits[0] = -5;
+		m_gain_limits[1] = 30;
 		fprintf(stderr, "Found Hama nano stick with E4000 tuner\n");
 		goto found_device;
 	}
@@ -312,6 +380,8 @@ int baz_rtl_source_c::find_device()
 	devh = libusb_open_device_with_vid_pid(NULL, NOXON_VID, NOXON_PID);
 	if (devh > 0) {
 		tuner_type = TUNER_FC0013;
+		m_gain_limits[0] = -6.3;
+		m_gain_limits[1] = 19.7;
 		fprintf(stderr, "Found Terratec NOXON stick with FC0013 tuner\n");
 		goto found_device;
 	}
@@ -476,8 +546,8 @@ bool baz_rtl_source_c::set_samp_rate(uint32_t samp_rate)
 	double real_rate;
 
 	/* check for the maximum rate the resampler supports */
-	if (samp_rate > 3200000)
-		samp_rate = 3200000;
+	if (samp_rate > MAX_RATE)
+		samp_rate = MAX_RATE;
 
 	rsamp_ratio = ((uint64_t)CRYSTAL_FREQ * (uint64_t)pow(2, 22)) / (uint64_t)samp_rate;
 	rsamp_ratio &= ~3;
@@ -485,7 +555,7 @@ bool baz_rtl_source_c::set_samp_rate(uint32_t samp_rate)
 	if (rsamp_ratio == 0)
 		return false;
 
-	real_rate = (CRYSTAL_FREQ * pow(2, 22)) / rsamp_ratio;
+	real_rate = (CRYSTAL_FREQ * pow(2, 22)) / (double)rsamp_ratio;
 
 	fprintf(stderr, "Setting sample rate: %.3f Hz\n", real_rate);
 
@@ -558,7 +628,7 @@ void baz_rtl_source_c::rtl_init(void)
 	demod_write_reg(1, 0xb1, 0x1b, 1);
 }
 
-bool baz_rtl_source_c::tuner_init(int frequency)
+bool baz_rtl_source_c::tuner_init()
 {
   bool bReturn = false;
   
@@ -576,7 +646,6 @@ bool baz_rtl_source_c::tuner_init(int frequency)
 			fprintf(stderr, _T("e4000_SetBandwidthHz failed"));
 			goto tuner_init_error;
 		}
-		//e4000_SetRfFreqHz(this, frequency);
 		break;
 	case TUNER_FC0013:
 		if (FC0013_Open(this) != 0)
@@ -584,7 +653,6 @@ bool baz_rtl_source_c::tuner_init(int frequency)
 			fprintf(stderr, _T("FC0013_Open failed"));
 			goto tuner_init_error;
 		}
-		//FC0013_SetFrequency(frequency/1000, 8);
 		break;
 	default:
 		fprintf(stderr, "No valid tuner available!");
@@ -594,7 +662,6 @@ bool baz_rtl_source_c::tuner_init(int frequency)
 	bReturn = true;
 tuner_init_error:
 	set_i2c_repeater(0);
-	//fprintf(stderr, "Tuned to %i Hz\n", frequency);
 	return bReturn;
 }
 
@@ -603,9 +670,33 @@ bool baz_rtl_source_c::Create(/*const char* strHint = NULL*/)
 {
 	Destroy();
 	
-	m_nBufferSize = (READLEN / (1+1)) * BUFFER_MUL;
-	m_pUSBBuffer = new BYTE[m_nBufferSize * (1+1)];
-	ZeroMemory(m_pUSBBuffer, m_nBufferSize * (1+1));
+	m_nReadLength = DEFAULT_READLEN;
+	m_nBufferMultiplier = DEFAULT_BUFFER_MUL;
+	m_fBufferLevel = DEFAULT_BUFFER_LEVEL;
+	
+	/////////////////////////
+	
+	m_recv_samples_per_packet = m_nReadLength / RAW_SAMPLE_SIZE;	// Must be the same since rate is determined by the libusb reads!
+	set_output_multiple(m_recv_samples_per_packet);
+	
+	m_nBufferSize = (m_nReadLength / RAW_SAMPLE_SIZE) * m_nBufferMultiplier;
+	m_pUSBBuffer = new BYTE[m_nBufferSize * RAW_SAMPLE_SIZE];
+	ZeroMemory(m_pUSBBuffer, m_nBufferSize * RAW_SAMPLE_SIZE);
+	
+	fprintf(stderr, _T("Configuration:\n")
+		_T("\tRead length (bytes): %lu\n")
+		_T("\tBuffer enabled: %s\n")
+		_T("\tBuffer multiplier: %lu\n")
+		_T("\tBuffer size (samples): %lu\n")
+		_T("\tSPP (samples): %lu\n")
+		_T("\tBuffer level: %.1f\n"),
+		m_nReadLength,
+		(m_bUseBuffer ? _T("yes") : _T("no")),
+		m_nBufferMultiplier,
+		m_nBufferSize,
+		m_recv_samples_per_packet,
+		(100.0f * m_fBufferLevel)
+	);
 
 	/////////////////////////
 
@@ -637,7 +728,7 @@ bool baz_rtl_source_c::Create(/*const char* strHint = NULL*/)
 	}
 
 	rtl_init();
-	if (tuner_init(0) == false)
+	if (tuner_init() == false)
 	  return false;
 
 	return true;
@@ -670,9 +761,16 @@ static void _CaptureThreadProc(baz_rtl_source_c* p)
 
 void baz_rtl_source_c::Reset()
 {
+  //gruel::scoped_lock lock(d_mutex);	// FIXME: scoped_lock is not re-entrant
+  
 	m_nBufferStart = 0;
 	m_nBufferItems = 0;
 	m_nSamplesReceived = 0;
+	m_nOverflows = 0;
+	
+	m_nReadPacketCount = 0;
+	m_nBufferOverflowCount = 0;
+	m_nBufferUnderrunCount = 0;
 }
 
 bool baz_rtl_source_c::Start()
@@ -690,9 +788,10 @@ bool baz_rtl_source_c::Start()
 
 	m_bBuffering = true;
 
-	m_bRunning = true;
+	m_bRunning = true;	// Need to set this BEFORE starting thread (otherwise it will exit)
 	
-	m_pCaptureThread = gruel::thread(_CaptureThreadProc, this);
+	if (m_bUseBuffer)	// FIXME: Direct mode (even though it doesn't work as well - should test it here)
+	  m_pCaptureThread = gruel::thread(_CaptureThreadProc, this);
 
 	return true;
 }
@@ -704,13 +803,13 @@ void baz_rtl_source_c::Stop()
 	if (m_bRunning == false)
 		return;
 	  
-	m_bRunning = false;
+	m_bRunning = false;	// Must set before 'join' as this will signal capture thread to exit
 	
 	m_hPacketEvent.notify_one();	// In case general_work is waiting
 
-	lock.unlock();
+	lock.unlock();	// Release lock AFTER notification, so waiting thread resumes in lockstep
 	
-	m_pCaptureThread.join();
+	m_pCaptureThread.join();	// Wait for capture thread to finish
 }
 
 static int GetMapIndex(int iValue, const int* map, int iCount)
@@ -791,7 +890,7 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 
 	unsigned char u8Write = mapGains[i + 1];
 
-	//gruel::scoped_lock lock(d_mutex);
+	//gruel::scoped_lock lock(d_mutex);	// Switched off to improve responsiveness (just don't call this from different threads!)
 
 	set_i2c_repeater(1);
 
@@ -800,18 +899,14 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 	  unsigned char u8Read = 0;
 	  if (I2CReadByte(this, 0, RTL2832_E4000_LNA_GAIN_ADDR, &u8Read) != E4000_I2C_SUCCESS)
 	  {
-		  set_i2c_repeater(0);
-		  fprintf(stderr, _T("I2C read failed"));
-		  return false;
+		  goto gain_failure;
 	  }
   
 	  u8Write |= (u8Read & ~RTL2832_E4000_LNA_GAIN_MASK);
   
 	  if (I2CWriteByte(this, 0, RTL2832_E4000_LNA_GAIN_ADDR, u8Write) != E4000_I2C_SUCCESS)
 	  {
-		  set_i2c_repeater(0);
-		  fprintf(stderr, _T("I2C write failed"));
-		  return false;
+		  goto gain_failure;
 	  }
 	}
 	else if (tuner_type == TUNER_FC0013)
@@ -823,9 +918,7 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 */
 	  if (fc0013_SetRegMaskBits(this, 0x14, 4, 0, u8Write) != FC0013_I2C_SUCCESS)
 	  {
-		set_i2c_repeater(0);
-		fprintf(stderr, _T("I2C write failed"));
-		return false;
+		goto gain_failure;
 	  }
 	}
 
@@ -839,11 +932,15 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 	/////////////////////////
 
 	return true;
+gain_failure:
+  set_i2c_repeater(0);
+  fprintf(stderr, _T("I2C write failed"));
+  return false;  
 }
 
 bool baz_rtl_source_c::set_frequency(/*double*/float dFreq)
 {
-	//gruel::scoped_lock lock(d_mutex);
+	//gruel::scoped_lock lock(d_mutex);	// Switched off to improve responsiveness (just don't call this from different threads!)
 
 	set_i2c_repeater(1);
 	
@@ -851,17 +948,13 @@ bool baz_rtl_source_c::set_frequency(/*double*/float dFreq)
 	case TUNER_E4000:
 		if (e4000_SetRfFreqHz(this, (unsigned long)dFreq) != 0)
 		{
-			set_i2c_repeater(0);
-			fprintf(stderr, _T("I2C write failed"));
-			return false;
+			goto freq_failure;
 		}
 		break;
 	case TUNER_FC0013:
 		if (FC0013_SetFrequency(this, (unsigned long)(dFreq/1000.0), 8) != 0)
 		{
-			set_i2c_repeater(0);
-			fprintf(stderr, _T("I2C write failed"));
-			return false;
+			goto freq_failure;
 		}
 		break;
 	default:
@@ -878,14 +971,35 @@ bool baz_rtl_source_c::set_frequency(/*double*/float dFreq)
 	m_dFreq = dFreq;
 
 	return true;
+freq_failure:
+  set_i2c_repeater(0);
+  fprintf(stderr, _T("I2C write failed"));
+  return false;
 }
 
 bool baz_rtl_source_c::set_sample_rate(/*double*/int dSampleRate)
 {
 	gruel::scoped_lock lock(d_mutex);
+	
+	if (devh == NULL)
+		return false;
 
 	if (set_samp_rate((uint32_t)dSampleRate) == false)
 		return false;
+	  
+	//struct timespec res;
+	//clock_getres(CLOCK_MONOTONIC, &res);
+	//fprintf(stderr, "Res (%lld s, %lld ns)\n", res.tv_sec, res.tv_nsec);
+	
+	double dDelay = 1000000000ULL * WAIT_FUDGE / (double)((m_dSampleRate * RAW_SAMPLE_SIZE) / (double)m_nReadLength);
+	if (m_bUseBuffer)
+	  fprintf(stderr, "Wait delay: %.3f ms\n", (dDelay / 1000000.0));
+	uint64_t delay = (uint64_t)ceil(dDelay);
+	// PORTABILITY CHECK ////////////////////////
+	wait_delay.sec = delay / 1000000000ULL;
+	wait_delay.nsec = delay % 1000000000ULL;
+	//fprintf(stderr, "\t(%lld s, %lld ns)\n", wait_delay.sec, wait_delay.nsec);
+	/////////////////////////////////////////////
 
 	return true;
 }
@@ -894,11 +1008,11 @@ bool baz_rtl_source_c::set_sample_rate(/*double*/int dSampleRate)
 
 void baz_rtl_source_c::CaptureThreadProc()
 {
-	//fprintf(stderr, _T("Capture threading %04x starting...\n"), GetCurrentThreadId());
+	std::cerr << "Capture threading starting: " << boost::this_thread::get_id() << std::endl;
 
 	gruel::scoped_lock lock(d_mutex, boost::defer_lock);
 
-	LPBYTE pBuffer = new BYTE[READLEN];
+	LPBYTE pBuffer = new BYTE[m_nReadLength];
 
 	while (true)
 	{
@@ -908,7 +1022,7 @@ void baz_rtl_source_c::CaptureThreadProc()
 	  lock.unlock();
 
 		int lLockSize = 0;
-		int res = libusb_bulk_transfer(devh, 0x81, pBuffer, READLEN, &lLockSize, 3000);
+		int res = libusb_bulk_transfer(devh, 0x81, pBuffer, m_nReadLength, &lLockSize, LIBUSB_TIMEOUT);
 		if (res == LIBUSB_ERROR_OVERFLOW)
 		{
 			fprintf(stderr, _T("rO"));	// USB overrun\n
@@ -925,18 +1039,18 @@ void baz_rtl_source_c::CaptureThreadProc()
 			m_hPacketEvent.notify_one();
 			lock.unlock();
 			//continue;
-			//fprintf(stderr, _T("Capture thread aborting\n"));
+			std::cerr << "Capture threading aborting: " << boost::this_thread::get_id() << std::endl;
 			return;
 		}
 
-		if (lLockSize < READLEN)
+		if ((UINT)lLockSize < m_nReadLength)
 		{
-			fprintf(stderr, "Short bulk read, samples lost, exiting!\n");
+			fprintf(stderr, _T("Short bulk read: %i < %lu\n"), lLockSize, m_nReadLength);
 		}
 
 		lock.lock();
 
-		UINT nRemaining = min(m_nBufferSize - m_nBufferItems, (UINT)lLockSize / (1+1));
+		UINT nRemaining = min(m_nBufferSize - m_nBufferItems, (UINT)lLockSize / RAW_SAMPLE_SIZE);
 
 		bool bSignal = true;
 
@@ -944,22 +1058,22 @@ void baz_rtl_source_c::CaptureThreadProc()
 		{
 			//fprintf(stderr, _T("Notification: count=%lu, start=%lu, items=%lu\n"), nCount, m_nBufferStart, m_nBufferItems);
 
-			LPBYTE p = m_pUSBBuffer + (((m_nBufferStart + m_nBufferItems) % m_nBufferSize) * (1+1));
+			LPBYTE p = m_pUSBBuffer + (((m_nBufferStart + m_nBufferItems) % m_nBufferSize) * RAW_SAMPLE_SIZE);
 
 			UINT nPart1 = (m_nBufferStart + m_nBufferItems) % m_nBufferSize;
 			UINT nSize1 = min(nRemaining, m_nBufferSize - nPart1);
 
-			memcpy(p, pBuffer, nSize1 * (1+1));
+			memcpy(p, pBuffer, nSize1 * RAW_SAMPLE_SIZE);
 
 			UINT nResidual = nRemaining - nSize1;
 			if (nResidual > 0)
-				memcpy(m_pUSBBuffer, pBuffer + (nSize1 * 2), nResidual * (1+1));
+				memcpy(m_pUSBBuffer, pBuffer + (nSize1 * 2), nResidual * RAW_SAMPLE_SIZE);
 
 			m_nBufferItems += nRemaining;
 
-			if ((m_bBuffering) && (m_nBufferItems >= (m_nBufferSize / 2)))
+			if ((m_bBuffering) && (m_nBufferItems >= (UINT)(m_recv_samples_per_packet + (float)m_nBufferSize * m_fBufferLevel)))	// Add additional amount that is about to be read back out in ReadPacket
 			{
-				fprintf(stderr, _T("Finished buffering (%lu/%lu)\n"), m_nBufferItems, m_nBufferSize);
+				fprintf(stderr, _T("Finished buffering (%lu/%lu) [#%lu]\n"), m_nBufferItems, m_nBufferSize, m_nReadPacketCount);
 				m_bBuffering = false;
 			}
 
@@ -968,6 +1082,7 @@ void baz_rtl_source_c::CaptureThreadProc()
 		else// if (nRemaining == 0)
 		{
 fprintf(stderr, "rB");	//fprintf(stderr, _T("OVERRUN: Remaining: %lu\n"), nRemaining);	// FIXME: Overrun
+		  ++m_nBufferOverflowCount;
 		}
 
 		lock.unlock();
@@ -978,7 +1093,7 @@ fprintf(stderr, "rB");	//fprintf(stderr, _T("OVERRUN: Remaining: %lu\n"), nRemai
 
 	SAFE_DELETE_ARRAY(pBuffer);
 
-	//fprintf(stderr, _T("Capture threading %04x exiting\n"), GetCurrentThreadId());
+	std::cerr << "Capture threading exiting: " << boost::this_thread::get_id() << std::endl;
 }
 
 #define NO_USE 0
@@ -1273,26 +1388,29 @@ int baz_rtl_source_c::SetTunerMode()
 				TunerGainMode = RTL2832_E4000_TUNER_GAIN_NORMAL;
 			break;
 	}
+	
+	if (TunerGainMode == -1)
+	  TunerGainMode = m_iTunerGainMode;
 
 	if (m_iTunerGainMode != TunerGainMode)
 	{
 		switch (TunerGainMode)
 		{
 			case RTL2832_E4000_TUNER_GAIN_SENSITIVE:
-				if (E4000_sensitivity(this, (int)(GetFreq()/1000), BANDWIDTH/1000) != E4000_I2C_SUCCESS)
+				if (E4000_sensitivity(this, (int)(GetFreq()/1000.0), BANDWIDTH/1000) != E4000_I2C_SUCCESS)
 					goto error_status_get_tuner_registers;
 				fprintf(stderr, _T("Tuner gain mode: sensitive\n"));
 				break;
 			case RTL2832_E4000_TUNER_GAIN_LINEAR:
-				if (E4000_linearity(this, (int)(GetFreq()/1000), BANDWIDTH/1000) != E4000_I2C_SUCCESS)
+				if (E4000_linearity(this, (int)(GetFreq()/1000.0), BANDWIDTH/1000) != E4000_I2C_SUCCESS)
 					goto error_status_get_tuner_registers;
-				fprintf(stderr, _T("Tuner gain mode: sensitive\n"));
+				fprintf(stderr, _T("Tuner gain mode: linear\n"));
 				break;
 			case RTL2832_E4000_TUNER_GAIN_NORMAL:
 			default:
-				if (E4000_nominal(this, (int)(GetFreq()/1000), BANDWIDTH/1000) != E4000_I2C_SUCCESS)
+				if (E4000_nominal(this, (int)(GetFreq()/1000.0), BANDWIDTH/1000) != E4000_I2C_SUCCESS)
 					goto error_status_get_tuner_registers;
-				fprintf(stderr, _T("Tuner gain mode: sensitive\n"));
+				fprintf(stderr, _T("Tuner gain mode: nominal\n"));
 				break;
 		}
 
