@@ -401,6 +401,7 @@ int baz_rtl_source_c::find_device()
 
 	return -EIO;
 found_device:
+  fprintf(stderr, "Tuner gain range: [%.1f, %.1f]\n", m_gain_limits[0], m_gain_limits[1]);
   if (tuner_type == TUNER_E4000)
 	fprintf(stderr, "E4000 auto tuner mode: %s\n", (m_auto_tuner_mode ? "on" : "off"));
   return 0;
