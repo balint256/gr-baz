@@ -981,7 +981,7 @@ bool baz_rtl_source_c::set_frequency(/*double*/float dFreq)
 		}
 		break;
 	case TUNER_FC0013:
-		if (FC0013_SetFrequency(this, (unsigned long)(dFreq/1000.0), 8) == 0)
+		if (FC0013_SetFrequency(this, (unsigned long)(dFreq/1000.0), 8) != FC0013_FUNCTION_SUCCESS)
 		{
 			goto freq_failure;
 		}

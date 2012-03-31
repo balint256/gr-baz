@@ -429,11 +429,10 @@ int FC0013_SetFrequency(baz_rtl_source_c* pTuner, unsigned long Frequency, unsig
         }
     }
 
-
-	return 1;
+	return FC0013_FUNCTION_SUCCESS;;
 
 error_status:
-	return 0;
+	return FC0013_FUNCTION_ERROR;;
 }
 
 // Set FC0013 register mask bits.
