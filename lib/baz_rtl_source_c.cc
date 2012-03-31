@@ -298,25 +298,26 @@ retry_notify:
 
 ///////////////////////////////////////////////////////////////////////////////
 /* ezcap USB 2.0 DVB-T/DAB/FM stick */
-#define EZCAP_VID	0x0bda
-#define EZCAP_PID	0x2838
+#define EZCAP_VID		0x0bda
+#define EZCAP_PID		0x2838
 
-#define HAMA_VID	0x0bda
-#define HAMA_PID	0x2832
+#define HAMA_VID		0x0bda
+#define HAMA_PID		0x2832
 
-#define BANDWIDTH	8000000
-#define MAX_RATE	3200000
+#define BANDWIDTH		8000000
+#define MAX_RATE		3200000
 
 /* Terratec NOXON DAB/DAB+ USB-Stick */
-#define NOXON_VID	0x0ccd
-#define NOXON_PID	0x00b3
+#define NOXON_VID		0x0ccd
+#define NOXON_PID		0x00b3
+#define NOXON_V2_PID	0x00E0
 
 /* Dexatek Technology Ltd. DK DVB-T Dongle */
-#define DEXATEK_VID	0x1d19
-#define DEXATEK_PID	0x1101
+#define DEXATEK_VID		0x1d19
+#define DEXATEK_PID		0x1101
 
-#define CTRL_IN		(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN)
-#define CTRL_OUT	(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT)
+#define CTRL_IN			(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN)
+#define CTRL_OUT		(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT)
 
 #define CRYSTAL_FREQ	28800000
 
@@ -396,6 +397,15 @@ int baz_rtl_source_c::find_device()
 		m_gain_limits[0] = -6.3;
 		m_gain_limits[1] = 19.7;
 		fprintf(stderr, "Found Terratec NOXON stick with FC0013 tuner\n");
+		goto found_device;
+	}
+	
+	devh = libusb_open_device_with_vid_pid(NULL, NOXON_VID, NOXON_V2_PID);
+	if (devh > 0) {
+		tuner_type = TUNER_FC0013;
+		m_gain_limits[0] = -6.3;
+		m_gain_limits[1] = 19.7;
+		fprintf(stderr, "Found Terratec NOXON (revision 2) stick with FC0013 tuner\n");
 		goto found_device;
 	}
 
