@@ -311,6 +311,10 @@ retry_notify:
 #define NOXON_VID	0x0ccd
 #define NOXON_PID	0x00b3
 
+/* Dexatek Technology Ltd. DK DVB-T Dongle */
+#define DEXATEK_VID	0x1d19
+#define DEXATEK_PID	0x1101
+
 #define CTRL_IN		(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN)
 #define CTRL_OUT	(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT)
 
@@ -374,6 +378,15 @@ int baz_rtl_source_c::find_device()
 		m_gain_limits[0] = -5;
 		m_gain_limits[1] = 30;
 		fprintf(stderr, "Found Hama nano stick with E4000 tuner\n");
+		goto found_device;
+	}
+	
+	devh = libusb_open_device_with_vid_pid(NULL, DEXATEK_VID, DEXATEK_PID);
+	if (devh > 0) {
+		tuner_type = TUNER_FC0013;
+		m_gain_limits[0] = -6.3;
+		m_gain_limits[1] = 19.7;
+		fprintf(stderr, "Found Dexatek Technology stick with FC0013 tuner\n");
 		goto found_device;
 	}
 
@@ -885,8 +898,13 @@ bool baz_rtl_source_c::set_gain(/*double*/float dGain)
 	int iGain = (int)(dGain * 10.0);
 	int i = GetMapIndex(iGain, mapGains, iCount);
 
-	if ((i == -1) || (i == iCount))
-		return false;
+	//if ((i == -1) || (i == iCount))
+	//	return false;
+	
+	if (i == -1)	// Below first -> select first
+	  i = 0;
+	else if (i == iCount)	// Above last -> select last
+	  i = iCount - 1;
 
 	unsigned char u8Write = mapGains[i + 1];
 
@@ -952,7 +970,7 @@ bool baz_rtl_source_c::set_frequency(/*double*/float dFreq)
 		}
 		break;
 	case TUNER_FC0013:
-		if (FC0013_SetFrequency(this, (unsigned long)(dFreq/1000.0), 8) != 0)
+		if (FC0013_SetFrequency(this, (unsigned long)(dFreq/1000.0), 8) == 0)
 		{
 			goto freq_failure;
 		}
