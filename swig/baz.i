@@ -25,20 +25,73 @@
 
 GR_SWIG_BLOCK_MAGIC(baz,rtl_source_c);
 
-baz_rtl_source_c_sptr baz_make_rtl_source_c (bool auto_tuner_mode = false);
+baz_rtl_source_c_sptr baz_make_rtl_source_c (bool defer_creation = false);
 
 class baz_rtl_source_c : public gr_sync_block
 {
 private:
-  baz_rtl_source_c (bool auto_tuner_mode = false);
+  baz_rtl_source_c(bool defer_creation = false);
 public:
-  bool set_sample_rate(int sample_rate);
-  bool set_frequency(float freq);
-  bool set_gain(float gain);
+	void set_defaults();
+	bool create(bool reset_defaults = false);
+	void destroy();
 public:
-  int sample_rate();
-  float frequency();
-  float gain();
+	void set_vid(/*uint16_t*/int vid);
+	void set_pid(/*uint16_t*/int pid);
+	void set_default_timeout(int timeout);	// 0: use default, -1: poll only
+	void set_fir_coefficients(const std::vector</*uint8_t*/int>& coeffs);
+	void set_crystal_frequency(uint32_t freq);
+	void set_tuner_name(const char* name);
+public:
+	size_t recv_samples_per_packet() const;
+	uint64_t samples_received() const;
+	uint32_t overflows() const;
+	bool running() const;
+	uint32_t buffer_size() const;
+	uint32_t buffer_times() const;
+	bool buffering() const;
+	uint32_t read_packet_count() const;
+	uint32_t buffer_overflow_count() const;
+	uint32_t buffer_underrun_count() const;
+public:
+	void set_verbose(bool on = true);
+	void set_read_length(/*uint32_t*/int length);
+	void set_buffer_multiplier(/*uint32_t*/int mul);
+	void set_use_buffer(bool use = true);
+	void set_buffer_level(float level);
+public:
+	bool relative_gain() const;
+	bool verbose() const;
+	uint32_t read_length() const;
+	uint32_t buffer_multiplier() const;
+	bool use_buffer() const;
+	float buffer_level() const;
+public:
+	bool set_sample_rate(double sample_rate);
+	bool set_frequency(double freq);
+	bool set_gain(double gain);
+	bool set_bandwidth(double bandwidth);
+	bool set_gain_mode(int mode);
+	bool set_gain_mode(const char* mode);
+	void set_relative_gain(bool on = true);
+	int set_auto_gain_mode(bool on = true);
+public:
+	double sample_rate() const;
+	RTL2832_NAMESPACE::range_t sample_rate_range() const;
+	double frequency() const;
+	double gain() const;
+	double bandwidth() const;
+	int gain_mode() const;
+	std::string gain_mode_string() const;
+	bool auto_gain_mode() const;
+public:	// SWIG get: tuner ranges/values
+	RTL2832_NAMESPACE::range_t gain_range() const;
+	RTL2832_NAMESPACE::values_t gain_values() const;
+	RTL2832_NAMESPACE::range_t frequency_range() const;
+	RTL2832_NAMESPACE::range_t bandwidth_range() const;
+	RTL2832_NAMESPACE::values_t bandwidth_values() const;
+	RTL2832_NAMESPACE::num_name_map_t gain_modes() const;
+	std::pair<bool,int> calc_appropriate_gain_mode()/* const*/;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

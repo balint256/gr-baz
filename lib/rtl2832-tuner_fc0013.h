@@ -1,7 +1,30 @@
 #ifndef __TUNER_FC0013_H
 #define __TUNER_FC0013_H
 
-class baz_rtl_source_c;
+#include "rtl2832.h"
+
+namespace RTL2832_NAMESPACE
+{
+namespace TUNERS_NAMESPACE
+{
+
+class fc0013 : public RTL2832_NAMESPACE::tuner_skeleton
+{
+IMPLEMENT_INLINE_TUNER_FACTORY(fc0013)
+public:
+	fc0013(demod* p);
+public:
+	inline virtual const char* name()
+	{ return "Fitipower FC0013"; }
+public:
+	int initialise(tuner::PPARAMS params = NULL);
+	int set_frequency(double freq);
+	int set_bandwidth(double bw);
+	int set_gain(double gain);
+};
+
+}
+}
 
 /**
 @file
@@ -32,14 +55,14 @@ enum FC0013_FUNCTION_STATUS
 	FC0013_FUNCTION_SUCCESS,
 	FC0013_FUNCTION_ERROR,
 };
-
+/*
 // Functions
-int FC0013_Read(baz_rtl_source_c* pTuner, unsigned char RegAddr, unsigned char *pByte);
-int FC0013_Write(baz_rtl_source_c* pTuner, unsigned char RegAddr, unsigned char Byte);
+int FC0013_Read(RTL2832_NAMESPACE::tuner* pTuner, unsigned char RegAddr, unsigned char *pByte);
+int FC0013_Write(RTL2832_NAMESPACE::tuner* pTuner, unsigned char RegAddr, unsigned char Byte);
 
 int
 fc0013_SetRegMaskBits(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char RegAddr,
 	unsigned char Msb,
 	unsigned char Lsb,
@@ -48,19 +71,18 @@ fc0013_SetRegMaskBits(
 
 int
 fc0013_GetRegMaskBits(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char RegAddr,
 	unsigned char Msb,
 	unsigned char Lsb,
 	unsigned char *pReadingValue
 	);
-
-int FC0013_Open(baz_rtl_source_c* pTuner);
-int FC0013_SetFrequency(baz_rtl_source_c* pTuner, unsigned long Frequency, unsigned short Bandwidth);
+*/
+int FC0013_Open(RTL2832_NAMESPACE::tuner* pTuner);
+int FC0013_SetFrequency(RTL2832_NAMESPACE::tuner* pTuner, unsigned long Frequency, unsigned short Bandwidth);
 
 // Set VHF Track depends on input frequency
-int FC0013_SetVhfTrack(baz_rtl_source_c* pTuner, unsigned long Frequency);
-
+int FC0013_SetVhfTrack(RTL2832_NAMESPACE::tuner* pTuner, unsigned long Frequency);
 
 // The following context is FC0013 tuner API source code
 
@@ -90,54 +112,54 @@ enum FC0013_LNA_GAIN_VALUE
 // Manipulaing functions
 void
 fc0013_GetTunerType(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	int *pTunerType
 	);
 
 void
 fc0013_GetDeviceAddr(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char *pDeviceAddr
 	);
 
 int
 fc0013_Initialize(
-	baz_rtl_source_c* pTuner
+	RTL2832_NAMESPACE::tuner* pTuner
 	);
 
 int
 fc0013_SetRfFreqHz(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned long RfFreqHz
 	);
 
 int
 fc0013_GetRfFreqHz(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned long *pRfFreqHz
 	);
 
 // Extra manipulaing functions
 int
 fc0013_SetBandwidthMode(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	int BandwidthMode
 	);
 
 int
 fc0013_GetBandwidthMode(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	int *pBandwidthMode
 	);
 
 int
 fc0013_RcCalReset(
-	baz_rtl_source_c* pTuner
+	RTL2832_NAMESPACE::tuner* pTuner
 	);
 
 int
 fc0013_RcCalAdd(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	int RcValue
 	);
 

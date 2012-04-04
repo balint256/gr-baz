@@ -1,7 +1,31 @@
 #ifndef __TUNER_E4000_H
 #define __TUNER_E4000_H
 
-class baz_rtl_source_c;
+#include "rtl2832.h"
+
+namespace RTL2832_NAMESPACE { namespace TUNERS_NAMESPACE {
+
+class e4000 : public RTL2832_NAMESPACE::tuner_skeleton
+{
+IMPLEMENT_INLINE_TUNER_FACTORY(e4000)
+public:
+	e4000(demod* p);
+public:
+	inline virtual const char* name()
+	{ return "Elonics E4000"; }
+public:
+	int initialise(tuner::PPARAMS params = NULL);
+	int set_frequency(double freq);
+	int set_bandwidth(double bw);
+	int set_gain(double gain);
+	int set_gain_mode(int mode);
+	int set_auto_gain_mode(bool on = true);
+	bool calc_appropriate_gain_mode(int& mode)/* const*/;
+private:
+	int update_gain_mode();
+};
+
+} } // TUNERS_NAMESPACE, RTL2832_NAMESPACE
 
 /**
 
@@ -73,11 +97,11 @@ int main(void)
 #define E4000_1_FAIL			0
 #define E4000_I2C_SUCCESS		1
 #define E4000_I2C_FAIL			0
-
+/*
 // Function (implemeted for E4000)
 int
 I2CReadByte(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
 	unsigned char RegAddr,
 	unsigned char *pReadingByte
@@ -85,7 +109,7 @@ I2CReadByte(
 
 int
 I2CWriteByte(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
 	unsigned char RegAddr,
 	unsigned char WritingByte
@@ -93,38 +117,38 @@ I2CWriteByte(
 
 int
 I2CWriteArray(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
 	unsigned char RegStartAddr,
 	unsigned char ByteNum,
 	unsigned char *pWritingBytes
 	);
-
+*/
 // Functions (from E4000 source code)
-int tunerreset (baz_rtl_source_c* pTuner);
-int Tunerclock(baz_rtl_source_c* pTuner);
-int Qpeak(baz_rtl_source_c* pTuner);
-int DCoffloop(baz_rtl_source_c* pTuner);
-int GainControlinit(baz_rtl_source_c* pTuner);
+int tunerreset (RTL2832_NAMESPACE::tuner* pTuner);
+int Tunerclock(RTL2832_NAMESPACE::tuner* pTuner);
+int Qpeak(RTL2832_NAMESPACE::tuner* pTuner);
+int DCoffloop(RTL2832_NAMESPACE::tuner* pTuner);
+int GainControlinit(RTL2832_NAMESPACE::tuner* pTuner);
 
-int Gainmanual(baz_rtl_source_c* pTuner);
-int E4000_gain_freq(baz_rtl_source_c* pTuner, int frequency);
-int PLL(baz_rtl_source_c* pTuner, int Ref_clk, int Freq);
-int LNAfilter(baz_rtl_source_c* pTuner, int Freq);
-int IFfilter(baz_rtl_source_c* pTuner, int bandwidth, int Ref_clk);
-int freqband(baz_rtl_source_c* pTuner, int Freq);
-int DCoffLUT(baz_rtl_source_c* pTuner);
-int GainControlauto(baz_rtl_source_c* pTuner);
+int Gainmanual(RTL2832_NAMESPACE::tuner* pTuner);
+int E4000_gain_freq(RTL2832_NAMESPACE::tuner* pTuner, int frequency);
+int PLL(RTL2832_NAMESPACE::tuner* pTuner, int Ref_clk, int Freq);
+int LNAfilter(RTL2832_NAMESPACE::tuner* pTuner, int Freq);
+int IFfilter(RTL2832_NAMESPACE::tuner* pTuner, int bandwidth, int Ref_clk);
+int freqband(RTL2832_NAMESPACE::tuner* pTuner, int Freq);
+int DCoffLUT(RTL2832_NAMESPACE::tuner* pTuner);
+int GainControlauto(RTL2832_NAMESPACE::tuner* pTuner);
 
-int E4000_sensitivity(baz_rtl_source_c* pTuner, int Freq, int bandwidth);
-int E4000_linearity(baz_rtl_source_c* pTuner, int Freq, int bandwidth);
-int E4000_high_linearity(baz_rtl_source_c* pTuner);
-int E4000_nominal(baz_rtl_source_c* pTuner, int Freq, int bandwidth);
+int E4000_sensitivity(RTL2832_NAMESPACE::tuner* pTuner, int Freq, int bandwidth);
+int E4000_linearity(RTL2832_NAMESPACE::tuner* pTuner, int Freq, int bandwidth);
+int E4000_high_linearity(RTL2832_NAMESPACE::tuner* pTuner);
+int E4000_nominal(RTL2832_NAMESPACE::tuner* pTuner, int Freq, int bandwidth);
 
 // The following context is E4000 tuner API source code
 
 // Definitions
-
+/*
 // Bandwidth in Hz
 enum E4000_BANDWIDTH_HZ
 {
@@ -132,54 +156,58 @@ enum E4000_BANDWIDTH_HZ
 	E4000_BANDWIDTH_7000000HZ = 7000000,
 	E4000_BANDWIDTH_8000000HZ = 8000000,
 };
-
+*/
 // Manipulaing functions
 void
 e4000_GetTunerType(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	int *pTunerType
 	);
 
 void
 e4000_GetDeviceAddr(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char *pDeviceAddr
 	);
 
 int
 e4000_Initialize(
-	baz_rtl_source_c* pTuner
+	RTL2832_NAMESPACE::tuner* pTuner,
+	bool enable_dc_offset_loop = true,
+	bool set_manual_gain = false
 	);
 
 int
 e4000_SetRfFreqHz(
-	baz_rtl_source_c* pTuner,
-	unsigned long RfFreqHz
+	RTL2832_NAMESPACE::tuner* pTuner,
+	unsigned long RfFreqHz,
+	bool update_gain_control = true,
+	bool enable_dc_offset_lut = true
 	);
 
 int
 e4000_GetRfFreqHz(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned long *pRfFreqHz
 	);
 
 // Extra manipulaing functions
 int
 e4000_GetRegByte(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char RegAddr,
 	unsigned char *pReadingByte
 	);
 
 int
 e4000_SetBandwidthHz(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned long BandwidthHz
 	);
 
 int
 e4000_GetBandwidthHz(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned long *pBandwidthHz
 	);
 
@@ -245,7 +273,7 @@ e4000_GetBandwidthHz(
 // Tuner gain mode
 enum RTL2832_E4000_TUNER_GAIN_MODE
 {
-	RTL2832_E4000_TUNER_GAIN_SENSITIVE,
+	RTL2832_E4000_TUNER_GAIN_SENSITIVE	= RTL2832_NAMESPACE::tuner::DEFAULT,
 	RTL2832_E4000_TUNER_GAIN_NORMAL,
 	RTL2832_E4000_TUNER_GAIN_LINEAR,
 };

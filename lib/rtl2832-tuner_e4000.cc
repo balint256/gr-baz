@@ -2,47 +2,52 @@
 #include "config.h"
 #endif
 
-#include "baz_rtl_source_c.h"
 /*
  * Elonics E4000 tuner driver, taken from the kernel driver that can be found
  * on http://linux.terratec.de/tv_en.html
- *
- * This driver is a mess, and should be replaced by the osmo-sdr E4000 driver
- *
  */
 
 #include <stdint.h>
 
-#include "rtl2832-i2c.h"
 #include "rtl2832-tuner_e4000.h"
+
+using namespace std;
 
 #define FUNCTION_ERROR		1
 #define FUNCTION_SUCCESS	0
-#define NO_USE			0
-#define LEN_2_BYTE		2
+#define NO_USE				0
 #define I2C_BUFFER_LEN		128
-#define YES			1
-#define NO			0
+#define LOG_PREFIX			"[e4000] "
 
-#define CRYSTAL_FREQ		28800000
+///////////////////////////////////////////////////////////////////////////////
+
 #define E4K_I2C_ADDR		0xc8
 
-/* glue functions to rtl-sdr code */
 int
-I2CReadByte(
-	baz_rtl_source_c* pTuner,
+_I2CReadByte(
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
 	unsigned char RegAddr,
-	unsigned char *pReadingByte
+	unsigned char *pReadingByte,
+	const char* function = NULL, int line_number = -1, const char* line = NULL
 	)
 {
 	uint8_t data = RegAddr;
+	int r;
 
-	if (pTuner->rtl_i2c_write(E4K_I2C_ADDR, &data, 1) < 0)
-		return E4000_I2C_FAIL;
+	r = pTuner->i2c_write(E4K_I2C_ADDR, &data, 1);
+	if (r <= 0)
+	{
+	  DEBUG_TUNER_I2C(pTuner,r);
+	  return E4000_I2C_FAIL;
+	}
 
-	if (pTuner->rtl_i2c_read(E4K_I2C_ADDR, &data, 1) < 0)
-		return E4000_I2C_FAIL;
+	r = pTuner->i2c_read(E4K_I2C_ADDR, &data, 1);
+	if (r <= 0)
+	{
+	  DEBUG_TUNER_I2C(pTuner,r);
+	  return E4000_I2C_FAIL;
+	}
 
 	*pReadingByte = data;
 
@@ -50,11 +55,12 @@ I2CReadByte(
 }
 
 int
-I2CWriteByte(
-	baz_rtl_source_c* pTuner,
+_I2CWriteByte(
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
 	unsigned char RegAddr,
-	unsigned char WritingByte
+	unsigned char WritingByte,
+	const char* function = NULL, int line_number = -1, const char* line = NULL
 	)
 {
 	uint8_t data[2];
@@ -62,19 +68,24 @@ I2CWriteByte(
 	data[0] = RegAddr;
 	data[1] = WritingByte;
 
-	if (pTuner->rtl_i2c_write(E4K_I2C_ADDR, data, 2) < 0)
-		return E4000_I2C_FAIL;
+	int r = pTuner->i2c_write(E4K_I2C_ADDR, data, 2);
+	if (r <= 0)
+	{
+	  DEBUG_TUNER_I2C(pTuner,r);
+	  return E4000_I2C_FAIL;
+	}
 
 	return E4000_I2C_SUCCESS;
 }
 
 int
-I2CWriteArray(
-	baz_rtl_source_c* pTuner,
+_I2CWriteArray(
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
 	unsigned char RegStartAddr,
 	unsigned char ByteNum,
-	unsigned char *pWritingBytes
+	unsigned char *pWritingBytes,
+	const char* function = NULL, int line_number = -1, const char* line = NULL
 	)
 {
 	unsigned int i;
@@ -85,11 +96,531 @@ I2CWriteArray(
 	for(i = 0; i < ByteNum; i++)
 		WritingBuffer[1 + i] = pWritingBytes[i];
 
-	if (pTuner->rtl_i2c_write(E4K_I2C_ADDR, WritingBuffer, ByteNum + 1) < 0)
-		return E4000_I2C_FAIL;
+	int r = pTuner->i2c_write(E4K_I2C_ADDR, WritingBuffer, ByteNum + 1);
+	if (r <= 0)
+	{
+	  DEBUG_TUNER_I2C(pTuner,r);
+	  return E4000_I2C_FAIL;
+	}
 
 	return E4000_I2C_SUCCESS;
 }
+
+// Swap these to disable debug string generation and verbose reporting
+
+#define I2CReadByte(t,n,r,b)		_I2CReadByte(t,n,r,b,__PRETTY_FUNCTION__,__LINE__,"I2CReadByte("#t", "#n", "#r", "#b")")
+//#define I2CReadByte(t,n,r,b)		_I2CReadByte(t,n,r,b)
+
+#define I2CWriteByte(t,n,r,w)		_I2CWriteByte(t,n,r,w,__PRETTY_FUNCTION__,__LINE__,"I2CReadByte("#t", "#n", "#r", "#w")")
+//#define I2CWriteByte(t,n,r,w)		_I2CWriteByte(t,n,r,w)
+
+#define I2CWriteArray(t,n,r,b,w)	_I2CWriteArray(t,n,r,b,w,__PRETTY_FUNCTION__,__LINE__,"I2CReadByte("#t", "#n", "#r", "#b", "#w")")
+//#define I2CWriteArray(t,n,r,b,w)	_I2CWriteArray(t,n,r,b,w)
+
+///////////////////////////////////////////////////////////////////////////////
+
+namespace RTL2832_NAMESPACE { namespace TUNERS_NAMESPACE {
+
+static const int _mapGainsE4000[] = {	// nim_rtl2832_e4000.c
+	-50,	2,
+	-25,	3,
+	0,		4,
+	25,		5,
+	50,		6,
+	75,		7,
+	100,	8,
+	125,	9,
+	150,	10,
+	175,	11,
+	200,	12,
+	225,	13,
+	250,	14,
+	300,	15,	// Apparently still 250
+};
+
+e4000::e4000(demod* p)
+	: tuner_skeleton(p)
+{
+	for (int i = 0; i < sizeof(_mapGainsE4000)/sizeof(_mapGainsE4000[0]); i += 2)
+		m_gain_values.push_back((double)_mapGainsE4000[i] / 10.0);
+
+	values_to_range(m_gain_values, m_gain_range);
+
+	//m_frequency_range	// 64-1700 MHz, but can do more so leave it undefined
+
+	//m_bandwidth_values
+	//values_to_range(m_bandwidth_values, m_bandwidth_range);
+
+	m_bandwidth = 8000000;	// Default
+
+	m_gain_modes.insert(make_pair(RTL2832_E4000_TUNER_GAIN_NORMAL, "nominal"));
+	m_gain_modes.insert(make_pair(RTL2832_E4000_TUNER_GAIN_LINEAR, "linear"));
+	m_gain_modes.insert(make_pair(RTL2832_E4000_TUNER_GAIN_SENSITIVE, "sensitive"));
+}
+
+int e4000::initialise(PPARAMS params /*= NULL*/)
+{
+	if (tuner_skeleton::initialise(params) != SUCCESS)
+		return FAILURE;
+
+	THIS_TUNER_I2C_REPEATER_SCOPE();
+
+	bool enable_dc_offset_loop = false;	// FIXME: Parameterise this (e.g. flag field in tuner::PARAMS, or another explicit property?)
+	bool set_manual_gain = true;
+
+	if (e4000_Initialize(this, enable_dc_offset_loop, set_manual_gain) != FUNCTION_SUCCESS)
+		return FAILURE;
+
+	if (set_bandwidth(bandwidth()) != SUCCESS)
+		return FAILURE;
+
+	if (m_params.verbose)
+		fprintf(m_params.message_output, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
+
+	return SUCCESS;
+}
+
+int e4000::set_frequency(double freq)
+{
+	if ((freq <= 0) || (in_valid_range(m_frequency_range, freq) == false))
+		return FAILURE;
+
+	THIS_TUNER_I2C_REPEATER_SCOPE();
+
+	bool update_gain_control = false;	// FIXME: This should be based on 'set_manual_gain' in 'initialise'
+	bool enable_dc_offset_lut = true;
+
+	if (e4000_SetRfFreqHz(this, (unsigned long)freq, update_gain_control, enable_dc_offset_lut) != FUNCTION_SUCCESS)
+		return FAILURE;
+
+	m_freq = (int)((freq + 500.0) / 1000.0) * 1000;
+
+	// FIXME: Technically should call 'update_gain_mode' if 'm_auto_gain_mode' is enabled, but I2C will become overloaded
+
+	return SUCCESS;
+}
+
+int e4000::set_bandwidth(double bw)
+{
+	if ((bw <= 0) || (in_valid_range(m_bandwidth_range, bw) == false))
+		return FAILURE;
+
+	THIS_TUNER_I2C_REPEATER_SCOPE();
+
+	if (in_valid_range(m_bandwidth_range, bw) == false)
+		return FAILURE;
+
+	if (e4000_SetBandwidthHz(this, bw) != FUNCTION_SUCCESS)
+		return FAILURE;
+ 
+	m_bandwidth = (int)((bw + 500.0) / 1000.0) * 1000;
+
+	return SUCCESS;
+}
+
+int e4000::set_gain(double gain)
+{
+	const int iCount = (sizeof(_mapGainsE4000)/sizeof(_mapGainsE4000[0])) / 2;
+
+	int iGain = (int)(gain * 10.0);
+	int i = get_map_index(iGain, _mapGainsE4000, iCount);
+
+	if ((i == -1) || (i == iCount))
+		return FAILURE;
+
+	//if (i == -1)	// Below first -> select first
+	//  i = 0;
+	//else if (i == iCount)	// Above last -> select last
+	//  i = iCount - 1;
+
+	unsigned char u8Write = _mapGainsE4000[i + 1];
+
+	THIS_TUNER_I2C_REPEATER_SCOPE();
+
+	unsigned char u8Read = 0;
+	if (I2CReadByte(this, 0, RTL2832_E4000_LNA_GAIN_ADDR, &u8Read) != E4000_I2C_SUCCESS)
+		return FAILURE;
+
+	u8Write |= (u8Read & ~RTL2832_E4000_LNA_GAIN_MASK);
+  
+	if (I2CWriteByte(this, 0, RTL2832_E4000_LNA_GAIN_ADDR, u8Write) != E4000_I2C_SUCCESS)
+		return FAILURE;
+
+	m_gain = (double)_mapGainsE4000[i] / 10.0;
+
+	if (m_auto_gain_mode)
+	{
+		if (update_gain_mode() != SUCCESS)
+			return FAILURE;
+	}
+
+	return SUCCESS;
+}
+
+int e4000::update_gain_mode()
+{
+	int i;
+	if (calc_appropriate_gain_mode(i))
+	{
+		if (set_gain_mode(i) != SUCCESS)
+			return FAILURE;
+
+		if (m_params.verbose)
+		{
+			num_name_map_t::iterator it = m_gain_modes.find(i);
+			if (it != m_gain_modes.end())	// Double check
+				fprintf(m_params.message_output, LOG_PREFIX"Gain mode: %s\n", it->second.c_str());
+		}
+	}
+
+	return SUCCESS;
+}
+
+int e4000::set_auto_gain_mode(bool on /*= true*/)
+{
+	if (on)
+	{
+		if (update_gain_mode() != SUCCESS)
+			return FAILURE;
+	}
+
+	return tuner_skeleton::set_auto_gain_mode(on);
+}
+
+int e4000::set_gain_mode(int mode)
+{
+	int freq= (int)(frequency() / 1000.0);
+	int bw	= (int)(bandwidth() / 1000.0);
+
+	THIS_TUNER_I2C_REPEATER_SCOPE();
+
+	switch (mode)
+	{
+		default:
+		case RTL2832_E4000_TUNER_GAIN_SENSITIVE:
+			if (E4000_sensitivity(this, freq, bw) != E4000_I2C_SUCCESS)
+				return FAILURE;
+			break;
+		case RTL2832_E4000_TUNER_GAIN_LINEAR:
+			if (E4000_linearity(this, freq, bw) != E4000_I2C_SUCCESS)
+				return FAILURE;
+		  break;
+		case RTL2832_E4000_TUNER_GAIN_NORMAL:
+			if (E4000_nominal(this, freq, bw) != E4000_I2C_SUCCESS)
+				return FAILURE;
+		  break;
+	}
+
+	m_gain_mode = mode;
+
+	return SUCCESS;
+}
+
+bool e4000::calc_appropriate_gain_mode(int& mode)/* const*/
+{
+	static const long LnaGainTable[RTL2832_E4000_LNA_GAIN_TABLE_LEN][RTL2832_E4000_LNA_GAIN_BAND_NUM] =
+	{
+		// VHF Gain,	UHF Gain,		ReadingByte
+		{-50,			-50	},		//	0x0
+		{-25,			-25	},		//	0x1
+		{-50,			-50	},		//	0x2
+		{-25,			-25	},		//	0x3
+		{0,				0	},		//	0x4
+		{25,			25	},		//	0x5
+		{50,			50	},		//	0x6
+		{75,			75	},		//	0x7
+		{100,			100	},		//	0x8
+		{125,			125	},		//	0x9
+		{150,			150	},		//	0xa
+		{175,			175	},		//	0xb
+		{200,			200	},		//	0xc
+		{225,			250	},		//	0xd
+		{250,			280	},		//	0xe
+		{250,			280	},		//	0xf
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long LnaGainAddTable[RTL2832_E4000_LNA_GAIN_ADD_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		NO_USE,		//	0x0
+		NO_USE,		//	0x1
+		NO_USE,		//	0x2
+		0,			//	0x3
+		NO_USE,		//	0x4
+		20,			//	0x5
+		NO_USE,		//	0x6
+		70,			//	0x7
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long MixerGainTable[RTL2832_E4000_MIXER_GAIN_TABLE_LEN][RTL2832_E4000_MIXER_GAIN_BAND_NUM] =
+	{
+		// VHF Gain,	UHF Gain,		ReadingByte
+		{90,			40	},		//	0x0
+		{170,			120	},		//	0x1
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long IfStage1GainTable[RTL2832_E4000_IF_STAGE_1_GAIN_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		-30,		//	0x0
+		60,			//	0x1
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long IfStage2GainTable[RTL2832_E4000_IF_STAGE_2_GAIN_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		0,			//	0x0
+		30,			//	0x1
+		60,			//	0x2
+		90,			//	0x3
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long IfStage3GainTable[RTL2832_E4000_IF_STAGE_3_GAIN_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		0,			//	0x0
+		30,			//	0x1
+		60,			//	0x2
+		90,			//	0x3
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long IfStage4GainTable[RTL2832_E4000_IF_STAGE_4_GAIN_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		0,			//	0x0
+		10,			//	0x1
+		20,			//	0x2
+		20,			//	0x3
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long IfStage5GainTable[RTL2832_E4000_IF_STAGE_5_GAIN_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		0,			//	0x0
+		30,			//	0x1
+		60,			//	0x2
+		90,			//	0x3
+		120,		//	0x4
+		120,		//	0x5
+		120,		//	0x6
+		120,		//	0x7
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	static const long IfStage6GainTable[RTL2832_E4000_IF_STAGE_6_GAIN_TABLE_LEN] =
+	{
+		// Gain,		ReadingByte
+		0,			//	0x0
+		30,			//	0x1
+		60,			//	0x2
+		90,			//	0x3
+		120,		//	0x4
+		120,		//	0x5
+		120,		//	0x6
+		120,		//	0x7
+
+		// Note: The gain unit is 0.1 dB.
+	};
+
+	unsigned long RfFreqHz;
+	int RfFreqKhz;
+	unsigned long BandwidthHz;
+	int BandwidthKhz;
+
+	unsigned char ReadingByte;
+	int BandIndex;
+
+	unsigned char TunerBitsLna, TunerBitsLnaAdd, TunerBitsMixer;
+	unsigned char TunerBitsIfStage1, TunerBitsIfStage2, TunerBitsIfStage3, TunerBitsIfStage4;
+	unsigned char TunerBitsIfStage5, TunerBitsIfStage6;
+
+	long TunerGainLna, TunerGainLnaAdd, TunerGainMixer;
+	long TunerGainIfStage1, TunerGainIfStage2, TunerGainIfStage3, TunerGainIfStage4;
+	long TunerGainIfStage5, TunerGainIfStage6;
+
+	long TunerGainTotal;
+	long TunerInputPower;
+
+	/////////////////////////
+	int TunerGainMode = -1;
+	THIS_TUNER_I2C_REPEATER_SCOPE();
+	/////////////////////////
+
+	// Get tuner RF frequency in KHz.
+	// Note: RfFreqKhz = round(RfFreqHz / 1000)
+	//if(this->GetRfFreqHz(this, &RfFreqHz) != E4000_I2C_SUCCESS)
+	//	goto error_status_get_tuner_registers;
+	RfFreqHz = (unsigned long)frequency();
+
+	RfFreqKhz = (int)((RfFreqHz + 500) / 1000);
+
+	// Get tuner bandwidth in KHz.
+	// Note: BandwidthKhz = round(BandwidthHz / 1000)
+	//if(pTunerExtra->GetBandwidthHz(this, &BandwidthHz) != E4000_I2C_SUCCESS)
+	//	goto error_status_get_tuner_registers;
+	BandwidthHz = (unsigned long)bandwidth();
+
+	BandwidthKhz = (int)((BandwidthHz + 500) / 1000);
+
+	// Determine band index.
+	BandIndex = (RfFreqHz < RTL2832_E4000_RF_BAND_BOUNDARY_HZ) ? 0 : 1;
+
+	// Get tuner LNA gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_LNA_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsLna = (ReadingByte & RTL2832_E4000_LNA_GAIN_MASK) >> RTL2832_E4000_LNA_GAIN_SHIFT;
+	TunerGainLna = LnaGainTable[TunerBitsLna][BandIndex];
+
+	// Get tuner LNA additional gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_LNA_GAIN_ADD_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsLnaAdd = (ReadingByte & RTL2832_E4000_LNA_GAIN_ADD_MASK) >> RTL2832_E4000_LNA_GAIN_ADD_SHIFT;
+	TunerGainLnaAdd = LnaGainAddTable[TunerBitsLnaAdd];
+
+	// Get tuner mixer gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_MIXER_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsMixer = (ReadingByte & RTL2832_E4000_MIXER_GAIN_MASK) >> RTL2832_E4000_LNA_GAIN_ADD_SHIFT;
+	TunerGainMixer = MixerGainTable[TunerBitsMixer][BandIndex];
+
+	// Get tuner IF stage 1 gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_IF_STAGE_1_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsIfStage1 = (ReadingByte & RTL2832_E4000_IF_STAGE_1_GAIN_MASK) >> RTL2832_E4000_IF_STAGE_1_GAIN_SHIFT;
+	TunerGainIfStage1 = IfStage1GainTable[TunerBitsIfStage1];
+
+	// Get tuner IF stage 2 gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_IF_STAGE_2_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsIfStage2 = (ReadingByte & RTL2832_E4000_IF_STAGE_2_GAIN_MASK) >> RTL2832_E4000_IF_STAGE_2_GAIN_SHIFT;
+	TunerGainIfStage2 = IfStage2GainTable[TunerBitsIfStage2];
+
+	// Get tuner IF stage 3 gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_IF_STAGE_3_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsIfStage3 = (ReadingByte & RTL2832_E4000_IF_STAGE_3_GAIN_MASK) >> RTL2832_E4000_IF_STAGE_3_GAIN_SHIFT;
+	TunerGainIfStage3 = IfStage3GainTable[TunerBitsIfStage3];
+
+	// Get tuner IF stage 4 gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_IF_STAGE_4_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsIfStage4 = (ReadingByte & RTL2832_E4000_IF_STAGE_4_GAIN_MASK) >> RTL2832_E4000_IF_STAGE_4_GAIN_SHIFT;
+	TunerGainIfStage4 = IfStage4GainTable[TunerBitsIfStage4];
+
+	// Get tuner IF stage 5 gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_IF_STAGE_5_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsIfStage5 = (ReadingByte & RTL2832_E4000_IF_STAGE_5_GAIN_MASK) >> RTL2832_E4000_IF_STAGE_5_GAIN_SHIFT;
+	TunerGainIfStage5 = IfStage5GainTable[TunerBitsIfStage5];
+
+	// Get tuner IF stage 6 gain according to reading byte and table.
+	if(I2CReadByte(this, NO_USE, RTL2832_E4000_IF_STAGE_6_GAIN_ADDR, &ReadingByte) != E4000_I2C_SUCCESS)
+		goto error_status_get_tuner_registers;
+
+	TunerBitsIfStage6 = (ReadingByte & RTL2832_E4000_IF_STAGE_6_GAIN_MASK) >> RTL2832_E4000_IF_STAGE_6_GAIN_SHIFT;
+	TunerGainIfStage6 = IfStage6GainTable[TunerBitsIfStage6];
+
+	// Calculate tuner total gain.
+	// Note: The unit of tuner total gain is 0.1 dB.
+	TunerGainTotal = TunerGainLna + TunerGainLnaAdd + TunerGainMixer + 
+	                 TunerGainIfStage1 + TunerGainIfStage2 + TunerGainIfStage3 + TunerGainIfStage4 +
+	                 TunerGainIfStage5 + TunerGainIfStage6;
+
+	// Calculate tuner input power.
+	// Note: The unit of tuner input power is 0.1 dBm
+	TunerInputPower = RTL2832_E4000_TUNER_OUTPUT_POWER_UNIT_0P1_DBM - TunerGainTotal;
+
+/*	fprintf(stderr, _T("Current gain state:\n"
+		"\tFreq:\t%i kHz\n"
+		"\tBW:\t%i kHz\n"
+		"\tLNA:\t%.1f dB\n"
+		"\tLNA+:\t%.1f dB\n"
+		"\tMixer:\t%.1f dB\n"
+		"\tIF 1:\t%.1f dB\n"
+		"\tIF 2:\t%.1f dB\n"
+		"\tIF 3:\t%.1f dB\n"
+		"\tIF 4:\t%.1f dB\n"
+		"\tIF 5:\t%.1f dB\n"
+		"\tIF 6:\t%.1f dB\n"
+		"\tTotal:\t%.1f dB\n"
+		"\tPower:\t%.1f dBm\n"),
+		RfFreqKhz,
+		BandwidthKhz,
+		(float)TunerGainLna/10.0f,
+		(float)TunerGainLnaAdd/10.0f,
+		(float)TunerGainMixer/10.0f,
+		(float)TunerGainIfStage1/10.0f,
+		(float)TunerGainIfStage2/10.0f,
+		(float)TunerGainIfStage3/10.0f,
+		(float)TunerGainIfStage4/10.0f,
+		(float)TunerGainIfStage5/10.0f,
+		(float)TunerGainIfStage6/10.0f,
+		(float)TunerGainTotal/10.0f,
+		(float)TunerInputPower/10.0f);
+*/
+	// Determine tuner gain mode according to tuner input power.
+	// Note: The unit of tuner input power is 0.1 dBm
+	switch (m_gain_mode)
+	{
+		default:
+		case RTL2832_E4000_TUNER_GAIN_SENSITIVE:
+			if(TunerInputPower > -650)
+				TunerGainMode = RTL2832_E4000_TUNER_GAIN_NORMAL;
+			break;
+
+		case RTL2832_E4000_TUNER_GAIN_NORMAL:
+			if(TunerInputPower < -750)
+				TunerGainMode = RTL2832_E4000_TUNER_GAIN_SENSITIVE;
+			if(TunerInputPower > -400)
+				TunerGainMode = RTL2832_E4000_TUNER_GAIN_LINEAR;
+			break;
+
+		case RTL2832_E4000_TUNER_GAIN_LINEAR:
+			if(TunerInputPower < -500)
+				TunerGainMode = RTL2832_E4000_TUNER_GAIN_NORMAL;
+			break;
+	}
+	
+	if (TunerGainMode == -1)	// No change
+	{
+		mode = m_gain_mode;
+		return false;
+	}
+
+	mode = TunerGainMode;
+
+	return true;
+error_status_get_tuner_registers:
+	mode = NOT_SUPPORTED;
+	return false;
+}
+
+} } // TUNERS_NAMESPACE, RTL2832_NAMESPACE
+
+///////////////////////////////////////////////////////////////////////////////
 
 /**
 
@@ -98,10 +629,11 @@ I2CWriteArray(
 */
 int
 e4000_Initialize(
-	baz_rtl_source_c* pTuner
+	RTL2832_NAMESPACE::tuner* pTuner,
+	bool enable_dc_offset_loop /*= true*/,
+	bool set_manual_gain /*= false*/
 	)
 {
-
 	// Initialize tuner.
 	// Note: Call E4000 source code functions.
 	if(tunerreset(pTuner) != E4000_1_SUCCESS)
@@ -113,15 +645,21 @@ e4000_Initialize(
 	if(Qpeak(pTuner) != E4000_1_SUCCESS)
 		goto error_status_execute_function;
 
-//	if(DCoffloop(pTuner) != E4000_1_SUCCESS)	// MY CHANGE: This introduces the periodic crap on the right side of the LO
-//		goto error_status_execute_function;
+	if (enable_dc_offset_loop)
+	{
+	  if(DCoffloop(pTuner) != E4000_1_SUCCESS)	// MY CHANGE: This introduces the periodic crap on the right side of the LO
+		goto error_status_execute_function;
+	}
 
 	if(GainControlinit(pTuner) != E4000_1_SUCCESS)
 		goto error_status_execute_function;
 
 	///////////////////////////////////
-	if(Gainmanual(pTuner) != E4000_1_SUCCESS)
+	if (set_manual_gain)
+	{
+	  if(Gainmanual(pTuner) != E4000_1_SUCCESS)
 		goto error_status_execute_function;
+	}
 	///////////////////////////////////
 
 	return FUNCTION_SUCCESS;
@@ -138,8 +676,10 @@ error_status_execute_function:
 */
 int
 e4000_SetRfFreqHz(
-	baz_rtl_source_c* pTuner,
-	unsigned long RfFreqHz
+	RTL2832_NAMESPACE::tuner* pTuner,
+	unsigned long RfFreqHz,
+	bool update_gain_control /*= true*/,
+	bool enable_dc_offset_lut /*= true*/
 	)
 {
 //	E4000_EXTRA_MODULE *pExtra;
@@ -147,7 +687,7 @@ e4000_SetRfFreqHz(
 	int RfFreqKhz;
 	int CrystalFreqKhz;
 
-	int CrystalFreqHz = CRYSTAL_FREQ;
+	int CrystalFreqHz = /*CRYSTAL_FREQ*/pTuner->parent()->crystal_frequency();
 
 	// Set tuner RF frequency in KHz.
 	// Note: 1. RfFreqKhz = round(RfFreqHz / 1000)
@@ -156,8 +696,11 @@ e4000_SetRfFreqHz(
 	RfFreqKhz      = (int)((RfFreqHz + 500) / 1000);
 	CrystalFreqKhz = (int)((CrystalFreqHz + 500) / 1000);
 
-//	if(Gainmanual(pTuner) != E4000_1_SUCCESS)
-//		goto error_status_execute_function;
+	if (update_gain_control)
+	{
+	  if(Gainmanual(pTuner) != E4000_1_SUCCESS)
+		goto error_status_execute_function;
+	}
 
 	if(E4000_gain_freq(pTuner, RfFreqKhz) != E4000_1_SUCCESS)
 		goto error_status_execute_function;
@@ -171,11 +714,17 @@ e4000_SetRfFreqHz(
 	if(freqband(pTuner, RfFreqKhz) != E4000_1_SUCCESS)
 		goto error_status_execute_function;
 
-	if(DCoffLUT(pTuner) != E4000_1_SUCCESS)	// Enabling this results in big increase in noise floor
+	if (enable_dc_offset_lut)
+	{
+	  if (DCoffLUT(pTuner) != E4000_1_SUCCESS)	// Enabling this results in big increase in noise floor
 		goto error_status_execute_function;
+	}
 
-//	if(GainControlauto(pTuner) != E4000_1_SUCCESS)	// CHANGED: Leaving it manual
-//		goto error_status_execute_function;
+	if (update_gain_control)
+	{
+	  if(GainControlauto(pTuner) != E4000_1_SUCCESS)	// CHANGED: Leaving it manual
+		goto error_status_execute_function;
+	}
 
 	return FUNCTION_SUCCESS;
 
@@ -191,7 +740,7 @@ error_status_execute_function:
 */
 int
 e4000_SetBandwidthHz(
-	baz_rtl_source_c* pTuner,
+	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned long BandwidthHz
 	)
 {
@@ -200,7 +749,7 @@ e4000_SetBandwidthHz(
 	int BandwidthKhz;
 	int CrystalFreqKhz;
 
-	int CrystalFreqHz = CRYSTAL_FREQ;
+	int CrystalFreqHz = /*CRYSTAL_FREQ*/pTuner->parent()->crystal_frequency();
 
 
 	// Get tuner extra module.
@@ -294,7 +843,7 @@ int GainControlinit();
 *
 \****************************************************************************/
 
-int tunerreset(baz_rtl_source_c* pTuner)
+int tunerreset(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -341,7 +890,7 @@ int tunerreset(baz_rtl_source_c* pTuner)
 *  Function disables the clock - values can be modified to enable if required.
 \****************************************************************************/
 
-int Tunerclock(baz_rtl_source_c* pTuner)
+int Tunerclock(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -373,7 +922,7 @@ int Tunerclock(baz_rtl_source_c* pTuner)
 *
 \****************************************************************************/
 /*
-int filtercal(baz_rtl_source_c* pTuner)
+int filtercal(RTL2832_NAMESPACE::tuner* pTuner)
 {
   //writearray[0] = 1;
  //I2CWriteByte (pTuner, 200,123,writearray[0]);
@@ -391,7 +940,7 @@ int filtercal(baz_rtl_source_c* pTuner)
 *
 \****************************************************************************/
 
-int Qpeak(baz_rtl_source_c* pTuner)
+int Qpeak(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -440,7 +989,7 @@ int Qpeak(baz_rtl_source_c* pTuner)
 *  0xa3 to 0xa7. Also 0x24.
 *
 \****************************************************************************/
-int E4000_gain_freq(baz_rtl_source_c* pTuner, int Freq)
+int E4000_gain_freq(RTL2832_NAMESPACE::tuner* pTuner, int Freq)
 {
 	unsigned char writearray[5];
 	int status;
@@ -521,7 +1070,7 @@ int E4000_gain_freq(baz_rtl_source_c* pTuner, int Freq)
 *  Populates DC offset LUT. (Registers 0x2d, 0x70, 0x71).
 *  Turns on DC offset LUT and time varying DC offset.
 \****************************************************************************/
-int DCoffloop(baz_rtl_source_c* pTuner)
+int DCoffloop(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -557,7 +1106,7 @@ int DCoffloop(baz_rtl_source_c* pTuner)
 *
 \****************************************************************************/
 /*
-int commonmode(baz_rtl_source_c* pTuner)
+int commonmode(RTL2832_NAMESPACE::tuner* pTuner)
 {
      //writearray[0] = 0;
      //I2CWriteByte(Device_address,47,writearray[0]);
@@ -580,7 +1129,7 @@ int commonmode(baz_rtl_source_c* pTuner)
 *  Sensitivity / Linearity mode: manual switch
 *
 \****************************************************************************/
-int GainControlinit(baz_rtl_source_c* pTuner)
+int GainControlinit(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	unsigned char read1[1];
@@ -819,7 +1368,7 @@ int GainControlauto();
 *  Sets Gain control to serial interface control.
 *
 \****************************************************************************/
-int Gainmanual(baz_rtl_source_c* pTuner)
+int Gainmanual(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -856,7 +1405,7 @@ int Gainmanual(baz_rtl_source_c* pTuner)
 *  Configures E4000 PLL divider & sigma delta. 0x0d,0x09, 0x0a, 0x0b).
 *
 \****************************************************************************/
-int PLL(baz_rtl_source_c* pTuner, int Ref_clk, int Freq)
+int PLL(RTL2832_NAMESPACE::tuner* pTuner, int Ref_clk, int Freq)
 {
 	int VCO_freq;
 	unsigned char writearray[5];
@@ -1196,7 +1745,7 @@ int PLL(baz_rtl_source_c* pTuner, int Ref_clk, int Freq)
 *
 \****************************************************************************/
 
-int LNAfilter(baz_rtl_source_c* pTuner, int Freq)
+int LNAfilter(RTL2832_NAMESPACE::tuner* pTuner, int Freq)
 {
 	unsigned char writearray[5];
 	int status;
@@ -1345,7 +1894,7 @@ int LNAfilter(baz_rtl_source_c* pTuner, int Freq)
 *  The function configures the E4000 IF filter. (Register 0x11,0x12).
 *
 \****************************************************************************/
-int IFfilter(baz_rtl_source_c* pTuner, int bandwidth, int Ref_clk)
+int IFfilter(RTL2832_NAMESPACE::tuner* pTuner, int bandwidth, int Ref_clk)
 {
 	unsigned char writearray[5];
 	int status;
@@ -1535,7 +2084,7 @@ int IFfilter(baz_rtl_source_c* pTuner, int bandwidth, int Ref_clk)
 *  Configures the E4000 frequency band. (Registers 0x07, 0x78).
 *
 \****************************************************************************/
-int freqband(baz_rtl_source_c* pTuner, int Freq)
+int freqband(RTL2832_NAMESPACE::tuner* pTuner, int Freq)
 {
 	unsigned char writearray[5];
 	int status;
@@ -1593,7 +2142,7 @@ int freqband(baz_rtl_source_c* pTuner, int Freq)
 *  Populates DC offset LUT. (Registers 0x50 - 0x53, 0x60 - 0x63).
 *
 \****************************************************************************/
-int DCoffLUT(baz_rtl_source_c* pTuner)
+int DCoffLUT(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -1867,7 +2416,7 @@ int DCoffLUT(baz_rtl_source_c* pTuner)
 *  Configures gain control mode. (Registers 0x1a)
 *
 \****************************************************************************/
-int GainControlauto(baz_rtl_source_c* pTuner)
+int GainControlauto(RTL2832_NAMESPACE::tuner* pTuner)
 {
 	unsigned char writearray[5];
 	int status;
@@ -1913,7 +2462,7 @@ int main()
 *
 \****************************************************************************/
 
-int E4000_sensitivity(baz_rtl_source_c* pTuner, int Freq, int bandwidth)
+int E4000_sensitivity(RTL2832_NAMESPACE::tuner* pTuner, int Freq, int bandwidth)
 {
 	unsigned char writearray[2];
 	int status;
@@ -1971,7 +2520,7 @@ int E4000_sensitivity(baz_rtl_source_c* pTuner, int Freq, int bandwidth)
 *  The function configures the E4000 for linearity mode.
 *
 \****************************************************************************/
-int E4000_linearity(baz_rtl_source_c* pTuner, int Freq, int bandwidth)
+int E4000_linearity(RTL2832_NAMESPACE::tuner* pTuner, int Freq, int bandwidth)
 {
 
 	unsigned char writearray[2];
@@ -2030,7 +2579,7 @@ int E4000_linearity(baz_rtl_source_c* pTuner, int Freq, int bandwidth)
 *  The function configures the E4000 for nominal
 *
 \****************************************************************************/
-int E4000_nominal(baz_rtl_source_c* pTuner, int Freq, int bandwidth)
+int E4000_nominal(RTL2832_NAMESPACE::tuner* pTuner, int Freq, int bandwidth)
 {
 	unsigned char writearray[2];
 	int status;
@@ -2081,4 +2630,3 @@ int E4000_nominal(baz_rtl_source_c* pTuner, int Freq, int bandwidth)
 
 	return E4000_1_SUCCESS;
 }
-

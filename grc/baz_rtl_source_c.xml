@@ -10,21 +10,81 @@
 	<category>Sources</category>
 	<import>import baz</import>
 	
-	<make>baz.rtl_source_c(auto_tuner_mode=$auto_tuner_mode)
+	<make>baz.rtl_source_c(defer_creation=True)
+self.$(id).set_verbose($verbose)
+self.$(id).set_vid($usb_vid)
+self.$(id).set_pid($usb_pid)
+self.$(id).set_tuner_name($tuner_name)
+self.$(id).set_default_timeout($xfer_timeout)
+self.$(id).set_use_buffer($use_buffer)
+self.$(id).set_fir_coefficients($fir_coeffs)
+
+#if $read_length() > 0
+self.$(id).set_read_length($read_length)
+#end if
+
+#if $buf_mul() > 0
+self.$(id).set_buffer_multiplier($buf_mul)
+#end if
+
+#if $buf_level() > 0
+self.$(id).set_buffer_level(float($buf_level) / 100.0)
+#end if
+
+#if $xtal_freq() > 0
+self.$(id).set_crystal_frequency($xtal_freq)
+#end if
+
+if self.$(id).create() == False: raise Exception("Failed to create RTL2832 Source: $(id)")
+
+#if $bandwidth() > 0
+self.$(id).set_bandwidth($bandwidth)
+#end if
+
 self.$(id).set_sample_rate($sample_rate)
+
 self.$(id).set_frequency($frequency)
+
+#if $gain_mode() != ''
+self.$(id).set_gain_mode($gain_mode)
+#end if
+
+self.$(id).set_auto_gain_mode($auto_gain_mode)
+self.$(id).set_relative_gain($relative_gain)
 self.$(id).set_gain($gain)
-</make>
+  </make>
 	
 	<callback>set_sample_rate($sample_rate)</callback>
 	<callback>set_frequency($frequency)</callback>
 	<callback>set_gain($gain)</callback>
+  <callback>set_bandwidth($bandwidth)</callback>
+  <callback>set_gain_mode($gain_mode)</callback>
+  <callback>set_auto_gain_mode($auto_gain_mode)</callback>
+  <callback>set_relative_gain($relative_gain)</callback>
+
+  <!-- ############################################################## -->
+
+  <param>
+    <name>Verbose output</name>
+    <key>verbose</key>
+    <value>True</value>
+    <type>bool</type>
+    <hide>#if str($verbose) == 'False' then 'part' else 'none'#</hide>
+    <option>
+      <name>On</name>
+      <key>True</key>
+    </option>
+    <option>
+      <name>Off</name>
+      <key>False</key>
+    </option>
+  </param>
 
 	<param>
 		<name>Sample rate</name>
 		<key>sample_rate</key>
 		<value>samp_rate</value>
-		<type>int</type>
+		<type>real</type>
 	</param>
 	
 	<param>
@@ -32,29 +92,165 @@ self.$(id).set_gain($gain)
 		<key>frequency</key>
 		<type>real</type>
 	</param>
+
+  <param>
+    <name>Bandwidth (Hz)</name>
+    <key>bandwidth</key>
+    <value>0</value>
+    <type>real</type>
+    <hide>#if $bandwidth() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Relative gain</name>
+    <key>relative_gain</key>
+    <value>True</value>
+    <type>bool</type>
+    <option>
+      <name>On</name>
+      <key>True</key>
+    </option>
+    <option>
+      <name>Off</name>
+      <key>False</key>
+    </option>
+  </param>
 	
 	<param>
-		<name>Gain (dB)</name>
+		<name>Gain</name>
 		<key>gain</key>
 		<value>0</value>
 		<type>real</type>
 	</param>
-	
-	<param>
-	    <name>Auto adjust tuner mode</name>
-		<key>auto_tuner_mode</key>
-		<value>False</value>
-		<type>bool</type>
-		<hide>#if str($auto_tuner_mode) == 'False' then 'part' else 'none'#</hide>
-		<option>
-			<name>On</name>
-			<key>True</key>
-		</option>
-		<option>
-			<name>Off</name>
-			<key>False</key>
-		</option>
-	</param>
+
+  <param>
+    <name>Gain mode</name>
+    <key>gain_mode</key>
+    <type>string</type>
+    <hide>#if $gain_mode() == '' then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Auto gain mode</name>
+    <key>auto_gain_mode</key>
+    <value>False</value>
+    <type>bool</type>
+    <hide>#if str($auto_gain_mode) == 'False' then 'part' else 'none'#</hide>
+    <option>
+      <name>On</name>
+      <key>True</key>
+    </option>
+    <option>
+      <name>Off</name>
+      <key>False</key>
+    </option>
+  </param>
+
+  <param>
+    <name>Custom USB VID</name>
+    <key>usb_vid</key>
+    <value>0x0</value>
+    <type>int</type>
+    <hide>#if $usb_vid() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Custom USB PID</name>
+    <key>usb_pid</key>
+    <value>0x0</value>
+    <type>int</type>
+    <hide>#if $usb_pid() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Custom Tuner</name>
+    <key>tuner_name</key>
+    <value></value>
+    <type>string</type>
+    <hide>#if $tuner_name() == '' then 'part' else 'none'#</hide>
+    <option>
+      <name>(Auto)</name>
+      <key></key>
+    </option>
+    <option>
+      <name>Elonics E4000</name>
+      <key>e4000</key>
+    </option>
+    <option>
+      <name>Fitipower FC0013</name>
+      <key>fc0013</key>
+    </option>
+    <option>
+      <name>Fitipower FC0012</name>
+      <key>fc0012</key>
+    </option>
+  </param>
+
+  <param>
+    <name>Xfer read length (bytes)</name>
+    <key>read_length</key>
+    <value>0</value>
+    <type>int</type>
+    <hide>#if $read_length() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Xfer timeout (ms)</name>
+    <key>xfer_timeout</key>
+    <value>0</value>
+    <type>int</type>
+    <hide>#if $xfer_timeout() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Use buffer</name>
+    <key>use_buffer</key>
+    <value>True</value>
+    <type>bool</type>
+    <hide>#if str($use_buffer) == 'True' then 'part' else 'none'#</hide>
+    <option>
+      <name>On</name>
+      <key>True</key>
+    </option>
+    <option>
+      <name>Off</name>
+      <key>False</key>
+    </option>
+  </param>
+
+  <param>
+    <name>Buffer multiplier</name>
+    <key>buf_mul</key>
+    <value>0</value>
+    <type>int</type>
+    <hide>#if $buf_mul() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Buffer level</name>
+    <key>buf_level</key>
+    <value>0</value>
+    <type>int</type>
+    <hide>#if $buf_level() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>FIR coefficients [20]</name>
+    <key>fir_coeffs</key>
+    <value>[]</value>
+    <type>int_vector</type>
+    <hide>#if len($fir_coeffs()) == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+    <name>Crystal frequency (Hz)</name>
+    <key>xtal_freq</key>
+    <value>0</value>
+    <type>int</type>
+    <hide>#if $xtal_freq() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <!-- ############################################################## -->
 	
 	<source>
 		<name>out</name>
@@ -62,9 +258,22 @@ self.$(id).set_gain($gain)
 		<type>complex</type>
 	</source>
 	
-	<doc>
-RTL2832-compatible USB receiver.
+	<doc>RTL2832U-compatible USB receiver
 
-Auto tuner mode auto selects between nominal/linear/sensitive modes for E4000 (however setting the gain may be slower).
-	</doc>
+A default value of 0 above indicates that the default value should be assumed when creating the device (except for gain).
+
+* Verbose output: additional information to stderr
+* Relative gain: Gain will accept values [0,1] and map to tuner's internal range
+* Gain mode: tuner-specific string (e.g. (e.g. nominal/sensitive/linear)
+* Auto gain mode (if supported by tuner): automatically select appropriate gain mode when setting gain value
+* Custom VID/PID: override if your adapter isn't recognised automatically (can set one or both if device is in known table, but must be both for an unknown device)
+* Custom tuner: override if you use a custom VID/PID, or the tuner is incorrectly recognised
+* Xfer read length: size of one USB bulk read (suggested value = 512 * (2^n), where n >= 0; a larger value increases delay until new settings appear realised in output signal)
+* Xfer timeout: USB bulk read timeout
+* Use buffer: use internally buffering (should improve streaming performance)
+* Buffer multiplier: total buffer size = (Buffer multiplier * Xfer Read length)
+* Buffer level: % of buffer to fill before beginning streaming
+* FIR coefficients: 20 coefficients for demodulator (leave empty for defaults)
+* Crystal frequency: override crystal oscillator frequency
+  </doc>
 </block>
