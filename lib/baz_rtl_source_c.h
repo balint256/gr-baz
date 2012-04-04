@@ -31,6 +31,7 @@
 #include <gr_block.h>
 #include <gruel/thread.h>
 #include <boost/thread/condition.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 #include <libusb-1.0/libusb.h>	// FIXME: Automake
 #include <stdarg.h>	// va_list
