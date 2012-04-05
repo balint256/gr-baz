@@ -29,7 +29,7 @@
 #define INCLUDED_BAZ_RTL_SOURCE_C_H
 
 #include <gr_block.h>
-#include <gruel/thread.h>
+#include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 
@@ -67,7 +67,7 @@ private:
 	uint32_t m_nOverflows;
 	bool m_bRunning;
 	boost::recursive_mutex d_mutex;
-	gruel::thread m_pCaptureThread;
+	boost::thread m_pCaptureThread;
 	uint32_t m_nBufferSize;
 	uint32_t m_nBufferStart;
 	uint32_t m_nBufferItems;

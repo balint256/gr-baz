@@ -386,7 +386,7 @@ bool baz_rtl_source_c::start()
   if (m_bUseBuffer)
   {
 	m_bBuffering = true;
-	m_pCaptureThread = gruel::thread(_capture_thread, this);
+	m_pCaptureThread = boost::thread(_capture_thread, this);
   }
 
   return true;
