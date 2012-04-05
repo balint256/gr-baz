@@ -29,7 +29,9 @@ modpython_PYTHON = \
 	borip.py \
 	facsink.py \
 	eye.py \
-	auto_fec.py
+	auto_fec.py \
+	op25.py \
+	message_callback.py
 
 noinst_PYTHON = \
 	qa_baz.py			

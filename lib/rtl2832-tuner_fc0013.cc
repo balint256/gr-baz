@@ -139,7 +139,6 @@ error_status_get_tuner_registers:
 	return FC0013_I2C_ERROR;
 }
 
-
 #define FC0013_Read(t,r,b)		_FC0013_Read(t,r,b,__PRETTY_FUNCTION__,__LINE__,"FC0013_Read("#t", "#r", "#b")")
 //#define FC0013_Read(t,r,b)		_FC0013_Read(t,r,b)
 

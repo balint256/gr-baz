@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Message callback
+###################################################
+ -->
+<block>
+	<name>Message Callback</name>
+	<key>baz_message_callback</key>
+	<import>from baz import message_callback</import>
+	<make>message_callback.message_callback($(id)_msgq_in, self.set_$target)
+	</make>
+	<param>
+		<name>Name</name>
+		<key>name</key>
+		<value>Descriptive name</value>
+		<type>string</type>
+	</param>
+	<param>
+		<name>Variable</name>
+		<key>target</key>
+		<value></value>
+		<type>raw</type>
+		<hide>part</hide>
+	</param>
+	<check>len("$target") &gt; 0</check>
+	<sink>
+		<name>in</name>
+		<type>msg</type>
+	</sink>
+</block>

@@ -44,6 +44,7 @@
 
 #include "rtl2832-tuner_e4000.h"
 #include "rtl2832-tuner_fc0013.h"
+#include "rtl2832-tuner_fc0012.h"
 
 ///////////////////////////////////////////////////////////
 
@@ -56,8 +57,6 @@
 #define DEFAULT_MAX_SAMPLE_RATE		3200000
 
 #define DEFAULT_LIBUSB_TIMEOUT		3000
-
-//#define DEFAULT_BANDWIDTH			8000000
 
 ///////////////////////////////////////////////////////////
 
@@ -109,7 +108,7 @@ namespace RTL2832_NAMESPACE
 #define EZCAP_VID		0x0bda
 #define EZCAP_PID		0x2838
 
-#define HAMA_VID		0x0bda
+#define HAMA_VID		0x0bda	// Same as ezcap
 #define HAMA_PID		0x2832
 
 /* Terratec NOXON DAB/DAB+ USB-Stick */
@@ -119,14 +118,14 @@ namespace RTL2832_NAMESPACE
 
 /* Dexatek Technology Ltd. DK DVB-T Dongle */
 #define DEXATEK_VID		0x1d19
-#define DEXATEK_PID		0x1101	// Also Logilink
+#define DEXATEK_PID		0x1101	// Also Logilink, MSI
 #define DEXATEK_V2_PID	0x1102
 
 /* Peak */
 #define PEAK_VID		0x1b80
 #define PEAK_PID		0xd395
 
-/* Ardata MyVision */
+/* Ardata MyVision, Gigabyte GT-U7300 DVB-T */
 #define ARDATA_VID		0x1b80	// Same as PEAK_VID
 #define ARDATA_PID		0xd393
 
@@ -138,6 +137,14 @@ namespace RTL2832_NAMESPACE
 #define LIFEVIEW_VID	0x1f4d	// Same as MYGICA_VID
 #define LIVEVIEW_PID	0xc803
 
+/* PROlectrix */
+#define PROLECTRIX_VID	0x1f4d	// Same as Lifeview
+#define PROLECTRIX_PID	0xd803
+
+/* Terratec Cinergy T */
+#define CINERGY_VID		0x0ccd
+#define CINERGY_PID		0x00a9
+
 #define GET_CREATOR_FN(c)	TUNERS_NAMESPACE::c::TUNER_FACTORY_FN_NAME
 #define ADD_TUNER(c)		{ #c, GET_CREATOR_FN(c) }
 
@@ -148,7 +155,7 @@ static struct _rtl2832_tuner_info
 } _rtl2832_tuners[] = {
 	ADD_TUNER(e4000),
 	ADD_TUNER(fc0013),
-//	ADD_TUNER(fc0012)
+	ADD_TUNER(fc0012)
 };
 
 static struct _rtl2832_device_info
@@ -165,9 +172,12 @@ static struct _rtl2832_device_info
 	{ "Hama nano",					HAMA_VID,		HAMA_PID,		GET_CREATOR_FN(e4000)	},
 	{ "Dexatek Technology (rev 1)",	DEXATEK_VID,	DEXATEK_PID,	GET_CREATOR_FN(fc0013)	},	// Also Logilink
 	{ "Dexatek Technology (rev 2)", DEXATEK_VID,	DEXATEK_V2_PID, GET_CREATOR_FN(fc0013)	},
-//	{ "Peak",						PEAK_VID,		PEAK_PID,		GET_CREATOR_FN(fc0012)	},
-	{ "Ardata MyVision",			ARDATA_VID,		ARDATA_PID,		GET_CREATOR_FN(fc0013)	},
-//	{ "MyGica/G-Tek",				MYGICA_VID,		MYGICA_PID,		GET_CREATOR_FN(fc0012)	},
+	{ "Peak",						PEAK_VID,		PEAK_PID,		GET_CREATOR_FN(fc0012)	},
+	{ "Ardata MyVision",			ARDATA_VID,		ARDATA_PID,		GET_CREATOR_FN(fc0012)	},
+	{ "MyGica/G-Tek",				MYGICA_VID,		MYGICA_PID,		GET_CREATOR_FN(fc0012)	},
+	{ "Lifeview",					LIFEVIEW_VID,	LIVEVIEW_PID,	GET_CREATOR_FN(fc0012)	},
+	{ "Prolectrix",					PROLECTRIX_VID,	PROLECTRIX_PID,	GET_CREATOR_FN(fc0012)	},
+	{ "Terratec Cinergy T (rev 1)", CINERGY_VID,	CINERGY_PID,	GET_CREATOR_FN(fc0012)	},
 };
 
 static struct _rtl2832_tuner_info* get_tuner_factory_by_name(const char* name)
@@ -400,7 +410,7 @@ int demod::find_device()
 	if (m_params.verbose)
 	{
 		log("\tSample rate range:\t%i - %i Hz\n"
-			"\tCrystal freq:\t%i Hz\n",
+			"\tCrystal frequency:\t%i Hz\n",
 			(uint32_t)m_sample_rate_range.first, (uint32_t)m_sample_rate_range.second,
 			m_crystal_frequency);
 	}
@@ -664,16 +674,10 @@ int demod::initialise(PPARAMS params /*= NULL*/)
 
 int demod::reset()
 {
-	//int r;
-	
 	/* reset endpoint before we start reading */
-	/*r = */CHECK_LIBUSB_RESULT_RETURN(write_reg(USBB, USB_EPA_CTL, 0x1002, 2));
-	//if (r < 0)
-	//	return r;
-	/*r = */CHECK_LIBUSB_RESULT_RETURN(write_reg(USBB, USB_EPA_CTL, 0x0000, 2));
-	//if (r < 0)
-	//	return r;
-	
+	CHECK_LIBUSB_RESULT_RETURN(write_reg(USBB, USB_EPA_CTL, 0x1002, 2));
+	CHECK_LIBUSB_RESULT_RETURN(write_reg(USBB, USB_EPA_CTL, 0x0000, 2));
+
 	return SUCCESS;
 }
 

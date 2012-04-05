@@ -15,7 +15,7 @@ extern const char* libusb_result_to_string(int res);
 //#define DEBUG_TUNER_I2C(t,r)	// This is empty on purpose
 #define DEBUG_TUNER_I2C(t,r) \
 	if (t->params().message_output && function && (line_number >= 0) && (line)) \
-		fprintf(t->params().message_output, "%s: %s [%i] @ %s:%i \"%s\"\n", __PRETTY_FUNCTION__, libusb_result_to_string(r), r, function, line_number, line);
+		fprintf(t->params().message_output, "%s: %s [%i] @ %s:%i \"%s\"\n", __FUNCTION__, libusb_result_to_string(r), r, function, line_number, line);
 
 #define RTL2832_NAMESPACE	rtl2832
 
