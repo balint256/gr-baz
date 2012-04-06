@@ -59,7 +59,8 @@ libgnuradio_baz_la_SOURCES = \
 	rtl2832.cc \
 	rtl2832-tuner_e4000.cc \
 	rtl2832-tuner_fc0013.cc \
-	rtl2832-tuner_fc0012.cc
+	rtl2832-tuner_fc0012.cc \
+	rtl2832-tuner_fc2580.cc
 #	howto_square_ff.cc \
 #	howto_square2_ff.cc
 
