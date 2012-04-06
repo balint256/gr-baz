@@ -7,7 +7,10 @@
  * on http://linux.terratec.de/tv_en.html
  */
 
+#ifndef _WIN32
 #include <stdint.h>
+#endif // _WIN32
+
 #include "rtl2832-tuner_fc2580.h"
 
 #define LOG_PREFIX			"[fc2580] "
@@ -58,10 +61,10 @@ fc2580_fci_result_type _fc2580_i2c_read(RTL2832_NAMESPACE::tuner* pTuner, unsign
 	return FC2580_FCI_SUCCESS;
 }
 
-#define fc2580_i2c_read(t,r,b)		_fc2580_i2c_read(t,r,b,__PRETTY_FUNCTION__,__LINE__,"FC0013_Read("#t", "#r", "#b")")
+#define fc2580_i2c_read(t,r,b)		_fc2580_i2c_read(t,r,b,CURRENT_FUNCTION,__LINE__,"FC0013_Read("#t", "#r", "#b")")
 //#define fc2580_i2c_read(t,r,b)		_fc2580_i2c_read(t,r,b)
 
-#define fc2580_i2c_write(t,r,w)			_fc2580_i2c_write(t,r,w,__PRETTY_FUNCTION__,__LINE__,"FC0013_Write("#t", "#r", "#w")")
+#define fc2580_i2c_write(t,r,w)			_fc2580_i2c_write(t,r,w,CURRENT_FUNCTION,__LINE__,"FC0013_Write("#t", "#r", "#w")")
 //#define fc2580_i2c_write(t,r,w)		_fc2580_i2c_write(t,r,w)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,8 +103,8 @@ int fc2580::initialise(tuner::PPARAMS params /*= NULL*/)
 	if (fc2580_Initialize(this) != FUNCTION_SUCCESS)
 		return FAILURE;
 
-	if (m_params.verbose)
-		fprintf(m_params.message_output, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
+	if (m_params.message_output && m_params.verbose)
+		m_params.message_output->on_log_message(LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
 
 	return SUCCESS;
 }

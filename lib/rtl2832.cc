@@ -173,7 +173,7 @@ static struct _rtl2832_device_info
 	{ "Terratec NOXON (rev 2)", 	NOXON_VID,		NOXON_V2_PID, 	GET_CREATOR_FN(e4000)	},
 	{ "Hama nano",					HAMA_VID,		HAMA_PID,		GET_CREATOR_FN(e4000)	},
 	{ "Dexatek Technology (rev 1)",	DEXATEK_VID,	DEXATEK_PID,	GET_CREATOR_FN(fc0013)	},	// Also Logilink
-	{ "Dexatek Technology (rev 2)", DEXATEK_VID,	DEXATEK_V2_PID, GET_CREATOR_FN(fc0013)	},
+	{ "Dexatek Technology (rev 2)", DEXATEK_VID,	DEXATEK_V2_PID, GET_CREATOR_FN(fc0013)	},	// Also ZAAPA HD Tuner
 	{ "Peak",						PEAK_VID,		PEAK_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "Ardata MyVision",			ARDATA_VID,		ARDATA_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "MyGica/G-Tek",				MYGICA_VID,		MYGICA_PID,		GET_CREATOR_FN(fc0012)	},
@@ -191,7 +191,13 @@ static struct _rtl2832_tuner_info* get_tuner_factory_by_name(const char* name)
 	{
 		struct _rtl2832_tuner_info* info = _rtl2832_tuners + i;
 
-		if (strcasecmp(name, info->name) == 0)
+		if (
+#ifdef _WIN32
+			stricmp
+#else
+			strcasecmp
+#endif // _WIN32
+			(name, info->name) == 0)
 			return info;
 	}
 
@@ -273,8 +279,8 @@ demod::~demod()
 //#define CHECK_LIBUSB_RESULT(r)			(r)
 //#define CHECK_LIBUSB_NEG_RESULT(r)		(r)
 //#define CHECK_LIBUSB_RESULT_EX(r,f,l,s)	(r)
-#define CHECK_LIBUSB_RESULT(r)				check_libusb_result(r, false, __PRETTY_FUNCTION__, __LINE__, #r)
-#define CHECK_LIBUSB_NEG_RESULT(r)			check_libusb_result(r, true, __PRETTY_FUNCTION__, __LINE__, #r)
+#define CHECK_LIBUSB_RESULT(r)				check_libusb_result(r, false, CURRENT_FUNCTION, __LINE__, #r)
+#define CHECK_LIBUSB_NEG_RESULT(r)			check_libusb_result(r, true, CURRENT_FUNCTION, __LINE__, #r)
 #define CHECK_LIBUSB_RESULT_EX(r,f,l,s)		check_libusb_result(r, false, f, l, s)
 
 #define CHECK_LIBUSB_RESULT_RETURN(r)	\
@@ -291,7 +297,7 @@ int demod::check_libusb_result(int res, bool zero_okay, const char* function_nam
 	{
 		if (m_params.message_output)
 		{
-			fprintf(m_params.message_output,
+			m_params.message_output->on_log_message_ex(RTL2832_NAMESPACE::log_sink::LOG_LEVEL_ERROR,
 				(m_params.verbose ? "libusb error: %s [%i] (%s:%i) \"%s\"\n" : "libusb: %s [%i]"),
 				libusb_result_to_string(res),
 				res,
@@ -474,7 +480,6 @@ int demod::write_reg(uint8_t block, uint16_t addr, uint16_t val, uint8_t len)
 	if (m_devh == NULL)
 		return LIBUSB_ERROR_NO_DEVICE;
   
-	int r;
 	unsigned char data[2];
 
 	uint16_t index = (block << 8) | 0x10;
@@ -549,7 +554,7 @@ int demod::set_sample_rate(uint32_t samp_rate, double* real_rate /*= NULL*/)
 	if (in_range(m_sample_rate_range, samp_rate) == false)
 		return FAILURE;
 
-	rsamp_ratio = ((uint64_t)m_crystal_frequency * (uint64_t)pow(2, 22)) / (uint64_t)samp_rate;
+	rsamp_ratio = ((uint64_t)m_crystal_frequency * (uint64_t)pow(2.0, 22.0)) / (uint64_t)samp_rate;
 	rsamp_ratio &= ~3;
 
 	if (rsamp_ratio == 0)
@@ -559,7 +564,7 @@ int demod::set_sample_rate(uint32_t samp_rate, double* real_rate /*= NULL*/)
 		return FAILURE;
 	}
 
-	_real_rate = (m_crystal_frequency * pow(2, 22)) / (double)rsamp_ratio;
+	_real_rate = (m_crystal_frequency * pow(2.0, 22.0)) / (double)rsamp_ratio;
 
 	tmp = (rsamp_ratio >> 16);
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x9f, tmp, 2));
@@ -588,7 +593,7 @@ void demod::log(const char* message, ...)
 	va_list args;
 	va_start(args, message);
 	
-	vfprintf(m_params.message_output, message, args);
+	m_params.message_output->on_log_message_va(RTL2832_NAMESPACE::log_sink::LOG_LEVEL_DEFAULT, message, args);
 }
 
 int demod::initialise(PPARAMS params /*= NULL*/)

@@ -52,7 +52,7 @@ baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false);
  *
  * \sa gr-baz: http://wiki.spench.net/wiki/gr-baz
  */
-class baz_rtl_source_c : public gr_block
+class baz_rtl_source_c : public gr_block, public RTL2832_NAMESPACE::log_sink
 {
 private:
 	friend baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation);
@@ -89,10 +89,13 @@ private:
 private:
 	enum log_level
 	{
-		LOG_LEVEL_ERROR	= -1,
-		//LOG_LEVEL_INFO	= 0,	// Not currently used
-		LOG_LEVEL_VERBOSE	= 1
+		LOG_LEVEL_ERROR		= RTL2832_NAMESPACE::log_sink::LOG_LEVEL_ERROR,
+		LOG_LEVEL_INFO		= RTL2832_NAMESPACE::log_sink::LOG_LEVEL_DEFAULT,
+		LOG_LEVEL_VERBOSE	= RTL2832_NAMESPACE::log_sink::LOG_LEVEL_VERBOSE
 	};
+private: // log_sink
+	void on_log_message_va(int level, const char* msg, va_list args)
+	{ log(level, msg, args); }
 private:
 	void log(int level, const char* message, va_list args);
 #define IMPLEMENT_LOG_FUNCTION(suffix,level) \

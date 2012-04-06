@@ -308,7 +308,7 @@ bool baz_rtl_source_c::create(bool reset_buffer_defaults /*= false*/)
   
   /////////////////////////
   
-  m_demod_params.message_output = stderr;
+  m_demod_params.message_output = this;
   m_demod_params.verbose = m_verbose;
 
   /////////////////////////

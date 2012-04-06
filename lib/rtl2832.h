@@ -2,20 +2,46 @@
 #define INCLUDED_RTL2832
 
 #include <stdio.h>
+#include <stdarg.h>
+
 #include <libusb-1.0/libusb.h>	// FIXME: Automake
+
+#ifdef _WIN32
+
+#ifdef RTL2832_EXPORTS
+#define RTL2832_API			__declspec(dllexport)
+#else
+#define RTL2832_API			__declspec(dllimport)
+#endif
+
+typedef unsigned int uint32_t;	// 'libusb.h' offers uint8_t & uint16_t
+typedef unsigned __int64 uint64_t;
+
+#else
+
+#define RTL2832_API
+#define RTL2832_TEMPLATE
+
+#endif // _WIN32
 
 #include <vector>
 #include <map>
 #include <string>
 
-extern int get_map_index(int value, const int* map, int pair_count);
-extern const char* libusb_result_to_string(int res);
+RTL2832_API extern int get_map_index(int value, const int* map, int pair_count);
+RTL2832_API extern const char* libusb_result_to_string(int res);
+
+#ifdef _WIN32
+#define CURRENT_FUNCTION	__FUNCTION__
+#else
+#define CURRENT_FUNCTION	__PRETTY_FUNCTION__
+#endif // _WIN32
 
 // Swap following comments to disable I2C reporting
 //#define DEBUG_TUNER_I2C(t,r)	// This is empty on purpose
 #define DEBUG_TUNER_I2C(t,r) \
 	if (t->params().message_output && function && (line_number >= 0) && (line)) \
-		fprintf(t->params().message_output, "%s: %s [%i] @ %s:%i \"%s\"\n", __FUNCTION__, libusb_result_to_string(r), r, function, line_number, line);
+		t->params().message_output->on_log_message_ex(RTL2832_NAMESPACE::log_sink::LOG_LEVEL_ERROR, "%s: %s [%i] @ %s:%i \"%s\"\n", __FUNCTION__, libusb_result_to_string(r), r, function, line_number, line);
 
 #define RTL2832_NAMESPACE	rtl2832
 
@@ -45,6 +71,7 @@ enum result_code
 	static tuner* TUNER_FACTORY_FN_NAME(demod* p) \
 	{ return new class_name(p); }
 
+// _WIN32: DLL WARNING! These will cause C4251, but only 'vector' can be exported as a DLL interface. You must have exactly the same STL headers in your importing files, otherwise your app will crash. Solution is to recompile this library with your own STL headers.
 typedef std::pair<double,double> range_t;
 typedef std::vector<double> values_t;
 typedef std::map<int,std::string> num_name_map_t;
@@ -64,7 +91,25 @@ inline bool in_valid_range(const range_t& r, double d)	// If invalid range, retu
 inline double calc_range(const range_t& r)
 { return (r.second - r.first); }
 
-class tuner
+class log_sink
+{
+public:
+	enum level
+	{
+		LOG_LEVEL_ERROR		= -1,	// Negative: more serious
+		LOG_LEVEL_DEFAULT	= 0,
+		LOG_LEVEL_VERBOSE	= 1,	// Positive: more verbose
+	};
+public:
+	virtual void on_log_message_va(int level, const char* msg, va_list args)=0;
+public:
+	inline virtual void on_log_message(const char* msg, ...)
+	{ va_list args; va_start(args, msg); on_log_message_va(LOG_LEVEL_DEFAULT, msg, args); }
+	inline virtual void on_log_message_ex(int level, const char* msg, ...)
+	{ va_list args; va_start(args, msg); on_log_message_va(level, msg, args); }
+};
+
+class RTL2832_API tuner
 {
 public:
 	virtual ~tuner();
@@ -72,8 +117,8 @@ public:
 	typedef tuner* (*CreateTunerFn)(demod* p);
 	typedef struct params
 	{
-		FILE*	message_output;
-		bool 	verbose;
+		log_sink*	message_output;
+		bool 		verbose;
 	} PARAMS, *PPARAMS;
 	enum gain_mode {
 		NOT_SUPPORTED	= -1,
@@ -112,7 +157,7 @@ public:
 	virtual demod* parent() const=0;
 };
 
-class tuner_skeleton : public tuner
+class RTL2832_API tuner_skeleton : public tuner
 {
 public:
 	tuner_skeleton(demod* p);
@@ -201,10 +246,10 @@ public:
 	{ m_tuner->set_i2c_repeater(false, m_function_name, m_line_number, m_line); }
 };
 
-#define TUNER_I2C_REPEATER_SCOPE(tuner)	i2c_repeater_scope _i2c_repeater_scope(tuner, __PRETTY_FUNCTION__, __LINE__, tuner->name())
+#define TUNER_I2C_REPEATER_SCOPE(tuner)	i2c_repeater_scope _i2c_repeater_scope(tuner, CURRENT_FUNCTION, __LINE__, tuner->name())
 #define THIS_TUNER_I2C_REPEATER_SCOPE()	TUNER_I2C_REPEATER_SCOPE(this)
 
-class demod
+class RTL2832_API demod
 {
 public:
 	demod();
@@ -218,7 +263,7 @@ public:
 		uint16_t		pid;
 		bool			verbose;
 		int				default_timeout;	// 0: use default, -1: poll only
-		FILE*			message_output;
+		log_sink*		message_output;
 		bool			use_custom_fir_coefficients;
 		uint8_t			fir_coeff[FIR_COEFF_COUNT];
 		//bool			use_tuner_params;	// Use if valid tuner::PPARAMS pointer

@@ -7,7 +7,9 @@
  * on http://linux.terratec.de/tv_en.html
  */
 
+#ifndef _WIN32
 #include <stdint.h>
+#endif // _WIN32
 
 #include "rtl2832-tuner_e4000.h"
 
@@ -108,13 +110,13 @@ _I2CWriteArray(
 
 // Swap these to disable debug string generation and verbose reporting
 
-#define I2CReadByte(t,n,r,b)		_I2CReadByte(t,n,r,b,__PRETTY_FUNCTION__,__LINE__,"I2CReadByte("#t", "#n", "#r", "#b")")
+#define I2CReadByte(t,n,r,b)		_I2CReadByte(t,n,r,b,CURRENT_FUNCTION,__LINE__,"I2CReadByte("#t", "#n", "#r", "#b")")
 //#define I2CReadByte(t,n,r,b)		_I2CReadByte(t,n,r,b)
 
-#define I2CWriteByte(t,n,r,w)		_I2CWriteByte(t,n,r,w,__PRETTY_FUNCTION__,__LINE__,"I2CReadByte("#t", "#n", "#r", "#w")")
+#define I2CWriteByte(t,n,r,w)		_I2CWriteByte(t,n,r,w,CURRENT_FUNCTION,__LINE__,"I2CReadByte("#t", "#n", "#r", "#w")")
 //#define I2CWriteByte(t,n,r,w)		_I2CWriteByte(t,n,r,w)
 
-#define I2CWriteArray(t,n,r,b,w)	_I2CWriteArray(t,n,r,b,w,__PRETTY_FUNCTION__,__LINE__,"I2CReadByte("#t", "#n", "#r", "#b", "#w")")
+#define I2CWriteArray(t,n,r,b,w)	_I2CWriteArray(t,n,r,b,w,CURRENT_FUNCTION,__LINE__,"I2CReadByte("#t", "#n", "#r", "#b", "#w")")
 //#define I2CWriteArray(t,n,r,b,w)	_I2CWriteArray(t,n,r,b,w)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -174,8 +176,8 @@ int e4000::initialise(PPARAMS params /*= NULL*/)
 	if (set_bandwidth(bandwidth()) != SUCCESS)
 		return FAILURE;
 
-	if (m_params.verbose)
-		fprintf(m_params.message_output, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
+	if (m_params.message_output && m_params.verbose)
+		m_params.message_output->on_log_message(LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
 
 	return SUCCESS;
 }
@@ -269,7 +271,10 @@ int e4000::update_gain_mode()
 		{
 			num_name_map_t::iterator it = m_gain_modes.find(i);
 			if (it != m_gain_modes.end())	// Double check
-				fprintf(m_params.message_output, LOG_PREFIX"Gain mode: %s\n", it->second.c_str());
+			{
+				if (m_params.message_output)
+					m_params.message_output->on_log_message(LOG_PREFIX"Gain mode: %s\n", it->second.c_str());
+			}
 		}
 	}
 

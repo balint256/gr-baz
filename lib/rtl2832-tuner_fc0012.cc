@@ -2,7 +2,10 @@
 #include "config.h"
 #endif
 
+#ifndef _WIN32
 #include <stdint.h>
+#endif // _WIN32
+
 #include "rtl2832-tuner_fc0012.h"
 
 #ifdef DEBUG
@@ -184,16 +187,16 @@ error_status_get_tuner_registers:
 	return FC0012_ERROR;
 }
 
-#define FC0012_Read(t,r,b)		_FC0012_Read(t,r,b,__PRETTY_FUNCTION__,__LINE__,"FC0012_Read("#t", "#r", "#b")")
+#define FC0012_Read(t,r,b)		_FC0012_Read(t,r,b,CURRENT_FUNCTION,__LINE__,"FC0012_Read("#t", "#r", "#b")")
 //#define FC0012_Read(t,r,b)		_FC0012_Read(t,r,b)
 
-#define FC0012_Write(t,r,w)			_FC0012_Write(t,r,w,__PRETTY_FUNCTION__,__LINE__,"FC0012_Write("#t", "#r", "#w")")
+#define FC0012_Write(t,r,w)			_FC0012_Write(t,r,w,CURRENT_FUNCTION,__LINE__,"FC0012_Write("#t", "#r", "#w")")
 //#define FC0012_Write(t,r,w)		_FC0012_Write(t,r,w)
 
-#define fc0012_SetRegMaskBits(t,r,m,l,b)	_fc0012_SetRegMaskBits(t,r,m,l,b,__PRETTY_FUNCTION__,__LINE__,"fc0012_SetRegMaskBits("#t", "#r", "#m", "#l", "#b")")
+#define fc0012_SetRegMaskBits(t,r,m,l,b)	_fc0012_SetRegMaskBits(t,r,m,l,b,CURRENT_FUNCTION,__LINE__,"fc0012_SetRegMaskBits("#t", "#r", "#m", "#l", "#b")")
 //#define fc0012_SetRegMaskBits(t,r,m,l,b)	_fc0012_SetRegMaskBits(t,r,m,l,b)
 
-#define fc0012_SetRegMaskBits(t,r,m,l,b)	_fc0012_SetRegMaskBits(t,r,m,l,b,__PRETTY_FUNCTION__,__LINE__,"fc0012_SetRegMaskBits("#t", "#r", "#m", "#l", "#b")")
+#define fc0012_SetRegMaskBits(t,r,m,l,b)	_fc0012_SetRegMaskBits(t,r,m,l,b,CURRENT_FUNCTION,__LINE__,"fc0012_SetRegMaskBits("#t", "#r", "#m", "#l", "#b")")
 //#define fc0012_SetRegMaskBits(t,r,m,l,b)	_fc0012_SetRegMaskBits(t,r,m,l,b)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -234,8 +237,8 @@ int fc0012::initialise(tuner::PPARAMS params /*= NULL*/)
 	if (FC0012_Open(this) != FC0012_OK)
 		return FAILURE;
 
-	if (m_params.verbose)
-		fprintf(m_params.message_output, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
+	if (m_params.message_output && m_params.verbose)
+		m_params.message_output->on_log_message(LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
 
 	return SUCCESS;
 }
