@@ -63,6 +63,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="libusb-1.0.lib"
+				OutputFile="$(OutDir)\librtl2832++.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;C:\Dev\SDK\libusb-pbatard\Win32\Debug\dll&quot;"
 				GenerateDebugInformation="true"
@@ -139,6 +140,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="libusb-1.0.lib"
+				OutputFile="$(OutDir)\librtl2832++.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;C:\Dev\SDK\libusb-pbatard\Win32\Release\dll&quot;"
 				GenerateDebugInformation="true"
