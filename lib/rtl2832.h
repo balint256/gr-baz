@@ -249,6 +249,14 @@ public:
 #define TUNER_I2C_REPEATER_SCOPE(tuner)	i2c_repeater_scope _i2c_repeater_scope(tuner, CURRENT_FUNCTION, __LINE__, tuner->name())
 #define THIS_TUNER_I2C_REPEATER_SCOPE()	TUNER_I2C_REPEATER_SCOPE(this)
 
+typedef struct device_info
+{
+	const char* name;
+	uint16_t vid, pid;
+	tuner::CreateTunerFn factory;
+	uint32_t max_rate, min_rate, crystal_frequency, flags;
+} DEVICE_INFO, *PDEVICE_INFO;
+
 class RTL2832_API demod
 {
 public:
@@ -273,6 +281,7 @@ public:
 	} PARAMS, *PPARAMS;
 protected:
 	struct libusb_device_handle *m_devh;
+	PDEVICE_INFO m_current_info;
 	tuner *m_tuner, *m_dummy_tuner;
 	bool m_libusb_init_done;
 	PARAMS m_params;
@@ -281,6 +290,7 @@ protected:
 	uint32_t m_crystal_frequency;
 public:
 	int initialise(PPARAMS params = NULL);
+	const char* name() const;
 	void destroy();
 	int reset();
 	int set_sample_rate(uint32_t samp_rate, double* real_rate = NULL);

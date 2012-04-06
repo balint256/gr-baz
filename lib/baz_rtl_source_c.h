@@ -180,6 +180,8 @@ public:	// SWIG set
 	bool set_gain_mode(const char* mode);
 	bool set_auto_gain_mode(bool on = true);
 public:	// SWIG get
+	inline const char* name() const
+	{ return m_demod.name(); }
 	inline double sample_rate() const
 	{ return m_demod.sample_rate(); }
 	inline RTL2832_NAMESPACE::range_t sample_rate_range() const

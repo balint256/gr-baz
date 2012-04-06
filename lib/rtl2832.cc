@@ -160,13 +160,7 @@ static struct _rtl2832_tuner_info
 	ADD_TUNER(fc2580)
 };
 
-static struct _rtl2832_device_info
-{
-	const char* name;
-	uint16_t vid, pid;
-	tuner::CreateTunerFn factory;
-	uint32_t max_rate, min_rate, crystal_frequency, flags;
-} _rtl2832_devices[] = {
+static DEVICE_INFO _rtl2832_devices[] = {
 	{ "ezcap EzTV",					EZCAP_VID,		EZCAP_PID, 		GET_CREATOR_FN(e4000)	},
 	// Use custom tuner name when creating device for ecap EZTV646 FC0013 but same PID: 2838
 	{ "Terratec NOXON (rev 1)",		NOXON_VID,		NOXON_PID, 		GET_CREATOR_FN(fc0013)	},
@@ -260,6 +254,7 @@ demod::demod()
 	, m_libusb_init_done(false)
 	, m_crystal_frequency(DEFAULT_CRYSTAL_FREQUENCY)
 	, m_sample_rate(0)
+	, m_current_info(NULL)
 {
 	memset(&m_params, 0x00, sizeof(m_params));
 	
@@ -310,6 +305,14 @@ int demod::check_libusb_result(int res, bool zero_okay, const char* function_nam
 	return res;
 }
 
+const char* demod::name() const
+{
+	if (m_current_info == NULL)
+		return "(custom)";
+
+	return m_current_info->name;
+}
+
 int demod::find_device()
 {
 	if (m_devh != NULL)
@@ -320,11 +323,11 @@ int demod::find_device()
 	}
 
 	struct libusb_device_handle* devh = NULL;
-	struct _rtl2832_device_info* found = NULL;
+	DEVICE_INFO* found = NULL;
 	bool custom_id = true;
-	for (int i = 0; i < (sizeof(_rtl2832_devices)/sizeof(struct _rtl2832_device_info)); ++i)
+	for (int i = 0; i < (sizeof(_rtl2832_devices)/sizeof(DEVICE_INFO)); ++i)
 	{
-		struct _rtl2832_device_info* info = _rtl2832_devices + i;
+		DEVICE_INFO* info = _rtl2832_devices + i;
 		
 		if ((m_params.vid != 0) && (m_params.vid != info->vid))
 			continue;
@@ -342,7 +345,7 @@ int demod::find_device()
 		}
 	}
 
-	struct _rtl2832_device_info custom;
+	DEVICE_INFO custom;
 	
 	if ((devh == NULL) && (custom_id) && (m_params.vid != 0) && (m_params.pid != 0))
 	{
@@ -413,6 +416,9 @@ int demod::find_device()
 	}
 	//else
 	//	log("Device does not have tuner implemented interface\n");
+
+	if (found != &custom)	// Don't store local variable
+		m_current_info = found;
 
 	log("Found RTL2832 device: %s (tuner: %s)\n", found->name, (t ? t->name() : "interface not implemented"));
 	if (m_params.verbose)
