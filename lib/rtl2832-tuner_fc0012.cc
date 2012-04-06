@@ -250,7 +250,7 @@ int fc0012::set_frequency(double freq)
 	if (FC0012_SetFrequency(this, (unsigned long)(freq / 1000.0), (unsigned short)(bandwidth() / 1000000.0)) != FC0012_OK)
 		return FAILURE;
 
-	m_freq = (unsigned long)(freq/1000.0);
+	m_freq = (unsigned long)(freq / 1000.0) * 1000;
 
 	return SUCCESS;
 }
@@ -265,7 +265,7 @@ int fc0012::set_bandwidth(double bw)
 	if (FC0012_SetFrequency(this, (unsigned long)(frequency() / 1000.0), (unsigned short)(bw / 1000000.0)) != FC0012_OK)
 		return FAILURE;
 
-	m_bandwidth = (int)(bw / 1000000.0) * 1000000;
+	m_bandwidth = (unsigned long)(bw / 1000000.0) * 1000000;
 
 	return SUCCESS;
 }

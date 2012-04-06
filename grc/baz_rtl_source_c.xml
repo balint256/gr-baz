@@ -184,6 +184,10 @@ self.$(id).set_gain($gain)
       <name>Fitipower FC0012</name>
       <key>fc0012</key>
     </option>
+    <option>
+      <name>Fitipower FC2580</name>
+      <key>fc2580</key>
+    </option>
   </param>
 
   <param>
