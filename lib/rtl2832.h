@@ -218,7 +218,7 @@ public:
 	virtual num_name_map_t gain_modes() const
 	{ return m_gain_modes; }
 	virtual bool calc_appropriate_gain_mode(int& mode)/* const*/
-	{ return m_gain_mode; }
+	{ mode = m_gain_mode; return true; }
 	virtual bool auto_gain_mode() const
 	{ return m_auto_gain_mode; }
 public:
