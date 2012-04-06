@@ -177,7 +177,7 @@ int e4000::initialise(PPARAMS params /*= NULL*/)
 		return FAILURE;
 
 	if (m_params.message_output && m_params.verbose)
-		m_params.message_output->on_log_message(LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
+		m_params.message_output->on_log_message_ex(rtl2832::log_sink::LOG_LEVEL_VERBOSE, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
 
 	return SUCCESS;
 }
@@ -272,8 +272,8 @@ int e4000::update_gain_mode()
 			num_name_map_t::iterator it = m_gain_modes.find(i);
 			if (it != m_gain_modes.end())	// Double check
 			{
-				if (m_params.message_output)
-					m_params.message_output->on_log_message(LOG_PREFIX"Gain mode: %s\n", it->second.c_str());
+				if (m_params.message_output)	// Not checking 'm_params.verbose' here
+					m_params.message_output->on_log_message_ex(rtl2832::log_sink::LOG_LEVEL_VERBOSE, LOG_PREFIX"Gain mode: %s\n", it->second.c_str());
 			}
 		}
 	}
