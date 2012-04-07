@@ -29,7 +29,7 @@
 #define INCLUDED_BAZ_DELAY_H
 
 #include <gr_sync_block.h>
-#include <gruel/thread.h>
+#include <boost/thread.hpp>
 
 class baz_delay;
 typedef boost::shared_ptr<baz_delay> baz_delay_sptr;
@@ -46,7 +46,7 @@ class baz_delay : public gr_sync_block
 
   baz_delay (size_t itemsize, int delay);
 
-  gruel::mutex	d_mutex;
+  boost::mutex	d_mutex;
   size_t d_itemsize;
   int d_delay;
   unsigned char* d_buffer;

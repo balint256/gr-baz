@@ -29,7 +29,7 @@
 #define INCLUDED_BAZ_PUNCTURE_BB_H
 
 #include <gr_block.h>
-#include <gruel/thread.h>
+#include <boost/thread.hpp>
 
 class baz_puncture_bb;
 
@@ -71,7 +71,7 @@ private:
 
   baz_puncture_bb (const std::vector<int>& matrix);  	// private constructor
   
-  gruel::mutex	d_mutex;
+  boost::mutex	d_mutex;
   char* m_pMatrix;
   int m_iLength;
   int m_iIndex;

@@ -95,7 +95,7 @@ void baz_depuncture_ff::set_matrix(const std::vector<int>& matrix)
   if (matrix.empty())
 	return;
   
-  gruel::scoped_lock guard(d_mutex);
+  boost::mutex::scoped_lock guard(d_mutex);
   
   if (m_pMatrix)
 	delete [] m_pMatrix;
@@ -126,7 +126,7 @@ baz_depuncture_ff::general_work (int noutput_items,
   const float *in = (const float *) input_items[0];
   float *out = (float *) output_items[0];
   
-  gruel::scoped_lock guard(d_mutex);
+  boost::mutex::scoped_lock guard(d_mutex);
 
   int iIn = 0;
   for (int i = 0; i < noutput_items; i++) {

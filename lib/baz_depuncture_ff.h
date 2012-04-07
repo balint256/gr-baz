@@ -29,7 +29,7 @@
 #define INCLUDED_BAZ_DEPUNCTURE_FF_H
 
 #include <gr_block.h>
-#include <gruel/thread.h>
+#include <boost/thread.hpp>
 
 class baz_depuncture_ff;
 
@@ -71,7 +71,7 @@ private:
 
   baz_depuncture_ff (const std::vector<int> matrix);  	// private constructor
 
-  gruel::mutex	d_mutex;
+  boost::mutex	d_mutex;
   char* m_pMatrix;
   int m_iLength;
   int m_iIndex;

@@ -95,7 +95,7 @@ void baz_puncture_bb::set_matrix(const std::vector<int>& matrix)
   if (matrix.empty())
 	return;
   
-  gruel::scoped_lock guard(d_mutex);
+  boost::mutex::scoped_lock guard(d_mutex);
   
   if (m_pMatrix)
 	delete [] m_pMatrix;
@@ -126,7 +126,7 @@ baz_puncture_bb::general_work (int noutput_items,
   const char *in = (const char *) input_items[0];
   char *out = (char *) output_items[0];
   
-  gruel::scoped_lock guard(d_mutex);
+  boost::mutex::scoped_lock guard(d_mutex);
 
   int iOut = 0;
   for (int i = 0; i < noutput_items; i++) {

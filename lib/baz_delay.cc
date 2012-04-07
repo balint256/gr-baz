@@ -68,7 +68,7 @@ void baz_delay::set_delay(int delay)
   if (delay == d_delay)
 	return;
   
-  gruel::scoped_lock guard(d_mutex);
+  boost::mutex::scoped_lock guard(d_mutex);
   
   if (delay > d_delay)
   {
@@ -112,7 +112,7 @@ baz_delay::work (int noutput_items,
 {
   assert(input_items.size() == output_items.size());
 
-  gruel::scoped_lock guard(d_mutex);
+  boost::mutex::scoped_lock guard(d_mutex);
   
   int zero = min(d_zero, noutput_items);
   int residual = min(zero + d_buffer_use, noutput_items);
