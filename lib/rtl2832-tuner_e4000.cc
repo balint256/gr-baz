@@ -24,6 +24,8 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 
 #define E4K_I2C_ADDR		0xc8
+#define E4K_CHECK_ADDR		0x02
+#define E4K_CHECK_VAL		0x40
 
 int
 _I2CReadByte(
@@ -140,6 +142,16 @@ static const int _mapGainsE4000[] = {	// nim_rtl2832_e4000.c
 	300,	15,	// Apparently still 250
 };
 
+int e4000::TUNER_PROBE_FN_NAME(demod* d)
+{
+	I2C_REPEATER_SCOPE(d);
+
+	uint8_t reg = 0;
+	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(E4K_I2C_ADDR, E4K_CHECK_ADDR, reg));
+printf("%i\n", reg);
+	return ((reg == E4K_CHECK_VAL) ? SUCCESS : FAILURE);
+}
+
 e4000::e4000(demod* p)
 	: tuner_skeleton(p)
 {
@@ -165,7 +177,7 @@ int e4000::initialise(PPARAMS params /*= NULL*/)
 	if (tuner_skeleton::initialise(params) != SUCCESS)
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	bool enable_dc_offset_loop = false;	// FIXME: Parameterise this (e.g. flag field in tuner::PARAMS, or another explicit property?)
 	bool set_manual_gain = true;
@@ -187,7 +199,7 @@ int e4000::set_frequency(double freq)
 	if ((freq <= 0) || (in_valid_range(m_frequency_range, freq) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	bool update_gain_control = false;	// FIXME: This should be based on 'set_manual_gain' in 'initialise'
 	bool enable_dc_offset_lut = true;
@@ -207,7 +219,7 @@ int e4000::set_bandwidth(double bw)
 	if ((bw <= 0) || (in_valid_range(m_bandwidth_range, bw) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (in_valid_range(m_bandwidth_range, bw) == false)
 		return FAILURE;
@@ -237,7 +249,7 @@ int e4000::set_gain(double gain)
 
 	unsigned char u8Write = _mapGainsE4000[i + 1];
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	unsigned char u8Read = 0;
 	if (I2CReadByte(this, 0, RTL2832_E4000_LNA_GAIN_ADDR, &u8Read) != E4000_I2C_SUCCESS)
@@ -297,7 +309,7 @@ int e4000::set_gain_mode(int mode)
 	int freq= (int)(frequency() / 1000.0);
 	int bw	= (int)(bandwidth() / 1000.0);
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	switch (mode)
 	{
@@ -463,7 +475,7 @@ bool e4000::calc_appropriate_gain_mode(int& mode)/* const*/
 
 	/////////////////////////
 	int TunerGainMode = -1;
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 	/////////////////////////
 
 	// Get tuner RF frequency in KHz.

@@ -60,16 +60,19 @@ enum result_code
 #define TUNERS_NAMESPACE	tuners
 
 #define TUNER_FACTORY_FN_NAME	Factory
+#define TUNER_PROBE_FN_NAME		Probe
 #define DECLARE_TUNER_FACTORY()	\
 	public: \
-	static tuner* TUNER_FACTORY_FN_NAME(demod* p);
+	static tuner* TUNER_FACTORY_FN_NAME(demod* p);  \
+	static int TUNER_PROBE_FN_NAME(demod* d);
 #define IMPLEMENT_TUNER_FACTORY(class_name) \
 	tuner* class_name::TUNER_FACTORY_FN_NAME(demod* p) \
 	{ return new class_name(p); }
 #define IMPLEMENT_INLINE_TUNER_FACTORY(class_name) \
 	public: \
 	static tuner* TUNER_FACTORY_FN_NAME(demod* p) \
-	{ return new class_name(p); }
+	{ return new class_name(p); } \
+	static int TUNER_PROBE_FN_NAME(demod* d);
 
 // _WIN32: DLL WARNING! These will cause C4251, but only 'vector' can be exported as a DLL interface. You must have exactly the same STL headers in your importing files, otherwise your app will crash. Solution is to recompile this library with your own STL headers.
 typedef std::pair<double,double> range_t;
@@ -109,12 +112,29 @@ public:
 	{ va_list args; va_start(args, msg); on_log_message_va(level, msg, args); }
 };
 
-class RTL2832_API tuner
+class i2c_interface
+{
+public:
+	virtual int set_i2c_repeater(bool on = true, const char* function_name = NULL, int line_number = -1, const char* line = NULL)=0;
+	virtual int i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len)=0;
+	virtual int i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len)=0;
+	virtual int i2c_write_reg(uint8_t i2c_addr, uint8_t reg, uint8_t val)=0;
+	virtual int i2c_read_reg(uint8_t i2c_addr, uint8_t reg, uint8_t& data)=0;
+};
+
+class named_interface
+{
+public:
+	virtual const char* name() const=0;
+};
+
+class RTL2832_API tuner : public i2c_interface, public named_interface
 {
 public:
 	virtual ~tuner();
 public:
 	typedef tuner* (*CreateTunerFn)(demod* p);
+	typedef int (*ProbeTunerFn)(demod* p);
 	typedef struct params
 	{
 		log_sink*	message_output;
@@ -127,7 +147,7 @@ public:
 	};
 public:
 	virtual int initialise(PPARAMS params = NULL)=0;
-	virtual const char* name()=0;
+	//virtual const char* name()=0;
 	virtual int set_frequency(double freq)=0;
 	virtual int set_bandwidth(double bw)=0;
 	virtual int set_gain(double gain)=0;
@@ -178,7 +198,7 @@ protected:
 	num_name_map_t m_gain_modes;
 public:
 	virtual int initialise(tuner::PPARAMS params = NULL);
-	virtual const char* name()
+	virtual const char* name() const
 	{ return "(dummy)"; }
 	virtual int set_frequency(double freq)
 	{ return SUCCESS; }
@@ -192,6 +212,8 @@ public:
 	virtual int set_i2c_repeater(bool on = true, const char* function_name = NULL, int line_number = -1, const char* line = NULL);
 	virtual int i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len);
 	virtual int i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len);
+	virtual int i2c_write_reg(uint8_t i2c_addr, uint8_t reg, uint8_t val);
+	virtual int i2c_read_reg(uint8_t i2c_addr, uint8_t reg, uint8_t& data);
 public:
 	virtual double frequency() const
 	{ return m_freq; }
@@ -231,23 +253,23 @@ public:
 class i2c_repeater_scope
 {
 private:
-	tuner* m_tuner;
+	i2c_interface* m_p;
 	const char* m_function_name;
 	int m_line_number;
 	const char* m_line;
 public:
-	i2c_repeater_scope(tuner* p, const char* function_name = NULL, int line_number = -1, const char* line = NULL)
-		: m_tuner(p)
+	i2c_repeater_scope(i2c_interface* p, const char* function_name = NULL, int line_number = -1, const char* line = NULL)
+		: m_p(p)
 		, m_function_name(function_name)
 		, m_line_number(line_number)
 		, m_line(line)
 	{ p->set_i2c_repeater(true, function_name, line_number, line); }
 	~i2c_repeater_scope()
-	{ m_tuner->set_i2c_repeater(false, m_function_name, m_line_number, m_line); }
+	{ m_p->set_i2c_repeater(false, m_function_name, m_line_number, m_line); }
 };
 
-#define TUNER_I2C_REPEATER_SCOPE(tuner)	i2c_repeater_scope _i2c_repeater_scope(tuner, CURRENT_FUNCTION, __LINE__, tuner->name())
-#define THIS_TUNER_I2C_REPEATER_SCOPE()	TUNER_I2C_REPEATER_SCOPE(this)
+#define I2C_REPEATER_SCOPE(p)		i2c_repeater_scope _i2c_repeater_scope(p, CURRENT_FUNCTION, __LINE__, p->name())
+#define THIS_I2C_REPEATER_SCOPE()	I2C_REPEATER_SCOPE(this)
 
 typedef struct device_info
 {
@@ -257,7 +279,25 @@ typedef struct device_info
 	uint32_t max_rate, min_rate, crystal_frequency, flags;
 } DEVICE_INFO, *PDEVICE_INFO;
 
-class RTL2832_API demod
+//#define CHECK_LIBUSB_RESULT(r)			(r)
+//#define CHECK_LIBUSB_NEG_RESULT(r)		(r)
+//#define CHECK_LIBUSB_RESULT_EX(r,f,l,s)	(r)
+#define CHECK_LIBUSB_RESULT(r)				check_libusb_result(r, false, CURRENT_FUNCTION, __LINE__, #r)
+#define CHECK_LIBUSB_NEG_RESULT(r)			check_libusb_result(r, true, CURRENT_FUNCTION, __LINE__, #r)
+#define CHECK_LIBUSB_RESULT_EX(r,f,l,s)		check_libusb_result(r, false, f, l, s)
+
+#define CHECK_LIBUSB_RESULT_RETURN_EX(d,r)	\
+	{ int res = d->CHECK_LIBUSB_RESULT(r); \
+	if (res <= 0) return res; }
+
+#define CHECK_LIBUSB_NEG_RESULT_RETURN_EX(d,r)	\
+	{ int res = d->CHECK_LIBUSB_NEG_RESULT(r); \
+	if (res < 0) return res; }
+
+#define CHECK_LIBUSB_RESULT_RETURN(r)		CHECK_LIBUSB_RESULT_RETURN_EX(this,r)
+#define CHECK_LIBUSB_NEG_RESULT_RETURN(d,r)	CHECK_LIBUSB_NEG_RESULT_RETURN_EX(this,r)
+
+class RTL2832_API demod : public i2c_interface, public named_interface
 {
 public:
 	demod();
@@ -297,20 +337,22 @@ public:
 	int read_samples(unsigned char* buffer, uint32_t buffer_size, int* bytes_read, int timeout = -1);
 protected:
 	int find_device();
-	int init_device();
+	int init_demod();
 	int demod_write_reg(uint8_t page, uint16_t addr, uint16_t val, uint8_t len);
 	int demod_read_reg(uint8_t page, uint8_t addr, uint8_t len, uint16_t& reg);
 	int write_reg(uint8_t block, uint16_t addr, uint16_t val, uint8_t len);
 	int read_reg(uint8_t block, uint16_t addr, uint8_t len, uint16_t& reg);
 	int write_array(uint8_t block, uint16_t addr, uint8_t *array, uint8_t len);
 	int read_array(uint8_t block, uint16_t addr, uint8_t *array, uint8_t len);
-protected:
+public:
 	int check_libusb_result(int res, bool zero_okay, const char* function_name = NULL, int line_number = -1, const char* line = NULL);
 	void log(const char* message, ...);
 public:
 	int set_i2c_repeater(bool on = true, const char* function_name = NULL, int line_number = -1, const char* line = NULL);
 	int i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len);
 	int i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len);
+	int i2c_write_reg(uint8_t i2c_addr, uint8_t reg, uint8_t val);
+	int i2c_read_reg(uint8_t i2c_addr, uint8_t reg, uint8_t& data);
 public:
 	int set_gpio_output(uint8_t gpio);
 	int set_gpio_bit(uint8_t gpio, int val);

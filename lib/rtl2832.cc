@@ -151,21 +151,35 @@ namespace RTL2832_NAMESPACE
 #define DIKOM_VID		0x1b80	// Same as Peak
 #define DIKOM_PID		0xd394
 
+/* Twintech UT-40 */
+#define TWINTECH_VID	0x1b80
+#define TWINTECH_PID	0xd3a4
+
+/* Genius TVGo DVB-T03 USB dongle (Ver. B) */
+#define GENIUS_VID		0x0458
+#define GENIUS_PID		0x707f
+
+/* SVEON STV20 DVB-T USB & FM */
+#define SVEON_VID		0x1b80
+#define SVEON_PID		0xd39d
+
 #define GET_CREATOR_FN(c)	TUNERS_NAMESPACE::c::TUNER_FACTORY_FN_NAME
-#define ADD_TUNER(c)		{ #c, GET_CREATOR_FN(c) }
+#define GET_PROBE_FN(c)		TUNERS_NAMESPACE::c::TUNER_PROBE_FN_NAME
+#define ADD_TUNER(c)		{ #c, GET_CREATOR_FN(c), GET_PROBE_FN(c) }
 
 static struct _rtl2832_tuner_info
 {
 	const char* name;
 	tuner::CreateTunerFn factory;
+	tuner::ProbeTunerFn probe;
 } _rtl2832_tuners[] = {
 	ADD_TUNER(e4000),
 	ADD_TUNER(fc0013),
-	ADD_TUNER(fc0012),
-	ADD_TUNER(fc2580)
+	ADD_TUNER(fc2580),
+	ADD_TUNER(fc0012)
 };
 
-static DEVICE_INFO _rtl2832_devices[] = {
+static DEVICE_INFO _rtl2832_devices[] = {	// Tuner does auto-detection (ignores creator hint) by default now!
 	{ "ezcap EzTV",					EZCAP_VID,		EZCAP_PID, 		GET_CREATOR_FN(e4000)	},
 	// Use custom tuner name when creating device for ecap EZTV646 FC0013 but same PID: 2838
 	{ "Terratec NOXON (rev 1)",		NOXON_VID,		NOXON_PID, 		GET_CREATOR_FN(fc0013)	},
@@ -173,7 +187,7 @@ static DEVICE_INFO _rtl2832_devices[] = {
 	{ "Hama nano",					HAMA_VID,		HAMA_PID,		GET_CREATOR_FN(e4000)	},
 	{ "Dexatek Technology (rev 1)",	DEXATEK_VID,	DEXATEK_PID,	GET_CREATOR_FN(fc0013)	},	// Also Logilink
 	{ "Dexatek Technology (rev 2)", DEXATEK_VID,	DEXATEK_V2_PID, GET_CREATOR_FN(fc0013)	},	// Also ZAAPA HD Tuner
-	{ "Dexatek Technology (rev 3)", DEXATEK_VID,	DEXATEK_V3_PID,	GET_CREATOR_FN(fc0013)	},	// FIXME: fc0013?
+	{ "Dexatek Technology (rev 3)", DEXATEK_VID,	DEXATEK_V3_PID,	GET_CREATOR_FN(fc0013)	},
 	{ "Peak",						PEAK_VID,		PEAK_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "Ardata MyVision",			ARDATA_VID,		ARDATA_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "MyGica/G-Tek",				MYGICA_VID,		MYGICA_PID,		GET_CREATOR_FN(fc0012)	},
@@ -181,6 +195,9 @@ static DEVICE_INFO _rtl2832_devices[] = {
 	{ "Prolectrix",					PROLECTRIX_VID,	PROLECTRIX_PID,	GET_CREATOR_FN(fc0012)	},
 	{ "Terratec Cinergy T (rev 1)", CINERGY_VID,	CINERGY_PID,	GET_CREATOR_FN(fc0012)	},
 	{ "DIKOM HD",					DIKOM_VID,		DIKOM_PID,		GET_CREATOR_FN(fc0012)	},
+	{ "Twintech",					TWINTECH_VID,	TWINTECH_PID },
+	{ "Genius TVGo (rev 2)",		GENIUS_VID,		GENIUS_PID },
+	{ "SVEON",						SVEON_VID,		SVEON_PID },
 };
 
 static struct _rtl2832_tuner_info* get_tuner_factory_by_name(const char* name)
@@ -253,6 +270,16 @@ int tuner_skeleton::i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len)
 	return m_demod->i2c_write(i2c_addr, buffer, len);
 }
 
+int tuner_skeleton::i2c_write_reg(uint8_t i2c_addr, uint8_t reg, uint8_t val)
+{
+	return m_demod->i2c_write_reg(i2c_addr, reg, val);
+}
+
+int tuner_skeleton::i2c_read_reg(uint8_t i2c_addr, uint8_t reg, uint8_t& data)
+{
+	return m_demod->i2c_read_reg(i2c_addr, reg, data);
+}
+
 ///////////////////////////////////////////////////////////
 
 demod::demod()
@@ -278,21 +305,6 @@ demod::~demod()
 	delete m_dummy_tuner;
 }
 
-//#define CHECK_LIBUSB_RESULT(r)			(r)
-//#define CHECK_LIBUSB_NEG_RESULT(r)		(r)
-//#define CHECK_LIBUSB_RESULT_EX(r,f,l,s)	(r)
-#define CHECK_LIBUSB_RESULT(r)				check_libusb_result(r, false, CURRENT_FUNCTION, __LINE__, #r)
-#define CHECK_LIBUSB_NEG_RESULT(r)			check_libusb_result(r, true, CURRENT_FUNCTION, __LINE__, #r)
-#define CHECK_LIBUSB_RESULT_EX(r,f,l,s)		check_libusb_result(r, false, f, l, s)
-
-#define CHECK_LIBUSB_RESULT_RETURN(r)	\
-	{ int res = CHECK_LIBUSB_RESULT(r); \
-	if (res <= 0) return res; }
-
-#define CHECK_LIBUSB_NEG_RESULT_RETURN(r)	\
-	{ int res = CHECK_LIBUSB_NEG_RESULT(r); \
-	if (res < 0) return res; }
-
 int demod::check_libusb_result(int res, bool zero_okay, const char* function_name /*= NULL*/, int line_number /*= -1*/, const char* line /*= NULL*/)
 {
 	if ((res < 0) || ((zero_okay == false) && (res == 0)))
@@ -316,6 +328,8 @@ const char* demod::name() const
 {
 	if (m_current_info == NULL)
 		return "(custom)";
+	else if (m_current_info->name == NULL)
+		return "(no name)";
 
 	return m_current_info->name;
 }
@@ -361,8 +375,9 @@ int demod::find_device()
 		{
 			memset(&custom, 0x00, sizeof(custom));
 
-			custom.vid = m_params.vid;
-			custom.pid = m_params.pid;
+			custom.name	= "(custom)";
+			custom.vid	= m_params.vid;
+			custom.pid	= m_params.pid;
 
 			found = &custom;
 		}
@@ -401,7 +416,7 @@ int demod::find_device()
 
 	m_devh = devh;
 
-	RTL2832_NAMESPACE::tuner::CreateTunerFn factory = found->factory;
+	RTL2832_NAMESPACE::tuner::CreateTunerFn factory = /*found->factory*/NULL;	// Auto-detect first
 
 	struct _rtl2832_tuner_info* info = NULL;
 	if (m_params.tuner_name[0])
@@ -412,9 +427,51 @@ int demod::find_device()
 		else
 			factory = info->factory;
 	}
-	else if (found == &custom)
-		log("Not attaching tuner as custom tuner name not given\n");
-	
+	//else if (found == &custom)
+	//	log("Not attaching tuner as custom tuner name not given\n");
+
+	r = init_demod();
+	if (r != SUCCESS)
+	{
+		log("\tCould not initialise device: \"%s\"\n", found->name);
+		return r;
+	}
+
+	if (factory == NULL)	// Probe
+	{
+		for (int i = 0; i < (sizeof(_rtl2832_tuners)/sizeof(_rtl2832_tuners[0])); ++i)
+		{
+			struct _rtl2832_tuner_info* info = _rtl2832_tuners + i;
+
+			if (info->probe)
+			{
+				log("Probing \"%s\"...\n", info->name);
+
+				int r = (info->probe)(this);
+				if (r == SUCCESS)
+				{
+					log("Successfully auto-probed tuner\n");
+
+					factory = info->factory;
+
+					break;
+				}
+			}
+		}
+
+		if (factory == NULL)
+		{
+			if (found->factory)
+			{
+				log("Auto-probe failed, forcing hinted tuner\n");
+
+				factory = found->factory;
+			}
+			else
+				log("Could not find tuner automatically after probe\n");
+		}
+	}
+
 	tuner* t = NULL;
 	if (factory)
 	{
@@ -470,6 +527,29 @@ int demod::i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len)
 int demod::i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len)
 {
 	return read_array(IICB, i2c_addr, buffer, len);
+}
+
+int demod::i2c_write_reg(uint8_t i2c_addr, uint8_t reg, uint8_t val)
+{
+	uint16_t addr = i2c_addr;
+	uint8_t data[2];
+
+	data[0] = reg;
+	data[1] = val;
+
+	CHECK_LIBUSB_RESULT_RETURN(write_array(IICB, addr, (uint8_t *)&data, 2));
+
+	return SUCCESS;
+}
+
+int demod::i2c_read_reg(uint8_t i2c_addr, uint8_t reg, uint8_t& data)
+{
+	uint16_t addr = i2c_addr;
+
+	CHECK_LIBUSB_RESULT_RETURN(write_array(IICB, addr, &reg, 1));
+	CHECK_LIBUSB_RESULT_RETURN(read_array(IICB, addr, &data, 1));
+
+	return SUCCESS;
 }
 
 int demod::read_reg(uint8_t block, uint16_t addr, uint8_t len, uint16_t& reg)
@@ -678,14 +758,6 @@ int demod::initialise(PPARAMS params /*= NULL*/)
 		return r;
 	}
 
-	r = init_device();
-	if (r != SUCCESS)
-	{
-		log("\tCould not initialise device\n");
-		destroy();
-		return r;
-	}
-
 /*	if (m_params.use_tuner_params == false)
 	{
 		m_params.tuner_params.verbose = m_params.verbose;
@@ -728,6 +800,8 @@ int demod::reset()
 
 void demod::destroy()
 {
+	write_reg(SYSB, DEMOD_CTL, 0x20, 1);	// Poweroff demodulator and ADCs
+
 	if ((m_tuner) && (m_tuner != m_dummy_tuner))
 	{
 		delete m_tuner;
@@ -748,7 +822,7 @@ void demod::destroy()
 	}
 }
 
-int demod::init_device()
+int demod::init_demod()
 {
 	unsigned int i;
 

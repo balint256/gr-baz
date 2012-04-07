@@ -1,4 +1,4 @@
-dnl 
+dnl
 dnl  Copyright 2004,2005,2007,2008,2009 Free Software Foundation, Inc.
 dnl  
 dnl  This file is part of GNU Radio
@@ -12,7 +12,7 @@ dnl  GNU Radio is distributed in the hope that it will be useful,
 dnl  but WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl  GNU General Public License for more details.
-dnl  
+dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with GNU Radio; see the file COPYING.  If not, write to
 dnl  the Free Software Foundation, Inc., 51 Franklin Street,
@@ -68,6 +68,32 @@ dnl AX_BOOST_SYSTEM
 dnl AX_BOOST_TEST_EXEC_MONITOR
 dnl AX_BOOST_UNIT_TEST_FRAMEWORK
 dnl AX_BOOST_WSERIALIZATION
+
+dnl ##########################################################
+TMP_LDFLAGS="$LDFLAGS"
+TMP_CFLAGS="$CFLAGS"
+TMP_LIBS="$LIBS"
+TMP_CC="$CC"
+LIBS="-lboost_thread-mt"
+CFLAGS="$CFLAGS -I$boost_prefix/include"
+LDFLAGS="$LDFLAGS -I$boost_prefix/lib"
+CC="$CXX"
+AC_MSG_CHECKING([for boost xtime])
+AC_TRY_COMPILE([#include <boost/thread/xtime.hpp>],
+	       [boost::xtime xt; boost::xtime_get (&xt, CLOCK_MONOTONIC);],
+[ AC_MSG_RESULT([yes])
+  AC_DEFINE(HAVE_XTIME,1,[define if boost::thread xtime_get is available])
+],
+[
+  AC_MSG_RESULT([no])
+  AC_MSG_NOTICE([
+  boost::xtime_get not found - disabling buffer read prediction])
+])
+LIBS="$TMP_LIBS"
+CFLAGS="$TMP_CFLAGS"
+LDFLAGS="$TMP_LDFLAGS"
+CC="$TMP_CC"
+dnl ##########################################################
 
 AC_CONFIG_FILES([\
 	  Makefile \

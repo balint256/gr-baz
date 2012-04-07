@@ -74,6 +74,19 @@ namespace RTL2832_NAMESPACE { namespace TUNERS_NAMESPACE {
 static int _mapGainsFC2580[] = {
 };
 */
+int fc2580::TUNER_PROBE_FN_NAME(demod* d)
+{
+	I2C_REPEATER_SCOPE(d);
+
+	d->set_gpio_output(5);	// initialise GPIOs
+	d->set_gpio_bit(5, 1);	// reset tuner before probing
+	d->set_gpio_bit(5, 0);
+
+	uint8_t reg = 0;
+	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC2580_I2C_ADDR, FC2580_CHECK_ADDR, reg));
+	return ((reg == FC2580_CHECK_VAL) ? SUCCESS : FAILURE);
+}
+
 fc2580::fc2580(demod* p)
 	: tuner_skeleton(p)
 {
@@ -98,7 +111,7 @@ int fc2580::initialise(tuner::PPARAMS params /*= NULL*/)
 	if (tuner_skeleton::initialise(params) != SUCCESS)
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (fc2580_Initialize(this) != FUNCTION_SUCCESS)
 		return FAILURE;
@@ -114,7 +127,7 @@ int fc2580::set_frequency(double freq)
 	if ((freq <= 0) || (in_valid_range(m_frequency_range, freq) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (fc2580_SetRfFreqHz(this, (unsigned long)freq) != FUNCTION_SUCCESS)
 		return FAILURE;
@@ -145,7 +158,7 @@ int fc2580::set_bandwidth(double bw)
 
 	int mode = _mapBandwidthsFC2580[i + 1];
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (fc2580_SetBandwidthMode(this, mode) != FUNCTION_SUCCESS)
 		return FAILURE;
@@ -174,7 +187,7 @@ int fc2580::set_gain(double gain)
 
 	unsigned char u8Write = _mapGainsFC2580[i + 1];
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	// FIXME: Set it
 

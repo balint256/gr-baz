@@ -28,10 +28,18 @@
 #ifndef INCLUDED_BAZ_RTL_SOURCE_C_H
 #define INCLUDED_BAZ_RTL_SOURCE_C_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <gr_block.h>
+
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#ifdef HAVE_XTIME
+#include <boost/thread/xtime.hpp>
+#endif // HAVE_XTIME
 
 #include <libusb-1.0/libusb.h>	// FIXME: Automake
 #include <stdarg.h>	// va_list
@@ -81,7 +89,9 @@ private:
 	uint32_t m_nReadPacketCount;
 	uint32_t m_nBufferOverflowCount;
 	uint32_t m_nBufferUnderrunCount;
-	boost::xtime wait_delay, wait_next;
+#ifdef HAVE_XTIME
+	boost::xtime m_wait_delay, m_wait_next;
+#endif // HAVE_XTIME
 private:
 	RTL2832_NAMESPACE::demod::PARAMS m_demod_params;
 	bool m_verbose;

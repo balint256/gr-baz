@@ -46,7 +46,6 @@
  *
  */
 
-/* glue functions to rtl-sdr code */
 int _FC0012_Write(RTL2832_NAMESPACE::tuner* pTuner, unsigned char RegAddr, unsigned char Byte,
 	const char* function = NULL, int line_number = -1, const char* line = NULL)
 {
@@ -209,6 +208,19 @@ static int _mapGainsFC0012[] = {	// nim_rtl2832_fc0012.c
 	10, FC0012_LNA_GAIN_HIGH
 };
 
+int fc0012::TUNER_PROBE_FN_NAME(demod* d)
+{
+	I2C_REPEATER_SCOPE(d);
+
+	d->set_gpio_output(5);	// initialise GPIOs
+	d->set_gpio_bit(5, 1);	// reset tuner before probing
+	d->set_gpio_bit(5, 0);
+
+	uint8_t reg = 0;
+	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC0012_I2C_ADDR, FC0012_CHECK_ADDR, reg));
+	return ((reg == FC0012_CHECK_VAL) ? SUCCESS : FAILURE);
+}
+
 fc0012::fc0012(demod* p)
 	: tuner_skeleton(p)
 {
@@ -232,12 +244,7 @@ int fc0012::initialise(tuner::PPARAMS params /*= NULL*/)
 	if (tuner_skeleton::initialise(params) != SUCCESS)
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
-
-	m_demod->set_gpio_output(5);	// initialise GPIOs
-
-	m_demod->set_gpio_bit(5, 1);	// reset tuner before probing
-	m_demod->set_gpio_bit(5, 0);
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (FC0012_Open(this) != FC0012_OK)
 		return FAILURE;
@@ -253,7 +260,7 @@ int fc0012::set_frequency(double freq)
 	if ((freq <= 0) || (in_valid_range(m_frequency_range, freq) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (FC0012_SetFrequency(this, (unsigned long)(freq / 1000.0), (unsigned short)(bandwidth() / 1000000.0)) != FC0012_OK)
 		return FAILURE;
@@ -268,7 +275,7 @@ int fc0012::set_bandwidth(double bw)
 	if ((bw <= 0) || (in_valid_range(m_bandwidth_range, bw) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (FC0012_SetFrequency(this, (unsigned long)(frequency() / 1000.0), (unsigned short)(bw / 1000000.0)) != FC0012_OK)
 		return FAILURE;
@@ -295,7 +302,7 @@ int fc0012::set_gain(double gain)
 
 	unsigned char u8Write = _mapGainsFC0012[i + 1];
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if(fc0012_SetRegMaskBits(this, 0x13, 4, 3, u8Write) != FC0012_OK)
 		return FAILURE;

@@ -14,6 +14,9 @@
 #include "rtl2832-tuner_fc0013.h"
 
 #define FC0013_I2C_ADDR		0xc6
+#define FC0013_CHECK_ADDR	0x00
+#define FC0013_CHECK_VAL	0xa3
+
 #define LOG_PREFIX			"[fc0013] "
 
 int _FC0013_Write(RTL2832_NAMESPACE::tuner* pTuner, unsigned char RegAddr, unsigned char Byte,
@@ -165,6 +168,15 @@ static int _mapGainsFC0013[] = {	// nim_rtl2832_fc0013.c
 	197, FC0013_LNA_GAIN_HIGH_19
 };
 
+int fc0013::TUNER_PROBE_FN_NAME(demod* d)
+{
+	I2C_REPEATER_SCOPE(d);
+
+	uint8_t reg = 0;
+	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC0013_I2C_ADDR, FC0013_CHECK_ADDR, reg));
+	return ((reg == FC0013_CHECK_VAL) ? SUCCESS : FAILURE);
+}
+
 fc0013::fc0013(demod* p)
 	: tuner_skeleton(p)
 {
@@ -188,7 +200,7 @@ int fc0013::initialise(tuner::PPARAMS params /*= NULL*/)
 	if (tuner_skeleton::initialise(params) != SUCCESS)
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (FC0013_Open(this) != FC0013_FUNCTION_SUCCESS)
 		return FAILURE;
@@ -204,7 +216,7 @@ int fc0013::set_frequency(double freq)
 	if ((freq <= 0) || (in_valid_range(m_frequency_range, freq) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (FC0013_SetFrequency(this, (unsigned long)(freq / 1000.0), (unsigned short)(bandwidth() / 1000000.0)) != FC0013_FUNCTION_SUCCESS)
 		return FAILURE;
@@ -219,7 +231,7 @@ int fc0013::set_bandwidth(double bw)
 	if ((bw <= 0) || (in_valid_range(m_bandwidth_range, bw) == false))
 		return FAILURE;
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (FC0013_SetFrequency(this, (unsigned long)(frequency() / 1000.0), (unsigned short)(bw / 1000000.0)) != FC0013_FUNCTION_SUCCESS)
 		return FAILURE;
@@ -246,7 +258,7 @@ int fc0013::set_gain(double gain)
 
 	unsigned char u8Write = _mapGainsFC0013[i + 1];
 
-	THIS_TUNER_I2C_REPEATER_SCOPE();
+	THIS_I2C_REPEATER_SCOPE();
 
 	if (fc0013_SetRegMaskBits(this, 0x14, 4, 0, u8Write) != FC0013_I2C_SUCCESS)
 		return FAILURE;

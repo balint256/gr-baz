@@ -11,7 +11,7 @@ IMPLEMENT_INLINE_TUNER_FACTORY(e4000)
 public:
 	e4000(demod* p);
 public:
-	inline virtual const char* name()
+	inline virtual const char* name() const
 	{ return "Elonics E4000"; }
 public:
 	int initialise(tuner::PPARAMS params = NULL);

@@ -93,13 +93,14 @@ baz_rtl_source_c::baz_rtl_source_c (bool defer_creation /*= false*/)
 	//
 {
   ZERO_MEMORY(m_demod_params);
-  // PORTABILITY CHECK //////////////////////////
-  ZeroMemory(&wait_delay, sizeof(wait_delay));	// This is not future proof (will be initialised properly in 'set_sample_rate')
-  ///////////////////////////////////////////////
-  
-  //struct timespec res;
-  //clock_getres(CLOCK_MONOTONIC, &res);
-  //log_verbose("Res (%lld s, %lld ns)\n", res.tv_sec, res.tv_nsec);
+ 
+#ifdef HAVE_XTIME
+  ZERO_MEMORY(m_wait_delay);	// This is not future proof (will be initialised properly in 'set_sample_rate')
+
+//  struct timespec res;
+//  clock_getres(CLOCK_MONOTONIC, &res);
+//  log_verbose("Res (%lld s, %lld ns)\n", res.tv_sec, res.tv_nsec);
+#endif // HAVE_XTIME
   
   if ((defer_creation == false) && (create() == false))
 	throw std::runtime_error("Failed to create RTL2832-based source");
@@ -190,16 +191,19 @@ retry_notify:
 	  m_hPacketEvent.wait(lock);	// Always wait for new samples to arrive while buffering
 	else
 	{
-	  // PORTABILITY CHECK //////////////////////////////
-	  xtime_get(&wait_next, CLOCK_MONOTONIC);
-	  wait_next.nsec += wait_delay.nsec;
-	  if (wait_next.nsec >= 1000000000)
+#ifdef HAVE_XTIME
+	  xtime_get(&m_wait_next, CLOCK_MONOTONIC);
+	  m_wait_next.nsec += m_wait_delay.nsec;
+	  if (m_wait_next.nsec >= 1000000000)
 	  {
-		wait_next.sec += 1;
-		wait_next.nsec -= 1000000000;
+		m_wait_next.sec += 1;
+		m_wait_next.nsec -= 1000000000;
 	  }
 	  ///////////////////////////////////////////////////
-	  notified = m_hPacketEvent.timed_wait(lock, wait_next);	// Wait for more samples to arrive, or wait just longer than it would have actually taken and use buffer samples
+	  notified = m_hPacketEvent.timed_wait(lock, m_wait_next);	// Wait for more samples to arrive, or wait just longer than it would have actually taken and use buffer samples
+#else
+      m_hPacketEvent.wait(lock);	// In this case read prediction will be disabled
+#endif // HAVE_XTIME
 	}
 	
 	if (notified == false)	// Timeout
@@ -458,17 +462,17 @@ bool baz_rtl_source_c::set_sample_rate(double dSampleRate)
 
 	return false;
   }
-  
+
   double dDelay = 1000000000ULL * WAIT_FUDGE / (double)((dSampleRate * RAW_SAMPLE_SIZE) / (double)m_nReadLength);
   if (m_bUseBuffer)
 	log_verbose("Wait delay: %.3f ms\n", (dDelay / 1000000.0));
   uint64_t delay = (uint64_t)ceil(dDelay);
-  // PORTABILITY CHECK ////////////////////////
-  wait_delay.sec = delay / 1000000000ULL;
-  wait_delay.nsec = delay % 1000000000ULL;
+#ifdef HAVE_XTIME
+  m_wait_delay.sec = delay / 1000000000ULL;
+  m_wait_delay.nsec = delay % 1000000000ULL;
   //if (m_bUseBuffer)
-  //  log_verbose("\t(%lld s, %lld ns)\n", wait_delay.sec, wait_delay.nsec);
-  /////////////////////////////////////////////
+  //  log_verbose("\t(%lld s, %lld ns)\n", m_wait_delay.sec, m_wait_delay.nsec);
+#endif // HAVE_XTIME
 
   return true;
 }

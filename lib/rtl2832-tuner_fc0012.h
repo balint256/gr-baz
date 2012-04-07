@@ -14,7 +14,7 @@ IMPLEMENT_INLINE_TUNER_FACTORY(fc0012)
 public:
 	fc0012(demod* p);
 public:
-	inline virtual const char* name()
+	inline virtual const char* name() const
 	{ return "Fitipower FC0012"; }
 public:
 	int initialise(tuner::PPARAMS params = NULL);
