@@ -402,7 +402,11 @@ int demod::find_device()
 	if (found->max_rate == 0)
 		m_sample_rate_range.second = DEFAULT_MAX_SAMPLE_RATE;
 
-	if (found->crystal_frequency == 0)
+	if (m_params.crystal_frequency)
+		m_crystal_frequency = m_params.crystal_frequency;
+	else if (found->crystal_frequency)
+		m_crystal_frequency = found->crystal_frequency;
+	else
 		m_crystal_frequency = DEFAULT_CRYSTAL_FREQUENCY;
 
 	int r;
@@ -437,6 +441,9 @@ int demod::find_device()
 		return r;
 	}
 
+	if (m_params.verbose)
+		log("Successfully initialised demod: \"%s\"\n", found->name);
+
 	if (factory == NULL)	// Probe
 	{
 		for (int i = 0; i < (sizeof(_rtl2832_tuners)/sizeof(_rtl2832_tuners[0])); ++i)
@@ -445,12 +452,14 @@ int demod::find_device()
 
 			if (info->probe)
 			{
-				log("Probing \"%s\"...\n", info->name);
+				if (m_params.verbose)
+					log("Probing \"%s\"...\n", info->name);
 
 				int r = (info->probe)(this);
 				if (r == SUCCESS)
 				{
-					log("Successfully auto-probed tuner\n");
+					if (m_params.verbose)
+						log("Successfully auto-probed tuner: \"%s\"\n", info->name);
 
 					factory = info->factory;
 

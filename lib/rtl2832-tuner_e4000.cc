@@ -148,7 +148,6 @@ int e4000::TUNER_PROBE_FN_NAME(demod* d)
 
 	uint8_t reg = 0;
 	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(E4K_I2C_ADDR, E4K_CHECK_ADDR, reg));
-printf("%i\n", reg);
 	return ((reg == E4K_CHECK_VAL) ? SUCCESS : FAILURE);
 }
 
