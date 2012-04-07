@@ -480,6 +480,19 @@ int demod::find_device()
 				log("Could not find tuner automatically after probe\n");
 		}
 	}
+	else
+	{
+		if (m_params.tuner_name[0])
+		{
+			if (m_params.verbose)
+				log("Skipping auto-probe with custom tuner: \"%s\"\n", m_params.tuner_name);
+		}
+		else
+		{
+			if (m_params.verbose)
+				log("Skipping auto-probe\n");
+		}
+	}
 
 	tuner* t = NULL;
 	if (factory)
