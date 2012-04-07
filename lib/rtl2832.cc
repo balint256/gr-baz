@@ -457,7 +457,7 @@ int demod::find_device()
 				if (r == SUCCESS)
 				{
 					if (m_params.verbose)
-						log("found\n", info->name);
+						log("found.\n", info->name);
 
 					factory = info->factory;
 
