@@ -83,7 +83,9 @@ int fc2580::TUNER_PROBE_FN_NAME(demod* d)
 	d->set_gpio_bit(5, 0);
 
 	uint8_t reg = 0;
-	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC2580_I2C_ADDR, FC2580_CHECK_ADDR, reg));
+	//CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC2580_I2C_ADDR, FC2580_CHECK_ADDR, reg));
+	int r = d->i2c_read_reg(FC2580_I2C_ADDR, FC2580_CHECK_ADDR, reg);
+	if (r <= 0) return r;
 	return ((reg == FC2580_CHECK_VAL) ? SUCCESS : FAILURE);
 }
 

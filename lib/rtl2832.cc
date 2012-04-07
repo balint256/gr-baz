@@ -173,8 +173,9 @@ static struct _rtl2832_tuner_info
 	tuner::CreateTunerFn factory;
 	tuner::ProbeTunerFn probe;
 } _rtl2832_tuners[] = {
-	ADD_TUNER(e4000),
 	ADD_TUNER(fc0013),
+	ADD_TUNER(e4000),
+	
 	ADD_TUNER(fc2580),
 	ADD_TUNER(fc0012)
 };
@@ -431,8 +432,6 @@ int demod::find_device()
 		else
 			factory = info->factory;
 	}
-	//else if (found == &custom)
-	//	log("Not attaching tuner as custom tuner name not given\n");
 
 	r = init_demod();
 	if (r != SUCCESS)
@@ -453,17 +452,27 @@ int demod::find_device()
 			if (info->probe)
 			{
 				if (m_params.verbose)
-					log("Probing \"%s\"...\n", info->name);
+					log("Probing \"%s\"...", info->name);
 
 				int r = (info->probe)(this);
 				if (r == SUCCESS)
 				{
 					if (m_params.verbose)
-						log("Successfully auto-probed tuner: \"%s\"\n", info->name);
+						log("found\n", info->name);
 
 					factory = info->factory;
 
 					break;
+				}
+				else
+				{
+					if (m_params.verbose)
+					{
+						if (r == FAILURE)
+							log("bad check value.\n");
+						else
+							log("not found.\n");
+					}
 				}
 			}
 		}
@@ -559,19 +568,26 @@ int demod::i2c_write_reg(uint8_t i2c_addr, uint8_t reg, uint8_t val)
 	data[0] = reg;
 	data[1] = val;
 
-	CHECK_LIBUSB_RESULT_RETURN(write_array(IICB, addr, (uint8_t *)&data, 2));
+	//CHECK_LIBUSB_RESULT_RETURN(write_array(IICB, addr, (uint8_t *)&data, 2));
+	//return SUCCESS;
 
-	return SUCCESS;
+	return write_array(IICB, addr, (uint8_t *)&data, 2);
 }
 
 int demod::i2c_read_reg(uint8_t i2c_addr, uint8_t reg, uint8_t& data)
 {
 	uint16_t addr = i2c_addr;
+	int r;
 
-	CHECK_LIBUSB_RESULT_RETURN(write_array(IICB, addr, &reg, 1));
-	CHECK_LIBUSB_RESULT_RETURN(read_array(IICB, addr, &data, 1));
+	//CHECK_LIBUSB_RESULT_RETURN(write_array(IICB, addr, &reg, 1));
+	r = write_array(IICB, addr, &reg, 1);
+	if (r <= 0)
+		return r;
 
-	return SUCCESS;
+	//CHECK_LIBUSB_RESULT_RETURN(read_array(IICB, addr, &data, 1));
+	//return SUCCESS;
+
+	return read_array(IICB, addr, &data, 1);
 }
 
 int demod::read_reg(uint8_t block, uint16_t addr, uint8_t len, uint16_t& reg)

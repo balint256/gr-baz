@@ -173,7 +173,9 @@ int fc0013::TUNER_PROBE_FN_NAME(demod* d)
 	I2C_REPEATER_SCOPE(d);
 
 	uint8_t reg = 0;
-	CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC0013_I2C_ADDR, FC0013_CHECK_ADDR, reg));
+	//CHECK_LIBUSB_RESULT_RETURN_EX(d,d->i2c_read_reg(FC0013_I2C_ADDR, FC0013_CHECK_ADDR, reg));
+	int r = d->i2c_read_reg(FC0013_I2C_ADDR, FC0013_CHECK_ADDR, reg);
+	if (r <= 0) return r;
 	return ((reg == FC0013_CHECK_VAL) ? SUCCESS : FAILURE);
 }
 
