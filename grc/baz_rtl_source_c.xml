@@ -169,7 +169,7 @@ self.$(id).set_gain($gain)
     <type>string</type>
     <hide>#if $tuner_name() == '' then 'part' else 'none'#</hide>
     <option>
-      <name>(Auto)</name>
+      <name>(Auto-probe)</name>
       <key></key>
     </option>
     <option>
@@ -271,7 +271,7 @@ A default value of 0 above indicates that the default value should be assumed wh
 * Gain mode: tuner-specific string (e.g. (e.g. nominal/sensitive/linear)
 * Auto gain mode (if supported by tuner): automatically select appropriate gain mode when setting gain value
 * Custom VID/PID: override if your adapter isn't recognised automatically (can set one or both if device is in known table, but must be both for an unknown device)
-* Custom tuner: override if you use a custom VID/PID, or the tuner is incorrectly recognised
+* Custom tuner: override auto-probed tuner
 * Xfer read length: size of one USB bulk read (suggested value = 512 * (2^n), where n >= 0; a larger value increases delay until new settings appear realised in output signal)
 * Xfer timeout: USB bulk read timeout
 * Use buffer: use internally buffering (should improve streaming performance)
