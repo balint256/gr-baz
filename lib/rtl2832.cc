@@ -173,9 +173,8 @@ static struct _rtl2832_tuner_info
 	tuner::CreateTunerFn factory;
 	tuner::ProbeTunerFn probe;
 } _rtl2832_tuners[] = {
-	ADD_TUNER(fc0013),
 	ADD_TUNER(e4000),
-	
+	ADD_TUNER(fc0013),
 	ADD_TUNER(fc2580),
 	ADD_TUNER(fc0012)
 };
