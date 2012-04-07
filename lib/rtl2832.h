@@ -308,9 +308,12 @@ protected:
 	int check_libusb_result(int res, bool zero_okay, const char* function_name = NULL, int line_number = -1, const char* line = NULL);
 	void log(const char* message, ...);
 public:
-	inline int set_i2c_repeater(bool on = true, const char* function_name = NULL, int line_number = -1, const char* line = NULL);
-	inline int i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len);
-	inline int i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len);
+	int set_i2c_repeater(bool on = true, const char* function_name = NULL, int line_number = -1, const char* line = NULL);
+	int i2c_read(uint8_t i2c_addr, uint8_t *buffer, int len);
+	int i2c_write(uint8_t i2c_addr, uint8_t *buffer, int len);
+public:
+	int set_gpio_output(uint8_t gpio);
+	int set_gpio_bit(uint8_t gpio, int val);
 public:
 	inline tuner* active_tuner() const
 	{ return m_tuner; }

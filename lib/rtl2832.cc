@@ -598,6 +598,31 @@ int demod::set_i2c_repeater(bool on, const char* function_name /*= NULL*/, int l
 	return /*CHECK_LIBUSB_RESULT*/CHECK_LIBUSB_RESULT_EX(demod_write_reg(1, 0x01, (on ? 0x18 : 0x10), 1), function_name, line_number, line);
 }
 
+int demod::set_gpio_output(uint8_t gpio)
+{
+	uint16_t reg;
+	gpio = 1 << gpio;
+
+	CHECK_LIBUSB_RESULT_RETURN(read_reg(SYSB, GPD, 1, reg));
+	CHECK_LIBUSB_RESULT_RETURN(write_reg(SYSB, GPO, reg & ~gpio, 1));
+	CHECK_LIBUSB_RESULT_RETURN(read_reg(SYSB, GPOE, 1, reg));
+	CHECK_LIBUSB_RESULT_RETURN(write_reg(SYSB, GPOE, reg | gpio, 1));
+
+	return SUCCESS;
+}
+
+int demod::set_gpio_bit(uint8_t gpio, int val)
+{
+	uint16_t reg;
+
+	gpio = 1 << gpio;
+	CHECK_LIBUSB_RESULT_RETURN(read_reg(SYSB, GPO, 1, reg));
+	reg = val ? (reg | gpio) : (reg & ~gpio);
+	CHECK_LIBUSB_RESULT(write_reg(SYSB, GPO, reg, 1));
+
+	return SUCCESS;
+}
+
 void demod::log(const char* message, ...)
 {
 	if (m_params.message_output == NULL)

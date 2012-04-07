@@ -234,6 +234,11 @@ int fc0012::initialise(tuner::PPARAMS params /*= NULL*/)
 
 	THIS_TUNER_I2C_REPEATER_SCOPE();
 
+	m_demod->set_gpio_output(5);	// initialise GPIOs
+
+	m_demod->set_gpio_bit(5, 1);	// reset tuner before probing
+	m_demod->set_gpio_bit(5, 0);
+
 	if (FC0012_Open(this) != FC0012_OK)
 		return FAILURE;
 
