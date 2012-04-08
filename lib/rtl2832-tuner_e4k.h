@@ -221,6 +221,12 @@ struct reg_field_ops {
 	uint32_t (*read_cb)(void *data, uint32_t reg);
 };
 
+enum cmd_op {
+	CMD_OP_GET	= (1 << 0),
+	CMD_OP_SET	= (1 << 1),
+	CMD_OP_EXEC	= (1 << 2),
+};
+
 uint32_t reg_field_read(struct reg_field_ops *ops, struct reg_field *field);
 int reg_field_write(struct reg_field_ops *ops, struct reg_field *field, uint32_t val);
 int reg_field_cmd(struct cmd_state *cs, enum cmd_op op,
