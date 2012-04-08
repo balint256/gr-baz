@@ -23,6 +23,13 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//%template(range_t)	std::pair<double,double>;
+//%template(values_t)	std::vector<double>;
+
+%include "std_pair.i"
+
+///////////////////////////////////////////////////////////////////////////////
+
 GR_SWIG_BLOCK_MAGIC(baz,rtl_source_c);
 
 baz_rtl_source_c_sptr baz_make_rtl_source_c (bool defer_creation = false);
@@ -76,8 +83,9 @@ public:
 	void set_relative_gain(bool on = true);
 	int set_auto_gain_mode(bool on = true);
 public:
+	const char* name() const;
 	double sample_rate() const;
-	RTL2832_NAMESPACE::range_t sample_rate_range() const;
+	/*RTL2832_NAMESPACE::*//*range_t*/std::pair<double,double> sample_rate_range() const;
 	double frequency() const;
 	double gain() const;
 	double bandwidth() const;
@@ -85,12 +93,12 @@ public:
 	std::string gain_mode_string() const;
 	bool auto_gain_mode() const;
 public:	// SWIG get: tuner ranges/values
-	RTL2832_NAMESPACE::range_t gain_range() const;
-	RTL2832_NAMESPACE::values_t gain_values() const;
-	RTL2832_NAMESPACE::range_t frequency_range() const;
-	RTL2832_NAMESPACE::range_t bandwidth_range() const;
-	RTL2832_NAMESPACE::values_t bandwidth_values() const;
-	RTL2832_NAMESPACE::num_name_map_t gain_modes() const;
+	/*RTL2832_NAMESPACE::*//*range_t*/std::pair<double,double> gain_range() const;
+	/*RTL2832_NAMESPACE::*//*values_t*/std::vector<double> gain_values() const;
+	/*RTL2832_NAMESPACE::*//*range_t*/std::pair<double,double> frequency_range() const;
+	/*RTL2832_NAMESPACE::*//*range_t*/std::pair<double,double> bandwidth_range() const;
+	/*RTL2832_NAMESPACE::*//*values_t*/std::vector<double> bandwidth_values() const;
+	/*RTL2832_NAMESPACE::*//*num_name_map_t*/std::map<int,std::string> gain_modes() const;
 	std::pair<bool,int> calc_appropriate_gain_mode()/* const*/;
 };
 

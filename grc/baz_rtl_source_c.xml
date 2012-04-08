@@ -173,7 +173,11 @@ self.$(id).set_gain($gain)
       <key></key>
     </option>
     <option>
-      <name>Elonics E4000</name>
+      <name>Elonics E4000 (Osmo-SDR)</name>
+      <key>e4k</key>
+    </option>
+    <option>
+      <name>Elonics E4000 (DVB)</name>
       <key>e4000</key>
     </option>
     <option>
