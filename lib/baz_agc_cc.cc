@@ -33,7 +33,30 @@
 #include <gr_io_signature.h>
 //#include <gri_agc_cc.h>
 #include <stdio.h>
+
+#if HAVE_MATH_H	// This should always be true surely
 #include <math.h>
+#endif // HAVE_MATH_H
+
+#if HAVE_CMATH
+#include <cmath>
+
+// Follow is dodgy hack for Mac OS X (apparently)
+// AutoConf mightn't pick up the math functions due to not including <cmath> (?)
+
+#ifndef HAVE_ISNAN
+extern "C" int isnan(double);
+#endif // HAVE_ISNAN
+
+#ifndef HAVE_ISINF
+extern "C" int isinf(double);
+#endif // HAVE_ISINF
+
+#ifndef HAVE_FINITE
+extern "C" int finite(double);
+#endif // HAVE_FINITE
+
+#endif // HAVE_CMATH
 
 baz_agc_cc_sptr
 baz_make_agc_cc (float rate, float reference, float gain, float max_gain)

@@ -44,6 +44,14 @@ dnl Check for header files you need
 dnl AC_CHECK_HEADERS(fcntl.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h)
 dnl AC_CHECK_HEADERS(sys/mman.h)
 
+dnl ##########################################################
+TMP_CC="$CC"
+CC="$CXX"
+AC_CHECK_HEADERS(math.h cmath)
+AC_CHECK_FUNCS([finite isnan isinf])
+CC="$TMP_CC"
+dnl ##########################################################
+
 dnl Checks for library functions.
 dnl AC_CHECK_FUNCS([])
 

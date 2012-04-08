@@ -867,7 +867,7 @@ int demod::init_demod()
 
 	/* default FIR coefficients used for DAB/FM by the Windows driver,
 	 * the DVB driver uses different ones */
-	static uint8_t default_fir_coeff[FIR_COEFF_COUNT] = {
+	static uint8_t default_fir_coeff[RTL2832_FIR_COEFF_COUNT] = {
 		0xca, 0xdc, 0xd7, 0xd8, 0xe0, 0xf2, 0x0e, 0x35, 0x06, 0x50,
 		0x9c, 0x0d, 0x71, 0x11, 0x14, 0x71, 0x74, 0x19, 0x41, 0x00,
 	};
@@ -898,7 +898,7 @@ int demod::init_demod()
 		log("Using custom FIR coefficients\n");
 
 	/* set FIR coefficients */
-	for (i = 0; i < FIR_COEFF_COUNT; i++)
+	for (i = 0; i < RTL2832_FIR_COEFF_COUNT; i++)
 		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x1c + i, fir_coeff[i], 1));
 
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x19, 0x25, 1));

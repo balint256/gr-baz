@@ -297,14 +297,17 @@ typedef struct device_info
 #define CHECK_LIBUSB_RESULT_RETURN(r)		CHECK_LIBUSB_RESULT_RETURN_EX(this,r)
 #define CHECK_LIBUSB_NEG_RESULT_RETURN(d,r)	CHECK_LIBUSB_NEG_RESULT_RETURN_EX(this,r)
 
+#define RTL2832_FIR_COEFF_COUNT	20
+#define RTL2832_TUNER_NAME_LEN	(32+1)
+
 class RTL2832_API demod : public i2c_interface, public named_interface
 {
 public:
 	demod();
 	virtual ~demod();
 public:
-	static const int FIR_COEFF_COUNT	= 20;
-	static const int TUNER_NAME_LEN		= 32+1;
+	//static const int FIR_COEFF_COUNT	= 20;
+	//static const int TUNER_NAME_LEN		= 32+1;
 	typedef struct params
 	{
 		uint16_t		vid;
@@ -313,11 +316,11 @@ public:
 		int				default_timeout;	// 0: use default, -1: poll only
 		log_sink*		message_output;
 		bool			use_custom_fir_coefficients;
-		uint8_t			fir_coeff[FIR_COEFF_COUNT];
+		uint8_t			fir_coeff[RTL2832_FIR_COEFF_COUNT];
 		//bool			use_tuner_params;	// Use if valid tuner::PPARAMS pointer
 		tuner::PPARAMS	tuner_params;
 		uint32_t		crystal_frequency;
-		char			tuner_name[TUNER_NAME_LEN];
+		char			tuner_name[RTL2832_TUNER_NAME_LEN];
 	} PARAMS, *PPARAMS;
 protected:
 	struct libusb_device_handle *m_devh;

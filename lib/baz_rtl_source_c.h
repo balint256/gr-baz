@@ -129,11 +129,11 @@ public:	// SWIG demod params set only
 	inline void set_default_timeout(int timeout)	// 0: use default, -1: poll only
 	{ m_demod_params.default_timeout = timeout; }
 	inline void set_fir_coefficients(const std::vector</*uint8_t*/int>& coeffs)
-	{ m_demod_params.use_custom_fir_coefficients = !coeffs.empty(); for (size_t i = 0; i < std::min(RTL2832_NAMESPACE::demod::FIR_COEFF_COUNT, (int)coeffs.size()); ++i) m_demod_params.fir_coeff[i] = (uint8_t)coeffs[i]; }
+	{ m_demod_params.use_custom_fir_coefficients = !coeffs.empty(); for (size_t i = 0; i < std::min(/*RTL2832_NAMESPACE::demod::*/RTL2832_FIR_COEFF_COUNT, (int)coeffs.size()); ++i) m_demod_params.fir_coeff[i] = (uint8_t)coeffs[i]; }
 	inline void set_crystal_frequency(uint32_t freq)
 	{ m_demod_params.crystal_frequency = freq; }
 	inline void set_tuner_name(const char* name)
-	{ if (name == NULL) m_demod_params.tuner_name[0] = '\0'; else strncpy(m_demod_params.tuner_name, name, RTL2832_NAMESPACE::demod::TUNER_NAME_LEN-1); }
+	{ if (name == NULL) m_demod_params.tuner_name[0] = '\0'; else strncpy(m_demod_params.tuner_name, name, /*RTL2832_NAMESPACE::demod::*/RTL2832_TUNER_NAME_LEN-1); }
 public:	// SWIG get only
 	inline size_t recv_samples_per_packet() const
 	{ return m_recv_samples_per_packet; }
