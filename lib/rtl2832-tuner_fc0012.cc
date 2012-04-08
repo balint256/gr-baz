@@ -533,7 +533,7 @@ int FC0012_SetFrequency(RTL2832_NAMESPACE::tuner* pTuner, unsigned long Frequenc
 	{
 		if (reg[14] > 0x3C)
 		{
-			reg[6] = ~0x08 | reg[6];
+			reg[6] = 0x08 | reg[6];
 
 			if (FC0012_Write(pTuner, 0x06, reg[6])) return -1;
 			if (FC0012_Write(pTuner, 0x0E, 0x80)) return -1;
