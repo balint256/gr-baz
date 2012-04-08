@@ -41,9 +41,6 @@ using namespace std;
 
 #define LOG_PREFIX	"[e4k] "
 
-#define FUNCTION_SUCCESS	0
-//#define FUNCTION_ERROR		-1
-
 #define E4000_I2C_SUCCESS		1
 #define E4000_I2C_FAIL			0
 
@@ -264,7 +261,7 @@ int e4k::initialise(PPARAMS params /*= NULL*/)
 	bool enable_dc_offset_loop = false;	// FIXME: Parameterise this (e.g. flag field in tuner::PARAMS, or another explicit property?)
 	bool set_manual_gain = true;
 
-	if (e4k_init(&m_stateE4K/*, enable_dc_offset_loop, set_manual_gain*/) != FUNCTION_SUCCESS)
+	if (e4k_init(&m_stateE4K, enable_dc_offset_loop, set_manual_gain) != 0)
 		return FAILURE;
 
 	if (set_bandwidth(bandwidth()) != SUCCESS)
@@ -1542,7 +1539,7 @@ static int magic_init(struct e4k_state *e4k)
 
 /*! \brief Initialize the E4K tuner
  */
-int e4k_init(struct e4k_state *e4k)
+int e4k_init(struct e4k_state *e4k, bool enable_dc_offset_loop /*= true*/, bool set_manual_gain /*= false*/)
 {
 	/* make a dummy i2c read or write command, will not be ACKed! */
 	e4k_reg_read(e4k, 0);
@@ -1571,20 +1568,26 @@ int e4k_init(struct e4k_state *e4k)
 	e4k_dc_offset_gen_table(e4k);
 
 	/* Enable time variant DC correction */
-//	e4k_reg_write(e4k, E4K_REG_DCTIME1, 0x01);
-//	e4k_reg_write(e4k, E4K_REG_DCTIME2, 0x01);
+	if (enable_dc_offset_loop)
+	{
+		e4k_reg_write(e4k, E4K_REG_DCTIME1, 0x01);
+		e4k_reg_write(e4k, E4K_REG_DCTIME2, 0x01);
+	}
 
 	/* Set LNA mode to autnonmous */
 	e4k_reg_write(e4k, E4K_REG_AGC4, 0x10); /* High threshold */
 	e4k_reg_write(e4k, E4K_REG_AGC5, 0x04);	/* Low threshold */
 	e4k_reg_write(e4k, E4K_REG_AGC6, 0x1a);	/* LNA calib + loop rate */
 
-//	e4k_reg_set_mask(e4k, E4K_REG_AGC1, E4K_AGC1_MOD_MASK,
-//			 E4K_AGC_MOD_IF_SERIAL_LNA_AUTON);
+	if (set_manual_gain == false)
+	{
+		e4k_reg_set_mask(e4k, E4K_REG_AGC1, E4K_AGC1_MOD_MASK,
+				 E4K_AGC_MOD_IF_SERIAL_LNA_AUTON);
 
-	/* Set Mixer Gain Control to autonomous */
-//	e4k_reg_set_mask(e4k, E4K_REG_AGC7, E4K_AGC7_MIX_GAIN_AUTO,
-//					    E4K_AGC7_MIX_GAIN_AUTO);
+		/* Set Mixer Gain Control to autonomous */
+		e4k_reg_set_mask(e4k, E4K_REG_AGC7, E4K_AGC7_MIX_GAIN_AUTO,
+							E4K_AGC7_MIX_GAIN_AUTO);
+	}
 
 	/* Enable LNA Gain enhancement */
 #if 0

@@ -235,7 +235,7 @@ int reg_field_cmd(struct cmd_state *cs, enum cmd_op op,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int e4k_init(struct e4k_state *e4k);
+int e4k_init(struct e4k_state *e4k, bool enable_dc_offset_loop = true, bool set_manual_gain = false);
 int e4k_if_gain_set(struct e4k_state *e4k, uint8_t stage, int8_t value);
 int e4k_mixer_gain_set(struct e4k_state *e4k, int8_t value);
 int e4k_commonmode_set(struct e4k_state *e4k, int8_t value);
