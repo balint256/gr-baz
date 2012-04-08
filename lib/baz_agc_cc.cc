@@ -33,30 +33,7 @@
 #include <gr_io_signature.h>
 //#include <gri_agc_cc.h>
 #include <stdio.h>
-
-#if HAVE_MATH_H	// This should always be true surely
 #include <math.h>
-#endif // HAVE_MATH_H
-
-#if HAVE_CMATH
-#include <cmath>
-
-// Follow is dodgy hack for Mac OS X (apparently)
-// AutoConf mightn't pick up the math functions due to not including <cmath> (?)
-
-#ifndef HAVE_ISNAN
-extern "C" int isnan(double);
-#endif // HAVE_ISNAN
-
-#ifndef HAVE_ISINF
-extern "C" int isinf(double);
-#endif // HAVE_ISINF
-
-#ifndef HAVE_FINITE
-extern "C" int finite(double);
-#endif // HAVE_FINITE
-
-#endif // HAVE_CMATH
 
 baz_agc_cc_sptr
 baz_make_agc_cc (float rate, float reference, float gain, float max_gain)
@@ -118,7 +95,7 @@ int baz_agc_cc::work (int noutput_items, gr_vector_const_void_star &input_items,
     
     continue;
 ///////////////////////////////////////////////////////////////////////////////
-    if (!finite(mag2) || isnan(mag2) || isinf(mag2)) {
+    if (!finite(mag2) || std::isnan(mag2) || std::isinf(mag2)) {
 	  if (_gain == _max_gain) {
 fprintf(stderr, "[%05i] + %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
 		out[i] = /*in[i]*//*0*/gr_complex(0, 0);
@@ -152,8 +129,8 @@ fprintf(stderr, "[%05i]   %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].i
 	  
 	  /*float f = out[i].real() * out[i].imag();
 	  if (!finite(out[i].real()) || !finite(out[i].imag()) || !finite(f) ||
-		  isnan(out[i].real()) || isnan(out[i].imag()) || isnan(f) ||
-		  isinf(out[i].real()) || isinf(out[i].imag()) || isinf(f)) {
+		  std::isnan(out[i].real()) || std::isnan(out[i].imag()) || std::isnan(f) ||
+		  std::isinf(out[i].real()) || std::isinf(out[i].imag()) || std::isinf(f)) {
 		fprintf(stderr, "%f,%f %f\n", out[i].real(), out[i].imag(), _gain);
 		out[i] = 0.0f;
 	  }*/
