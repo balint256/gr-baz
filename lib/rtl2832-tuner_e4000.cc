@@ -27,7 +27,7 @@ using namespace std;
 #define E4K_CHECK_ADDR		0x02
 #define E4K_CHECK_VAL		0x40
 
-int
+static int
 _I2CReadByte(
 	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
@@ -58,7 +58,7 @@ _I2CReadByte(
 	return E4000_I2C_SUCCESS;
 }
 
-int
+static int
 _I2CWriteByte(
 	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,
@@ -82,7 +82,7 @@ _I2CWriteByte(
 	return E4000_I2C_SUCCESS;
 }
 
-int
+static int
 _I2CWriteArray(
 	RTL2832_NAMESPACE::tuner* pTuner,
 	unsigned char NoUse,

@@ -213,6 +213,7 @@ e4000_GetBandwidthHz(
 
 ///////////////////////////////////////////////////////////////////////////////
 // Definitions
+
 #define RTL2832_E4000_ADDITIONAL_INIT_REG_TABLE_LEN		34
 
 #define RTL2832_E4000_LNA_GAIN_TABLE_LEN				16
