@@ -62,7 +62,16 @@ class op25_decoder(gr.hier_block2):
         
     def create(self):
         self.op25_msgq = gr.msg_queue(2)
-        self.p25_decoder = _op25.decoder_ff(self.op25_msgq)
+        self.slicer = None
+        try:
+            levels = [ -2.0, 0.0, 2.0, 4.0 ]
+            self.slicer = _op25.fsk4_slicer_fb(levels)
+            self.p25_decoder = _op25.decoder_bf()   # FIXME: Message queue?
+        except:
+            try:
+                self.p25_decoder = _op25.decoder_ff(self.op25_msgq)
+            except:
+                raise Exception("Could not find a decoder to use")
         
         # Reference code
         #self.decode_watcher = decode_watcher(self.op25_msgq, self.traffic)
@@ -106,7 +115,11 @@ class op25_decoder(gr.hier_block2):
         #list = [[self, self.channel_filter, self.squelch, fm_demod, self.symbol_filter, demod_fsk4, self.p25_decoder, self.sink]]
         
         self.connect(self, self.demod_fsk4)
-        self.connect(self.demod_fsk4, self.p25_decoder)
+        if self.slicer:
+            self.connect(self.demod_fsk4, self.slicer)
+            self.connect(self.slicer, self.p25_decoder)
+        else:
+            self.connect(self.demod_fsk4, self.p25_decoder)
         self.connect(self.p25_decoder, (self, 0))
         
         if self.output_dibits:
