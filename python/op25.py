@@ -18,7 +18,7 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 #
-from gnuradio import gr, gru, op25, fsk4
+from gnuradio import gr, gru, op25 as _op25, fsk4
 import math
 
 # Reference code
@@ -62,7 +62,7 @@ class op25_decoder(gr.hier_block2):
         
     def create(self):
         self.op25_msgq = gr.msg_queue(2)
-        self.p25_decoder = op25.decoder_ff(self.op25_msgq)
+        self.p25_decoder = _op25.decoder_ff(self.op25_msgq)
         
         # Reference code
         #self.decode_watcher = decode_watcher(self.op25_msgq, self.traffic)
