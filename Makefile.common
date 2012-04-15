@@ -39,7 +39,8 @@ STD_DEFINES_AND_INCLUDES = \
 	$(DEFINES) \
 	-I$(abs_top_srcdir)/include \
 	-I$(GNURADIO_CORE_INCLUDEDIR) \
-	-I$(GNURADIO_CORE_INCLUDEDIR)/swig
+	-I$(GNURADIO_CORE_INCLUDEDIR)/swig \
+	-I$(GRUEL_INCLUDEDIR)/gruel/swig
 
 # includes
 modincludedir = $(includedir)/$(modname)

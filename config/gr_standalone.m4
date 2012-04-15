@@ -109,6 +109,7 @@ m4_define([GR_STANDALONE],
   AM_CONDITIONAL([HAS_XMLTO], [test x$XMLTO = xyes])
 
   PKG_CHECK_MODULES(GNURADIO_CORE, gnuradio-core >= 3)
+  PKG_CHECK_MODULES(GRUEL, gruel >= 3)
   LIBS="$LIBS $GNURADIO_CORE_LIBS"
 
   dnl Allow user to choose whether to generate SWIG/Python 
