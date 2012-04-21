@@ -27,16 +27,17 @@ from gnuradio import gr, gru, window
 from gnuradio.wxgui import stdgui2, common
 import wx
 import gnuradio.wxgui.plot as plot
-import Numeric
+#import Numeric
+import numpy
 import threading
-import math    
+import math
 
 default_facsink_size = (640,240)
 default_fac_rate = gr.prefs().get_long('wxgui', 'fac_rate', 10) # was 15, 3
 
 class fac_sink_base(gr.hier_block2, common.wxgui_hb):
     def __init__(self, input_is_real=False, baseband_freq=0, y_per_div=10, ref_level=50,
-                 sample_rate=1, fac_size=512,	
+                 sample_rate=1, fac_size=512,
                  fac_rate=default_fac_rate,
                  average=False, avg_alpha=None, title='', peak_hold=False):
 
@@ -229,7 +230,7 @@ class input_watcher (threading.Thread):
                 start = itemsize * (nitems - 1)
                 s = s[start:start+itemsize]
 
-            complex_data = Numeric.fromstring (s, Numeric.Float32)
+            complex_data = numpy.fromstring (s, numpy.float32)
             de = DataEvent (complex_data)
             wx.PostEvent (self.event_receiver, de)
             del de
@@ -271,16 +272,16 @@ class fac_window (plot.PlotCanvas):
             if self.peak_vals is None:
                 self.peak_vals = dB
             else:
-                self.peak_vals = Numeric.maximum(dB, self.peak_vals)
+                self.peak_vals = numpy.maximum(dB, self.peak_vals)
                 dB = self.peak_vals
 
         x = max(abs(self.facsink.sample_rate), abs(self.facsink.baseband_freq))
         sf = 1000.0
         units = "ms"
 
-        x_vals = ((Numeric.arrayrange (L/2)
+        x_vals = ((numpy.arange (L/2)
                        * ( (sf / self.facsink.sample_rate  ) )) )
-        points = Numeric.zeros((len(x_vals), 2), Numeric.Float64)
+        points = numpy.zeros((len(x_vals), 2), numpy.float64)
         points[:,0] = x_vals
         points[:,1] = dB[0:L/2]
 
