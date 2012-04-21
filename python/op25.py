@@ -18,7 +18,11 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 #
-from gnuradio import gr, gru, op25 as _op25, fsk4
+from gnuradio import gr, gru, op25 as _op25
+try:
+    from gnuradio import fsk4   # LEGACY
+except:
+    pass
 import math
 
 # Reference code
@@ -69,7 +73,7 @@ class op25_decoder(gr.hier_block2):
             self.p25_decoder = _op25.decoder_bf()   # FIXME: Message queue?
         except:
             try:
-                self.p25_decoder = _op25.decoder_ff(self.op25_msgq)
+                self.p25_decoder = _op25.decoder_ff(self.op25_msgq)   # LEGACY
             except:
                 raise Exception("Could not find a decoder to use")
         
@@ -108,7 +112,13 @@ class op25_decoder(gr.hier_block2):
         #print "Symbol rate:", self.symbol_rate
         if self.auto_tune_msgq is None:
             self.auto_tune_msgq = gr.msg_queue(2)
-        self.demod_fsk4 = fsk4.demod_ff(self.auto_tune_msgq, self.channel_rate, self.symbol_rate)
+        try:
+            self.demod_fsk4 = _op25.fsk4_demod_ff(self.auto_tune_msgq, self.channel_rate, self.symbol_rate)
+        except:
+            try:
+                self.demod_fsk4 = fsk4.demod_ff(self.auto_tune_msgq, self.channel_rate, self.symbol_rate)   # LEGACY
+            except:
+                raise Exception("Could not find a FSK4 demodulator to use")
         
         # Reference code
         #self.demod_watcher = demod_watcher(autotuneq, self.adjust_channel_offset)
