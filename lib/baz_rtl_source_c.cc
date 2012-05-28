@@ -43,10 +43,18 @@
 #include "rtl2832.h"
 
 baz_rtl_source_c_sptr 
-baz_make_rtl_source_c(bool defer_creation /*= false*/)
+baz_make_rtl_source_c(bool defer_creation /*= false*/, int output_size /*= 0*/)
 {
-  return baz_rtl_source_c_sptr(new baz_rtl_source_c(defer_creation));
+  return baz_rtl_source_c_sptr(new baz_rtl_source_c(defer_creation, output_size));
 }
+
+enum StatusFlags {	// Matches BorIP values
+  STATUS_OK					= 0x00,
+  STATUS_HARDWARE_OVERRUN	= 0x01,
+  STATUS_BUFFER_OVERRUN		= 0x04,
+  STATUS_UNDERRUN			= 0x40,
+  STATUS_TIMEOUT			= 0x80
+};
 
 // COMPAT /////////////////////////////////////////////////////////////////////
 #define _T(x)					x
@@ -68,10 +76,10 @@ static float _char_to_float_lut[256] = { -1.000000f, -0.992188f, -0.984375f, -0.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-baz_rtl_source_c::baz_rtl_source_c (bool defer_creation /*= false*/)
-  : gr_block ("baz_rtl_source_c",
+baz_rtl_source_c::baz_rtl_source_c (bool defer_creation /*= false*/, int output_size /*= 0*/)
+  : gr_block ("baz_rtl_source",
 	      gr_make_io_signature (0, 0, 0),
-	      gr_make_io_signature (1, 1, sizeof (gr_complex)))
+	      gr_make_io_signature (1, 1, ((output_size > 0) ? output_size : sizeof(gr_complex))))
 	, m_nSamplesReceived(0)
 	, m_nOverflows(0)
 	, m_bRunning(false)
@@ -90,7 +98,7 @@ baz_rtl_source_c::baz_rtl_source_c (bool defer_creation /*= false*/)
 	, m_nBufferUnderrunCount(0)
 	, m_verbose(true)
 	, m_relative_gain(false)
-	//
+	, m_output_size(0)
 {
   ZERO_MEMORY(m_demod_params);
  
@@ -101,6 +109,8 @@ baz_rtl_source_c::baz_rtl_source_c (bool defer_creation /*= false*/)
 //  clock_getres(CLOCK_MONOTONIC, &res);
 //  log_verbose("Res (%lld s, %lld ns)\n", res.tv_sec, res.tv_nsec);
 #endif // HAVE_XTIME
+
+  set_output_format(output_size);
   
   if ((defer_creation == false) && (create() == false))
 	throw std::runtime_error("Failed to create RTL2832-based source");
@@ -114,6 +124,17 @@ baz_rtl_source_c::~baz_rtl_source_c ()
   destroy();
 }
 
+void baz_rtl_source_c::report_status(int status)
+{
+  //boost::recursive_mutex::scoped_lock lock(d_mutex);
+  
+  if (!m_status_queue)
+	return;
+  
+  gr_message_sptr msg = gr_make_message(status);
+  m_status_queue->/*handle*/insert_tail(msg);
+}
+
 int 
 baz_rtl_source_c::general_work (int noutput_items,
 			       gr_vector_int &ninput_items,
@@ -122,6 +143,9 @@ baz_rtl_source_c::general_work (int noutput_items,
 {
   //float *out = (float *)output_items[0];	// gr_complex = float * 2 [_M_real, _M_imag]
   gr_complex *out = (gr_complex *)output_items[0];
+  short* out4 = (short*)output_items[0];
+  char* out2 = (char*)output_items[0];
+  int item_adjust = ((m_output_size == sizeof(gr_complex)) ? 1 : 2);
   
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -135,7 +159,7 @@ baz_rtl_source_c::general_work (int noutput_items,
   
   if (m_bUseBuffer == false)
   {
-	int iToRead = noutput_items;
+	int iToRead = (noutput_items/item_adjust) * RAW_SAMPLE_SIZE;
 	if (iToRead > (m_nBufferSize * RAW_SAMPLE_SIZE))
 	{
 	  log_error(_T("work wants more than the buffer size!\n"));
@@ -149,25 +173,43 @@ baz_rtl_source_c::general_work (int noutput_items,
 	  log_error(_T("libusb error: %s [%i]\n"), libusb_result_to_string(res), res);
 	  return -1;
 	}
-
+	
 	if ((uint32_t)iRead < iToRead)
 	{
 	  log_error(_T("Short bulk read: given %i bytes (expecting %lu)\n"), iRead, iToRead);
 	}
-
+	
 	int iSampleCount = iRead / RAW_SAMPLE_SIZE;
 	m_nSamplesReceived += iSampleCount;
-
-	for (int n = 0; n < iSampleCount; n++)
-	  out[n] = gr_complex(
-		_char_to_float_lut[m_pUSBBuffer[n*RAW_SAMPLE_SIZE + 0]],
-		_char_to_float_lut[m_pUSBBuffer[n*RAW_SAMPLE_SIZE + 1]]
-	  );
-
+	
+	if (m_output_size == (sizeof(char)))
+	{
+	  memcpy(out2, m_pUSBBuffer, iRead);
+	}
+	else
+	{
+	  for (int n = 0; n < iSampleCount; n++)
+	  {
+		if (m_output_size == (sizeof(short)))	// No range expansion
+		{
+		  out4[n*2 + 0] = (unsigned char)m_pUSBBuffer[n*RAW_SAMPLE_SIZE + 0] - 128;
+		  out4[n*2 + 1] = (unsigned char)m_pUSBBuffer[n*RAW_SAMPLE_SIZE + 1] - 128;
+		}
+		else if (m_output_size == sizeof(gr_complex))
+		{
+		  out[n] = gr_complex(
+			_char_to_float_lut[m_pUSBBuffer[n*RAW_SAMPLE_SIZE + 0]],
+			_char_to_float_lut[m_pUSBBuffer[n*RAW_SAMPLE_SIZE + 1]]
+		  );
+		}
+	  }
+	}
+	
 	if (res == LIBUSB_ERROR_OVERFLOW)
 	{
 	  ++m_nOverflows;
 	  log_error(_T("rO"));
+	  report_status(STATUS_HARDWARE_OVERRUN);
 	}
 	
 	++m_nReadPacketCount;
@@ -177,10 +219,10 @@ baz_rtl_source_c::general_work (int noutput_items,
   
   ///////////////////////////////////
   
-  if (noutput_items > m_nBufferSize)
+  if ((noutput_items/item_adjust) > m_nBufferSize)
   {
 	log_error(_T("work wants more than the buffer size!\n"));
-	noutput_items = m_nBufferSize;
+	noutput_items = m_nBufferSize * item_adjust;
   }
 retry_notify:
   while ((m_bBuffering) || (m_nBufferItems <= ((uint32_t)(m_fBufferLevel * (float)m_nBufferSize) + m_recv_samples_per_packet)))	// If getting too full, send them all through
@@ -209,6 +251,7 @@ retry_notify:
 	if (notified == false)	// Timeout
 	{
 	  log_error("rT");
+	  report_status(STATUS_TIMEOUT);
 	  break;	// Running late, use up some of the buffer
 	}
 	
@@ -220,7 +263,7 @@ retry_notify:
 	
 	if (m_bBuffering == false)	// No longer filling buffer, so send samples back to runtime
 	  break;
-
+	
 	log_error(_T("Caught packet signal while buffering!\n"));
   }
 
@@ -228,38 +271,63 @@ retry_notify:
   {
 	//log_error(_T("Reading packet after signal, but not enough items in buffer (only %lu, need at least: %lu, start now %lu) [#%lu]\n"), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart, m_nReadPacketCount);
 	log_error("rU");
+	report_status(STATUS_UNDERRUN);
 	
 	m_bBuffering = true;
 	++m_nBufferUnderrunCount;
 	
 	goto retry_notify;	// Keep waiting for buffer to fill back up sufficiently
   }
-  else if (m_nBufferItems < noutput_items)	// Double check
+  else if (m_nBufferItems < (noutput_items/item_adjust))	// Double check
   {
-	log_error(_T("Not enough items for work (only %lu, need at least: %lu, start now %lu) [#%lu]\n"), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart, m_nReadPacketCount);
-	noutput_items = m_nBufferItems;
+	log_error(_T("Not enough items for work %lu items (only %lu, s/p: %lu, start now %lu) [#%lu]\n"), (noutput_items/item_adjust), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart, m_nReadPacketCount);
+	noutput_items = m_nBufferItems * item_adjust;
   }
   
   ++m_nReadPacketCount;
-
-  uint32_t nPart1 = min(noutput_items, m_nBufferSize - m_nBufferStart);
+  
+  uint32_t nPart1 = min((noutput_items/item_adjust), m_nBufferSize - m_nBufferStart);
   uint8_t* p = m_pUSBBuffer + (m_nBufferStart * RAW_SAMPLE_SIZE);
-  for (uint32_t n = 0; n < nPart1; n++)
+  uint32_t nResidual = (noutput_items/item_adjust) - nPart1;
+  
+  if (m_output_size == (sizeof(char)))
   {
-	  //short i = p[n*2+0];
-	  //short q = p[n*2+1];
-	  //out[n] = gr_complex(i - 127, q - 127);
-	  out[n] = gr_complex(
-		_char_to_float_lut[p[n*2 + 0]],
-		_char_to_float_lut[p[n*2 + 1]]
-	  );
+	memcpy(out2, p, nPart1 * RAW_SAMPLE_SIZE);
+	if (nResidual)
+	  memcpy(out2 + nPart1 * RAW_SAMPLE_SIZE, m_pUSBBuffer, nResidual * RAW_SAMPLE_SIZE);
   }
-
-  uint32_t nResidual = noutput_items - nPart1;
-  if (nResidual > 0)
+  else
   {
+	for (uint32_t n = 0; n < nPart1; n++)
+	{
+	  if (m_output_size == (sizeof(short)))
+	  {
+		out4[n*2 + 0] = (unsigned char)p[n*2 + 0] - 128;
+		out4[n*2 + 1] = (unsigned char)p[n*2 + 1] - 128;
+	  }
+	  else if (m_output_size == sizeof(gr_complex))
+	  {
+		//short i = p[n*2+0];
+		//short q = p[n*2+1];
+		//out[n] = gr_complex(i - 127, q - 127);
+		out[n] = gr_complex(
+		  _char_to_float_lut[p[n*2 + 0]],
+		  _char_to_float_lut[p[n*2 + 1]]
+		);
+	  }
+	}
+	
+	if (nResidual > 0)
+	{
 	  for (uint32_t n = 0; n < nResidual; n++)
 	  {
+		if (m_output_size == (sizeof(short)))
+		{
+		  out4[(nPart1 * 2) + n*2 + 0] = (unsigned char)m_pUSBBuffer[n*2 + 0] - 128;
+		  out4[(nPart1 * 2) + n*2 + 1] = (unsigned char)m_pUSBBuffer[n*2 + 1] - 128;
+		}
+		else if (m_output_size == sizeof(gr_complex))
+		{
 		  //short i = m_pUSBBuffer[n*2+0];
 		  //short q = m_pUSBBuffer[n*2+1];
 		  //out[nPart1 + n] = gr_complex(i - 127, q - 127);
@@ -267,20 +335,22 @@ retry_notify:
 			_char_to_float_lut[m_pUSBBuffer[n*2 + 0]],
 			_char_to_float_lut[m_pUSBBuffer[n*2 + 1]]
 		  );
+		}
 	  }
+	}
   }
-
-  m_nSamplesReceived += noutput_items;
-
-  m_nBufferItems -= noutput_items;
-
+  
+  m_nSamplesReceived += (noutput_items/item_adjust);
+  
+  m_nBufferItems -= (noutput_items/item_adjust);
+  
   if (m_nBufferItems > 0)
-	  m_nBufferStart = (m_nBufferStart + noutput_items) % m_nBufferSize;
-
+	  m_nBufferStart = (m_nBufferStart + (noutput_items/item_adjust)) % m_nBufferSize;
+  
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  
   //consume_each(0);	// Tell runtime system how many input items we consumed on each input stream.
-
+  
   return noutput_items;	// Tell runtime system how many output items we produced.
 }
 
@@ -303,6 +373,35 @@ void baz_rtl_source_c::set_defaults()
   m_bUseBuffer			= true;
 }
 
+bool baz_rtl_source_c::set_output_format(int size)
+{
+  switch (size)
+  {
+	case (sizeof(char)):	// Byte
+	case (sizeof(short)):	// Short
+	case sizeof(gr_complex):	// 2 * Float
+	  break;
+	default:
+	  return false;
+  }
+  
+  boost::recursive_mutex::scoped_lock lock(d_mutex);
+  
+  m_output_size = size;
+  
+  if (m_recv_samples_per_packet > 0)
+	set_output_multiple(m_recv_samples_per_packet * ((m_output_size == sizeof(gr_complex)) ? 1 : 2));
+  
+  return true;
+}
+
+void baz_rtl_source_c::set_status_msgq(gr_msg_queue_sptr queue)	// Only call this once before beginning capture! (otherwise locking required)
+{
+  //boost::recursive_mutex::scoped_lock lock(d_mutex);
+  
+  m_status_queue = queue;
+}
+
 bool baz_rtl_source_c::create(bool reset_buffer_defaults /*= false*/)
 {
   destroy();
@@ -318,7 +417,7 @@ bool baz_rtl_source_c::create(bool reset_buffer_defaults /*= false*/)
   /////////////////////////
   
   m_recv_samples_per_packet = m_nReadLength / RAW_SAMPLE_SIZE;	// Must be the same since rate is determined by the libusb reads!
-  set_output_multiple(m_recv_samples_per_packet);
+  set_output_format(m_output_size);
   
   m_nBufferSize = m_recv_samples_per_packet * m_nBufferMultiplier;
   m_pUSBBuffer = new uint8_t[m_nBufferSize * RAW_SAMPLE_SIZE];
@@ -420,7 +519,7 @@ bool baz_rtl_source_c::stop()
 bool baz_rtl_source_c::set_gain(double dGain)
 {
 #ifdef EXTREME_LOCKING
-  //boost::recursive_mutex::scoped_lock lock(d_mutex);
+  boost::recursive_mutex::scoped_lock lock(d_mutex);
 #endif // EXTREME_LOCKING
 
   if (m_relative_gain)
@@ -442,7 +541,7 @@ bool baz_rtl_source_c::set_gain(double dGain)
 bool baz_rtl_source_c::set_frequency(double dFreq)
 {
 #ifdef EXTREME_LOCKING
-	//boost::recursive_mutex::scoped_lock lock(d_mutex);
+  boost::recursive_mutex::scoped_lock lock(d_mutex);
 #endif // EXTREME_LOCKING
 
   return (m_demod.active_tuner()->set_frequency(dFreq) == RTL2832_NAMESPACE::SUCCESS);
@@ -480,56 +579,56 @@ bool baz_rtl_source_c::set_sample_rate(double dSampleRate)
 bool baz_rtl_source_c::set_bandwidth(double bandwidth)
 {
 #ifdef EXTREME_LOCKING
-  //boost::recursive_mutex::scoped_lock lock(d_mutex);
+  boost::recursive_mutex::scoped_lock lock(d_mutex);
 #endif // EXTREME_LOCKING
 
-	return (m_demod.active_tuner()->set_bandwidth(bandwidth) == RTL2832_NAMESPACE::SUCCESS);
+  return (m_demod.active_tuner()->set_bandwidth(bandwidth) == RTL2832_NAMESPACE::SUCCESS);
 }
 
 bool baz_rtl_source_c::set_gain_mode(int mode)
 {
 #ifdef EXTREME_LOCKING
-  //boost::recursive_mutex::scoped_lock lock(d_mutex);
+  boost::recursive_mutex::scoped_lock lock(d_mutex);
 #endif // EXTREME_LOCKING
 
-	return (m_demod.active_tuner()->set_gain_mode(mode) == RTL2832_NAMESPACE::SUCCESS);
+  return (m_demod.active_tuner()->set_gain_mode(mode) == RTL2832_NAMESPACE::SUCCESS);
 }
 
 std::string baz_rtl_source_c::gain_mode_string() const
 {
-	RTL2832_NAMESPACE::num_name_map_t map = gain_modes();
-	int mode = gain_mode();
-	RTL2832_NAMESPACE::num_name_map_t::iterator it = map.find(mode);
-	if (it == map.end())
-		return ((mode == RTL2832_NAMESPACE::tuner::DEFAULT) ? "(default)" : "(unknown)");
-
-	return it->second;
+  RTL2832_NAMESPACE::num_name_map_t map = gain_modes();
+  int mode = gain_mode();
+  RTL2832_NAMESPACE::num_name_map_t::iterator it = map.find(mode);
+  if (it == map.end())
+	  return ((mode == RTL2832_NAMESPACE::tuner::DEFAULT) ? "(default)" : "(unknown)");
+  
+  return it->second;
 }
 
 bool baz_rtl_source_c::set_gain_mode(const char* mode)
 {
-	if (mode == NULL)
-		return set_gain_mode(RTL2832_NAMESPACE::tuner::DEFAULT);
-
-	RTL2832_NAMESPACE::num_name_map_t map = gain_modes();
-	for (RTL2832_NAMESPACE::num_name_map_t::iterator it = map.begin(); it != map.end(); ++it)
-	{
-		if (strcasecmp(mode, it->second.c_str()) == 0)
-			return set_gain_mode(it->first);
-	}
-
-	log_error("Invalid gain mode: \"%s\"\n", mode);
-
-	return false;
+  if (mode == NULL)
+	  return set_gain_mode(RTL2832_NAMESPACE::tuner::DEFAULT);
+  
+  RTL2832_NAMESPACE::num_name_map_t map = gain_modes();
+  for (RTL2832_NAMESPACE::num_name_map_t::iterator it = map.begin(); it != map.end(); ++it)
+  {
+	  if (strcasecmp(mode, it->second.c_str()) == 0)
+		  return set_gain_mode(it->first);
+  }
+  
+  log_error("Invalid gain mode: \"%s\"\n", mode);
+  
+  return false;
 }
 
 bool baz_rtl_source_c::set_auto_gain_mode(bool on /*= true*/)
 {
 #ifdef EXTREME_LOCKING
-  //boost::recursive_mutex::scoped_lock lock(d_mutex);
+  boost::recursive_mutex::scoped_lock lock(d_mutex);
 #endif // EXTREME_LOCKING
 
-	return (m_demod.active_tuner()->set_auto_gain_mode(on) == RTL2832_NAMESPACE::SUCCESS);
+  return (m_demod.active_tuner()->set_auto_gain_mode(on) == RTL2832_NAMESPACE::SUCCESS);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -557,21 +656,22 @@ void baz_rtl_source_c::capture_thread()
 	std::cerr << "Capture threading starting: " << boost::this_thread::get_id() << std::endl;
   
   uint32_t nCount = 0;
-
+  
   uint8_t* pBuffer = new uint8_t[m_nReadLength];
-
+  
   while (true)
   {
 	lock.lock();
 	if (m_bRunning == false)
 	  break;
 	lock.unlock();
-
+	
 	int lLockSize = 0;
 	int res = m_demod.read_samples(pBuffer, m_nReadLength, &lLockSize);
 	if (res == LIBUSB_ERROR_OVERFLOW)
 	{
 	  log_error(_T("rO"));
+	  report_status(STATUS_HARDWARE_OVERRUN);
 	}
 	else if (res != 0)
 	{
@@ -586,60 +686,61 @@ void baz_rtl_source_c::capture_thread()
 		std::cerr << "Capture threading aborting due to libusb error: " << boost::this_thread::get_id() << std::endl;
 	  goto capture_thread_exit;
 	}
-
+	
 	if ((uint32_t)lLockSize < m_nReadLength)
 	{
 	  log_error(_T("Short bulk read: given %i bytes (expecting %lu)\n"), lLockSize, m_nReadLength);
 	}
-
+	
 	lock.lock();
 	
 	++nCount;
 	
 	if (res == LIBUSB_ERROR_OVERFLOW)
 	  ++m_nOverflows;
-
+	
 	uint32_t nRemaining = min(m_nBufferSize - m_nBufferItems, (uint32_t)lLockSize / RAW_SAMPLE_SIZE);
-
+	
 	bool bSignal = true;
-
+	
 	if (nRemaining > 0)
 	{
 	  //log_verbose(_T("Buffer write: count=%lu, start=%lu, items=%lu\n"), nCount, m_nBufferStart, m_nBufferItems);
-  
+	  
 	  uint8_t* p = m_pUSBBuffer + (((m_nBufferStart + m_nBufferItems) % m_nBufferSize) * RAW_SAMPLE_SIZE);
-  
+	  
 	  uint32_t nPart1 = (m_nBufferStart + m_nBufferItems) % m_nBufferSize;
 	  uint32_t nSize1 = min(nRemaining, m_nBufferSize - nPart1);
-  
+	  
 	  memcpy(p, pBuffer, nSize1 * RAW_SAMPLE_SIZE);
-  
+	  
 	  uint32_t nResidual = nRemaining - nSize1;
 	  if (nResidual > 0)
 		  memcpy(m_pUSBBuffer, pBuffer + (nSize1 * 2), nResidual * RAW_SAMPLE_SIZE);
-  
+	  
 	  m_nBufferItems += nRemaining;
-  
+	  
 	  if ((m_bBuffering) && (m_nBufferItems >= (uint32_t)(m_recv_samples_per_packet + (float)m_nBufferSize * m_fBufferLevel)))	// Add additional amount that is about to be read back out in ReadPacket
 	  {
 		log_verbose(_T("Finished buffering (%lu/%lu) [#%lu]\n"), m_nBufferItems, m_nBufferSize, m_nReadPacketCount);
 		m_bBuffering = false;
 	  }
-  
+	  
 	  bSignal = !m_bBuffering;
 	}
 	else
 	{
 	  log_error("rB");
+	  report_status(STATUS_BUFFER_OVERRUN);
 	  ++m_nBufferOverflowCount;
 	}
-
+	
 	lock.unlock();
-
+	
 	if (bSignal)
 	  m_hPacketEvent.notify_one();
   }
-
+  
   if (m_verbose)
 	std::cerr << "Capture threading exiting: " << boost::this_thread::get_id() << std::endl;
 capture_thread_exit:

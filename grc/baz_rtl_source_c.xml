@@ -10,7 +10,7 @@
 	<category>Sources</category>
 	<import>import baz</import>
 	
-	<make>baz.rtl_source_c(defer_creation=True)
+	<make>baz.rtl_source_c(defer_creation=True, output_size=$type.size)
 self.$(id).set_verbose($verbose)
 self.$(id).set_vid($usb_vid)
 self.$(id).set_pid($usb_pid)
@@ -19,9 +19,9 @@ self.$(id).set_default_timeout($xfer_timeout)
 self.$(id).set_use_buffer($use_buffer)
 self.$(id).set_fir_coefficients($fir_coeffs)
 
-#if $read_length() > 0
+##if $read_length() > 0
 self.$(id).set_read_length($read_length)
-#end if
+##end if
 
 #if $buf_mul() > 0
 self.$(id).set_buffer_multiplier($buf_mul)
@@ -47,6 +47,10 @@ self.$(id).set_frequency($frequency)
 
 #if $gain_mode() != ''
 self.$(id).set_gain_mode($gain_mode)
+#end if
+
+#if $status_out()
+self.$(id).set_status_msgq($(id)_msgq_out)
 #end if
 
 self.$(id).set_auto_gain_mode($auto_gain_mode)
@@ -79,6 +83,29 @@ self.$(id).set_gain($gain)
       <key>False</key>
     </option>
   </param>
+  
+  <param>
+		<name>Output Type</name>
+		<key>type</key>
+		<value>complex</value>
+		<type>enum</type>
+		<hide>#if str($type) == 'complex' then 'part' else 'none'#</hide>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>size:gr.sizeof_gr_complex</opt>
+		</option>
+		<option>
+			<name>Interleaved Short</name>
+			<key>short</key>
+			<opt>size:gr.sizeof_short</opt>
+		</option>
+		<option>
+			<name>Interleaved Byte</name>
+			<key>byte</key>
+			<opt>size:gr.sizeof_char</opt>
+		</option>
+	</param>
 
 	<param>
 		<name>Sample rate</name>
@@ -257,13 +284,34 @@ self.$(id).set_gain($gain)
     <type>int</type>
     <hide>#if $xtal_freq() == 0 then 'part' else 'none'#</hide>
   </param>
+  
+	<param>
+	    <name>Output status</name>
+	    <key>status_out</key>
+	    <value>False</value>
+	    <type>bool</type>
+	    <hide>#if str($status_out) == 'False' then 'part' else 'none'#</hide>
+	    <option>
+		    <name>Yes</name>
+		    <key>True</key>
+	    </option>
+	    <option>
+		    <name>No</name>
+		    <key>False</key>
+	    </option>
+    </param>
 
   <!-- ############################################################## -->
 	
 	<source>
 		<name>out</name>
-		<!--<type>$type</type>-->
-		<type>complex</type>
+		<type>$type</type>
+	</source>
+	
+	<source>
+		<name>status</name>
+        <type>msg</type>
+		<optional>1</optional>
 	</source>
 	
 	<doc>RTL2832U-compatible USB receiver

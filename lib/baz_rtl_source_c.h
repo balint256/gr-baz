@@ -33,6 +33,7 @@
 #endif
 
 #include <gr_block.h>
+#include <gr_msg_queue.h>
 
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
@@ -52,7 +53,7 @@ typedef boost::shared_ptr<baz_rtl_source_c> baz_rtl_source_c_sptr;
 /*!
  * \brief Return a shared_ptr to a new instance of baz_rtl_source_c.
  */
-baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false);
+baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false, int output_size = 0);
 
 /*!
  * \brief capture samples from an RTL2832-based device.
@@ -63,9 +64,9 @@ baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false);
 class baz_rtl_source_c : public gr_block, public RTL2832_NAMESPACE::log_sink
 {
 private:
-	friend baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation);
+	friend baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation, int output_size);
 private:
-	baz_rtl_source_c(bool defer_creation = false);
+	baz_rtl_source_c(bool defer_creation = false, int output_size = 0);
  public:
 	~baz_rtl_source_c();
 private:
@@ -96,6 +97,8 @@ private:
 	RTL2832_NAMESPACE::demod::PARAMS m_demod_params;
 	bool m_verbose;
 	bool m_relative_gain;
+	int m_output_size;
+	gr_msg_queue_sptr m_status_queue;
 private:
 	enum log_level
 	{
@@ -117,8 +120,11 @@ private:
 	void reset();
 	static void _capture_thread(baz_rtl_source_c* p);
 	void capture_thread();
+	void report_status(int status);
 public:
 	void set_defaults();
+	bool set_output_format(int size);
+	void set_status_msgq(gr_msg_queue_sptr queue);
 	bool create(bool reset_defaults = false);
 	void destroy();
 public:	// SWIG demod params set only
@@ -161,7 +167,7 @@ public:	// SWIG set (pre-create)
 	inline void set_verbose(bool on = true)
 	{ m_verbose = on; }
 	inline void set_read_length(uint32_t length)
-	{ m_nReadLength = length; }
+	{ if (length > 0) m_nReadLength = length; }
 	inline void set_buffer_multiplier(uint32_t mul)
 	{ m_nBufferMultiplier = mul; }
 	inline void set_use_buffer(bool use = true)

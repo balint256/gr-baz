@@ -27,19 +27,26 @@
 //%template(values_t)	std::vector<double>;
 
 %include "std_pair.i"
+%template() std::pair<double,double>;
+%template() std::pair<bool,int>;
+
+%include "std_map.i"
+%template() std::map<int,std::string>;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 GR_SWIG_BLOCK_MAGIC(baz,rtl_source_c);
 
-baz_rtl_source_c_sptr baz_make_rtl_source_c (bool defer_creation = false);
+baz_rtl_source_c_sptr baz_make_rtl_source_c (bool defer_creation = false, int output_size = 0);
 
 class baz_rtl_source_c : public gr_sync_block
 {
 private:
-  baz_rtl_source_c(bool defer_creation = false);
+  baz_rtl_source_c(bool defer_creation = false, int output_size = 0);
 public:
 	void set_defaults();
+	bool set_output_format(int size);
+	void set_status_msgq(gr_msg_queue_sptr queue);
 	bool create(bool reset_defaults = false);
 	void destroy();
 public:
@@ -47,7 +54,7 @@ public:
 	void set_pid(/*uint16_t*/int pid);
 	void set_default_timeout(int timeout);	// 0: use default, -1: poll only
 	void set_fir_coefficients(const std::vector</*uint8_t*/int>& coeffs);
-	void set_crystal_frequency(uint32_t freq);
+	void set_crystal_frequency(/*uint32_t*/int freq);
 	void set_tuner_name(const char* name);
 public:
 	size_t recv_samples_per_packet() const;
