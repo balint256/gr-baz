@@ -5,7 +5,6 @@ BorIP Server
 By Balint Seeber
 Part of gr-baz (http://wiki.spench.net/wiki/gr-baz)
 Protocol specification: http://wiki.spench.net/wiki/BorIP
-Requires BorIP-patched UDP Sink (http://wiki.spench.net/wiki/GNU_Radio_Patches)
 """
 
 from __future__ import with_statement
@@ -100,6 +99,11 @@ def _default_device_hint_mapper(hint):
     try:
         idx = int(parts[0])
         return "usrp_legacy"
+    except:
+        pass
+    try:
+        kv = parts[0].index('=')    # key=value
+        return "usrp_uhd"
     except:
         pass
     return parts[0].upper() # FCD, RTL
