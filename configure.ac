@@ -43,6 +43,7 @@ dnl AC_CHECK_LIBRARY
 dnl Check for header files you need
 dnl AC_CHECK_HEADERS(fcntl.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h)
 dnl AC_CHECK_HEADERS(sys/mman.h)
+AC_CHECK_HEADERS(netdb.h sys/types.h sys/socket.h netinet/in.h arpa/inet.h windows.h)
 
 dnl ##########################################################
 dnl TMP_CC="$CC"

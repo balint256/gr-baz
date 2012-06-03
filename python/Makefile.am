@@ -31,7 +31,8 @@ modpython_PYTHON = \
 	eye.py \
 	auto_fec.py \
 	op25.py \
-	message_callback.py
+	message_callback.py \
+	borip_server.py
 
 noinst_PYTHON = \
 	qa_baz.py			

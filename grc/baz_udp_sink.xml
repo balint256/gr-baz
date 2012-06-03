@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##UDP Sink
+###################################################
+ -->
+<block>
+	<name>UDP Sink (Baz)</name>
+	<key>baz_udp_sink</key>
+	<import>import baz</import>
+	<make>baz.udp_sink($type.size*$vlen, $ipaddr, $port, $psize, $eof, $borip)
+#if $status_in()
+self.$(id).set_status_msgq($(id)_msgq_in)
+#end if
+</make>
+	<callback>set_mtu($mtu)</callback>
+	<param>
+		<name>Input Type</name>
+		<key>type</key>
+		<type>enum</type>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>size:gr.sizeof_gr_complex</opt>
+		</option>
+		<option>
+			<name>Float</name>
+			<key>float</key>
+			<opt>size:gr.sizeof_float</opt>
+		</option>
+		<option>
+			<name>Int</name>
+			<key>int</key>
+			<opt>size:gr.sizeof_int</opt>
+		</option>
+		<option>
+			<name>Short</name>
+			<key>short</key>
+			<opt>size:gr.sizeof_short</opt>
+		</option>
+		<option>
+			<name>Byte</name>
+			<key>byte</key>
+			<opt>size:gr.sizeof_char</opt>
+		</option>
+	</param>
+	<param>
+		<name>Destination IP Address</name>
+		<key>ipaddr</key>
+		<type>string</type>
+	</param>
+	<param>
+		<name>Destination Port</name>
+		<key>port</key>
+		<type>int</type>
+	</param>
+	<param>
+		<name>Payload Size</name>
+		<key>psize</key>
+		<value>1472</value>
+		<type>int</type>
+	</param>
+	<param>
+		<name>Send Null Pkt as EOF</name>
+		<key>eof</key>
+		<value>True</value>
+		<type>bool</type>
+		<hide>#if str($eof) == 'True' then 'part' else 'none'#</hide>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
+			<key>False</key>
+		</option>
+	</param>
+	<param>
+	    <name>BorIP</name>
+		<key>borip</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>#if str($borip) == 'False' then 'part' else 'none'#</hide>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
+			<key>False</key>
+		</option>
+	</param>
+	<param>
+	    <name>Accept status</name>
+	    <key>status_in</key>
+	    <value>False</value>
+	    <type>bool</type>
+	    <hide>#if str($status_in) == 'False' then 'part' else 'none'#</hide>
+	    <option>
+		    <name>Yes</name>
+		    <key>True</key>
+	    </option>
+	    <option>
+		    <name>No</name>
+		    <key>False</key>
+	    </option>
+    </param>
+	<param>
+		<name>Vec Length</name>
+		<key>vlen</key>
+		<value>1</value>
+		<type>int</type>
+	</param>
+	<check>$vlen &gt; 0</check>
+	<sink>
+		<name>in</name>
+		<type>$type</type>
+		<vlen>$vlen</vlen>
+	</sink>
+	<sink>
+		<name>status</name>
+		<type>msg</type>
+		<optional>1</optional>
+	</sink>
+</block>

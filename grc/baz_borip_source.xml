@@ -37,9 +37,9 @@ self.$(id).set_frequency($frequency, verbose=True#slurp
 self.$(id).set_gain($gain)</make>-->
 	
 	<callback>set_sample_rate($sample_rate)</callback>
-	<callback>set_frequency($frequency)</callback>
+	<callback>set_freq($frequency)</callback>
 	<callback>set_gain($gain)</callback>
-	<callback>set_rx_antenna($rx_ant)</callback>
+	<callback>select_rx_antenna($rx_ant)</callback>
 	
 	<param>
 		<name>Address</name>

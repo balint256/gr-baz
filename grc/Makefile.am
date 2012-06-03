@@ -41,6 +41,9 @@ dist_grcblocks_DATA = \
 	baz_auto_fec.xml \
 	baz_rtl_source_c.xml \
 	op25.xml \
-	baz_message_callback.xml
+	baz_message_callback.xml \
+	baz_borip_sink.xml \
+	baz_udp_source.xml \
+	baz_udp_sink.xml
 #	howto_square_ff.xml \
 #	howto_square2_ff.xml

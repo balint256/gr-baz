@@ -16,6 +16,8 @@
 #include "baz_agc_cc.h"
 #include "baz_test_counter_cc.h"
 #include "baz_rtl_source_c.h"
+#include "baz_udp_source.h"
+#include "baz_udp_sink.h"
 %}
 
 //%include "howto_square_ff.i"
@@ -233,4 +235,73 @@ baz_test_counter_cc_sptr baz_make_test_counter_cc ();
 class baz_test_counter_cc : public gr_sync_block
 {
   baz_test_counter_cc ();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef SWIGPYTHON
+class gr_udp_source;
+typedef boost::shared_ptr<gr_udp_source> gr_udp_source_sptr;
+%template(gr_udp_source_sptr) boost::shared_ptr<gr_udp_source>;
+%rename(udp_source) gr_make_udp_source;
+%ignore gr_udp_source;
+%pythoncode %{
+gr_udp_source_sptr.__repr__ = lambda self: "<gr_block %s (%d)>" % (self.name(), self.unique_id ())
+%}
+#endif // SWIGPYTHON
+
+gr_udp_source_sptr 
+gr_make_udp_source (size_t itemsize, const char *host, 
+		    unsigned short port, int payload_size=1472,
+		    bool eof=true, bool wait=true, bool bor=false, bool verbose=false) throw (std::runtime_error);
+
+class gr_udp_source : public gr_sync_block
+{
+ protected:
+  gr_udp_source (size_t itemsize, const char *host, 
+		 unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose) throw (std::runtime_error);
+
+ public:
+  ~gr_udp_source ();
+
+  int payload_size() { return d_payload_size; }
+  int get_port();
+  void signal_eos();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef SWIGPYTHON
+class gr_udp_sink;
+typedef boost::shared_ptr<gr_udp_sink> gr_udp_sink_sptr;
+%template(gr_udp_sink_sptr) boost::shared_ptr<gr_udp_sink>;
+%rename(udp_sink) gr_make_udp_sink;
+%ignore gr_udp_sink;
+%pythoncode %{
+gr_udp_sink_sptr.__repr__ = lambda self: "<gr_block %s (%d)>" % (self.name(), self.unique_id ())
+%}
+#endif // SWIGPYTHON
+
+gr_udp_sink_sptr 
+gr_make_udp_sink (size_t itemsize, 
+		  const char *host, unsigned short port,
+		  int payload_size=1472, bool eof=true, bool bor=false) throw (std::runtime_error);
+
+class gr_udp_sink : public gr_sync_block
+{
+ protected:
+  gr_udp_sink (size_t itemsize, 
+	       const char *host, unsigned short port,
+	       int payload_size, bool eof, bool bor)
+    throw (std::runtime_error);
+
+ public:
+  ~gr_udp_sink ();
+
+  int payload_size() { return d_payload_size; }
+  void connect( const char *host, unsigned short port );
+  void disconnect();
+  void set_borip(bool enable);
+  void set_payload_size(int payload_size);
+  void set_status_msgq(gr_msg_queue_sptr queue);
 };
