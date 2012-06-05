@@ -15,9 +15,9 @@ from optparse import OptionParser
 import socket
 import threading
 import SocketServer
-import baz
 
-from gnuradio import gr
+from gnuradio import gr # FIXME: Must come before baz, because it'll override baz's 'gr_udp_source/sink' - this may be a problem for any loaded flowgraphs that make use of original GR UDP Source/Sinks
+import baz
 
 class server(gr.hier_block2):   # Stand-alone block
     def __init__(self, size=gr.sizeof_gr_complex, mul=1, server=False, parent=None, verbose=False):    # 'parent' should be flowgraph in which this is the 'BorIP Sink' block
@@ -1033,7 +1033,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
 
 def _generate_options(args=None):
-    usage="%prog: [options] <server address>"
+    usage="%prog: [options]"
     parser = OptionParser(usage=usage)  #option_class=eng_option, 
     parser.add_option("-l", "--listen", type="int", help="server listen port", default=28888)  #, metavar="SUBDEV"
     parser.add_option("-p", "--port", type="int", help="default data port", default=28888)
