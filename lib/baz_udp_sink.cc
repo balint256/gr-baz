@@ -23,7 +23,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#ifdef IN_GR_BAZ
+#include <baz_udp_sink.h>
+#else
 #include <gr_udp_sink.h>
+#endif // IN_GR_BAZ
 #include <gr_io_signature.h>
 #include <stdexcept>
 #include <errno.h>

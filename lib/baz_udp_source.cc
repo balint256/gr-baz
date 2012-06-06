@@ -23,7 +23,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#ifdef IN_GR_BAZ
+#include <baz_udp_source.h>
+#else
 #include <gr_udp_source.h>
+#endif // IN_GR_BAZ
 #include <gr_io_signature.h>
 #include <stdexcept>
 #include <errno.h>
@@ -239,7 +243,7 @@ UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host,
 }
 
 UDP_SOURCE_SPTR
-gr_make_udp_source (size_t itemsize, const char *ipaddr, 
+UDP_SOURCE_MAKER (size_t itemsize, const char *ipaddr, 
 		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose)
 {
   return gnuradio::get_initial_sptr(new UDP_SOURCE_NAME (itemsize, ipaddr, 
