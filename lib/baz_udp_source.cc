@@ -108,7 +108,7 @@ static int is_error( int perr )
   case WSAENOPROTOOPT:
     return( perr == ENOPROTOOPT );
   default:
-    fprintf(stderr,"gr_udp_source/is_error: unknown error %d\n", perr );
+    fprintf(stderr,#UDP_SOURCE_NAME"/is_error: unknown error %d\n", perr );
     throw std::runtime_error("internal error");
   }
   return 0;
@@ -131,7 +131,7 @@ static void report_error( const char *msg1, const char *msg2 )
   return;
 }
 
-gr_udp_source::gr_udp_source(size_t itemsize, const char *host, 
+UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host, 
 			     unsigned short port, int payload_size,
 			     bool eof, bool wait, bool bor, bool verbose)
   : gr_sync_block ("udp_source",
@@ -152,7 +152,7 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
   WSADATA wsaData;
   int iResult = WSAStartup( MAKEWORD(2,2), &wsaData );
   if( iResult != NO_ERROR ) {
-    report_error( "gr_udp_source WSAStartup", "can't open socket" );
+    report_error( UDP_SOURCE_STRING" WSAStartup", "can't open socket" );
   }
 #endif
   
@@ -171,7 +171,7 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
   // FIXME leaks if report_error throws below
   ret = getaddrinfo( host, port_str, &hints, &ip_src );
   if( ret != 0 )
-    report_error("gr_udp_source/getaddrinfo",
+    report_error(UDP_SOURCE_STRING"/getaddrinfo",
 		 "can't initialize source socket" );
 
   // FIXME leaks if report_error throws below
@@ -238,15 +238,15 @@ gr_udp_source::gr_udp_source(size_t itemsize, const char *host,
 
 }
 
-gr_udp_source_sptr
+UDP_SOURCE_SPTR
 gr_make_udp_source (size_t itemsize, const char *ipaddr, 
 		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose)
 {
-  return gnuradio::get_initial_sptr(new gr_udp_source (itemsize, ipaddr, 
+  return gnuradio::get_initial_sptr(new UDP_SOURCE_NAME (itemsize, ipaddr, 
 						port, payload_size, eof, wait, bor, verbose));
 }
 
-gr_udp_source::~gr_udp_source ()
+UDP_SOURCE_NAME::~UDP_SOURCE_NAME ()
 {
   delete [] d_temp_buff;
 
@@ -267,13 +267,13 @@ gr_udp_source::~gr_udp_source ()
 }
 
 void
-gr_udp_source::signal_eos() {
+UDP_SOURCE_NAME::signal_eos() {
   d_wait = false;
   d_eos = true;
 }
 
 int 
-gr_udp_source::work (int noutput_items,
+UDP_SOURCE_NAME::work (int noutput_items,
 		     gr_vector_const_void_star &input_items,
 		     gr_vector_void_star &output_items)
 {
@@ -465,13 +465,13 @@ gr_udp_source::work (int noutput_items,
 }
 
 // Return port number of d_socket
-int gr_udp_source::get_port(void)
+int UDP_SOURCE_NAME::get_port(void)
 {
   sockaddr_in name;
   socklen_t len = sizeof(name);
   int ret = getsockname( d_socket, (sockaddr*)&name, &len );
   if( ret ) {
-    report_error("gr_udp_source/getsockname",NULL);
+    report_error(UDP_SOURCE_STRING"/getsockname",NULL);
     return -1;
   }
   return ntohs(name.sin_port);

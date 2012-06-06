@@ -20,16 +20,35 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_GR_UDP_SOURCE_H
+#if (!defined(INCLUDED_GR_UDP_SOURCE_H) && !defined(IN_GR_BAZ)) || (!defined(INCLUDED_BAZ_UDP_SOURCE_H) && defined(IN_GR_BAZ))
+#ifdef IN_GR_BAZ
+#define INCLUDED_BAZ_UDP_SOURCE_H
+#else
 #define INCLUDED_GR_UDP_SOURCE_H
+#endif // IN_GR_BAZ
 
 #include <gr_sync_block.h>
 #include <gruel/thread.h>
 
-class gr_udp_source;
-typedef boost::shared_ptr<gr_udp_source> gr_udp_source_sptr;
+#ifdef IN_GR_BAZ
+#define UDP_SOURCE_NAME   baz_udp_source
+#define UDP_SOURCE_MAKER  baz_make_udp_source
+#define UDP_SOURCE_SPTR   baz_udp_source_sptr
+#else
+#define UDP_SOURCE_NAME   gr_udp_source
+#define UDP_SOURCE_MAKER  gr_make_udp_source
+#define UDP_SOURCE_SPTR   gr_udp_source_sptr
+#endif // IN_GR_BAZ
 
-gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *host, 
+#ifndef _TO_STR
+#define _TO_STR(x)        #x
+#endif // _TO_STR
+#define UDP_SOURCE_STRING _TO_STR(UDP_SOURCE_NAME)
+
+class UDP_SOURCE_NAME;
+typedef boost::shared_ptr<UDP_SOURCE_NAME> UDP_SOURCE_SPTR;
+
+UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize, const char *host, 
 				      unsigned short port,
 				      int payload_size=1472,
 				      bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
@@ -52,9 +71,9 @@ gr_udp_source_sptr gr_make_udp_source(size_t itemsize, const char *host,
  *
 */
 
-class gr_udp_source : public gr_sync_block
+class UDP_SOURCE_NAME : public gr_sync_block
 {
-  friend gr_udp_source_sptr gr_make_udp_source(size_t itemsize,
+  friend UDP_SOURCE_SPTR gr_make_udp_source(size_t itemsize,
 					       const char *host, 
 					       unsigned short port,
 					       int payload_size,
@@ -91,11 +110,11 @@ class gr_udp_source : public gr_sync_block
    * \param wait         Wait for data if not immediately available
    *                     (default: true)
    */
-  gr_udp_source(size_t itemsize, const char *host, unsigned short port,
+  UDP_SOURCE_NAME(size_t itemsize, const char *host, unsigned short port,
 		int payload_size, bool eof, bool wait, bool bor, bool verbose);
 
  public:
-  ~gr_udp_source();
+  ~UDP_SOURCE_NAME();
 
   /*! \brief return the PAYLOAD_SIZE of the socket */
   int payload_size() { return d_payload_size; }

@@ -126,7 +126,7 @@ static void report_error( const char *msg1, const char *msg2 )
   return;
 }
 
-gr_udp_sink::gr_udp_sink (size_t itemsize, 
+UDP_SINK_NAME::UDP_SINK_NAME (size_t itemsize, 
 			  const char *host, unsigned short port,
 			  int payload_size, bool eof, bool bor)
   : gr_sync_block ("udp_sink",
@@ -154,12 +154,12 @@ gr_udp_sink::gr_udp_sink (size_t itemsize,
   connect(host, port);
 }
 
-void gr_udp_sink::set_status_msgq(gr_msg_queue_sptr queue)	// Only call this once before beginning run! (otherwise locking required)
+void UDP_SINK_NAME::set_status_msgq(gr_msg_queue_sptr queue)	// Only call this once before beginning run! (otherwise locking required)
 {
   d_status_queue = queue;
 }
 
-bool gr_udp_sink::create()
+bool UDP_SINK_NAME::create()
 {
   destroy();
   
@@ -200,7 +200,7 @@ bool gr_udp_sink::create()
   return true;
 }
 
-void gr_udp_sink::destroy()
+void UDP_SINK_NAME::destroy()
 {
   if (d_connected)
     disconnect();
@@ -220,17 +220,17 @@ void gr_udp_sink::destroy()
 
 // public constructor that returns a shared_ptr
 
-gr_udp_sink_sptr
-gr_make_udp_sink (size_t itemsize, 
+UDP_SINK_SPTR
+UDP_SINK_MAKER (size_t itemsize, 
 		  const char *host, unsigned short port,
 		  int payload_size, bool eof, bool bor)
 {
-  return gnuradio::get_initial_sptr(new gr_udp_sink (itemsize, 
+  return gnuradio::get_initial_sptr(new UDP_SINK_NAME (itemsize, 
 					    host, port,
 					    payload_size, eof, bor));
 }
 
-void gr_udp_sink::set_borip(bool enable)
+void UDP_SINK_NAME::set_borip(bool enable)
 {
   gruel::scoped_lock guard(d_mutex);
   
@@ -245,7 +245,7 @@ void gr_udp_sink::set_borip(bool enable)
   fprintf(stderr, "[UDP Sink \"%s (%ld)\"] BorIP: %s\n", name().c_str(), unique_id(), (enable ? "enabled" : "disabled"));
 }
 
-void gr_udp_sink::allocate()
+void UDP_SINK_NAME::allocate()
 {
   if (d_bor_packet != NULL)
 	delete [] d_bor_packet;
@@ -255,7 +255,7 @@ void gr_udp_sink::allocate()
   d_offset = 0;
 }
 
-void gr_udp_sink::set_payload_size(int payload_size)
+void UDP_SINK_NAME::set_payload_size(int payload_size)
 {
   if (payload_size <= 0)
 	return;
@@ -269,7 +269,7 @@ void gr_udp_sink::set_payload_size(int payload_size)
   fprintf(stderr, "[UDP Sink \"%s (%ld)\"] Payload size: %d\n", name().c_str(), unique_id(), payload_size);
 }
 
-gr_udp_sink::~gr_udp_sink ()
+UDP_SINK_NAME::~UDP_SINK_NAME ()
 {
   destroy();
 
@@ -283,7 +283,7 @@ gr_udp_sink::~gr_udp_sink ()
 }
 
 int 
-gr_udp_sink::work (int noutput_items,
+UDP_SINK_NAME::work (int noutput_items,
 		   gr_vector_const_void_star &input_items,
 		   gr_vector_void_star &output_items)
 {
@@ -397,7 +397,7 @@ gr_udp_sink::work (int noutput_items,
   return noutput_items;
 }
 
-void gr_udp_sink::connect( const char *host, unsigned short port )
+void UDP_SINK_NAME::connect( const char *host, unsigned short port )
 {
   if (d_connected)
     disconnect();
@@ -451,7 +451,7 @@ retry_connect:
   }
 }
 
-void gr_udp_sink::disconnect()
+void UDP_SINK_NAME::disconnect()
 {
   if (!d_connected)
     return;

@@ -16,7 +16,7 @@ import socket
 import threading
 import SocketServer
 
-from gnuradio import gr # FIXME: Must come before baz, because it'll override baz's 'gr_udp_source/sink' - this may be a problem for any loaded flowgraphs that make use of original GR UDP Source/Sinks
+from gnuradio import gr
 import baz
 
 class server(gr.hier_block2):   # Stand-alone block

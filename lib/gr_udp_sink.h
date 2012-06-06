@@ -20,18 +20,40 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDED_GR_UDP_SINK_H
+#if (!defined(INCLUDED_GR_UDP_SINK_H) && !defined(IN_GR_BAZ)) || (!defined(INCLUDED_BAZ_UDP_SINK_H) && defined(IN_GR_BAZ))
+#ifdef IN_GR_BAZ
+#define INCLUDED_BAZ_UDP_SINK_H
+#else
 #define INCLUDED_GR_UDP_SINK_H
+#endif // IN_GR_BAZ
+
+#include <gr_sync_block.h>
+#include <gruel/thread.h>
+
+#ifdef IN_GR_BAZ
+#define UDP_SINK_NAME   baz_udp_sink
+#define UDP_SINK_MAKER  baz_make_udp_sink
+#define UDP_SINK_SPTR   baz_udp_sink_sptr
+#else
+#define UDP_SINK_NAME   gr_udp_sink
+#define UDP_SINK_MAKER  gr_make_udp_sink
+#define UDP_SINK_SPTR   gr_udp_sink_sptr
+#endif // IN_GR_BAZ
+
+#ifndef _TO_STR
+#define _TO_STR(x)        #x
+#endif // _TO_STR
+#define UDP_SINK_STRING _TO_STR(UDP_SINK_NAME)
 
 #include <gr_sync_block.h>
 #include <gr_msg_queue.h>
 #include <gruel/thread.h>
 
-class gr_udp_sink;
-typedef boost::shared_ptr<gr_udp_sink> gr_udp_sink_sptr;
+class UDP_SINK_NAME;
+typedef boost::shared_ptr<UDP_SINK_NAME> UDP_SINK_SPTR;
 
-gr_udp_sink_sptr
-gr_make_udp_sink (size_t itemsize, 
+UDP_SINK_SPTR
+UDP_SINK_MAKER (size_t itemsize, 
 		  const char *host, unsigned short port,
 		  int payload_size=1472, bool eof=true, bool bor=false);
 
@@ -48,9 +70,9 @@ gr_make_udp_sink (size_t itemsize,
  * \param eof          Send zero-length packet on disconnect
  */
 
-class gr_udp_sink : public gr_sync_block
+class UDP_SINK_NAME : public gr_sync_block
 {
-  friend gr_udp_sink_sptr gr_make_udp_sink (size_t itemsize, 
+  friend UDP_SINK_SPTR UDP_SINK_MAKER (size_t itemsize, 
 					    const char *host,
 					    unsigned short port,
 					    int payload_size, bool eof, bool bor);
@@ -83,7 +105,7 @@ class gr_udp_sink : public gr_sync_block
    *                     1472 = (1500 MTU - (8 byte UDP header) - (20 byte IP header))
    * \param eof          Send zero-length packet on disconnect
    */
-  gr_udp_sink (size_t itemsize, 
+  UDP_SINK_NAME (size_t itemsize, 
 	       const char *host, unsigned short port,
 	       int payload_size, bool eof, bool bor);
   
@@ -92,7 +114,7 @@ class gr_udp_sink : public gr_sync_block
   void destroy();
 
  public:
-  ~gr_udp_sink ();
+  ~UDP_SINK_NAME ();
 
   /*! \brief return the PAYLOAD_SIZE of the socket */
   int payload_size() { return d_payload_size; }

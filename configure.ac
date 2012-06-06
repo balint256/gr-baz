@@ -37,6 +37,8 @@ dnl This is kind of non-standard, but it sure shortens up this file :-)
 m4_include([config/gr_standalone.m4])
 GR_STANDALONE
 
+AC_DEFINE(IN_GR_BAZ,1,[define so source files know about compilation])
+
 dnl Check for any libraries you need
 dnl AC_CHECK_LIBRARY
 
