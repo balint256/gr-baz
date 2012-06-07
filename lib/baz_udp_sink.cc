@@ -186,7 +186,13 @@ bool UDP_SINK_NAME::create()
   }
   
   int requested_send_buff_size = 1024 * 1024;
-  if (setsockopt(d_socket, SOL_SOCKET, SO_SNDBUFFORCE, (optval_t)&requested_send_buff_size, sizeof(int)) == -1) {
+  if (setsockopt(d_socket, SOL_SOCKET,
+#ifdef SO_SNDBUFFORCE
+	SO_SNDBUFFORCE
+#else
+	SO_SNDBUF
+#endif // SO_SNDBUFFORCE
+	, (optval_t)&requested_send_buff_size, sizeof(int)) == -1) {
 	//if (d_verbose) {
 	//  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_send_buff_size);
 	//}

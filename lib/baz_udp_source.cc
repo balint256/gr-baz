@@ -221,7 +221,13 @@ UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host,
 #endif // USE_RCV_TIMEO
 
   int requested_recv_buff_size = 1024 * 1024;
-  if (setsockopt(d_socket, SOL_SOCKET, SO_RCVBUFFORCE, (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
+  if (setsockopt(d_socket, SOL_SOCKET,
+#ifdef SO_RCVBUFFORCE
+	SO_RCVBUFFORCE
+#else
+	SO_RCVBUF
+#endif // SO_RCVBUFFORCE
+	, (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
 	if (d_verbose) {
 	  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_recv_buff_size);
 	}
