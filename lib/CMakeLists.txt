@@ -20,8 +20,8 @@
 ########################################################################
 # Install public header files
 ########################################################################
-install(FILES
-    baz_print_char.h
+SET(baz_headers
+	baz_print_char.h
 	baz_unpacked_to_packed_bb.h
 	baz_pow_cc.h
 	baz_delay.h
@@ -30,7 +30,22 @@ install(FILES
 	baz_swap_ff.h
 	baz_agc_cc.h
 	baz_test_counter_cc.h
-	baz_rtl_source_c.h
+	baz_native_callback.h
+	baz_native_mux.h
+	baz_block_status.h
+	baz_non_blocker.h
+)
+
+if (LIBUSB_FOUND)
+	list(APPEND baz_headers baz_rtl_source_c.h)
+endif ()
+
+if (UHD_FOUND)
+	list(APPEND baz_headers baz_gate.h)
+endif ()
+
+install(FILES
+    ${baz_headers}
     DESTINATION include/baz
 )
 
@@ -39,7 +54,7 @@ install(FILES
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
 
-add_library(gnuradio-baz SHARED
+SET(baz_sources
 	baz_print_char.cc
 	baz_unpacked_to_packed_bb.cc
 	baz_pow_cc.cc
@@ -49,17 +64,35 @@ add_library(gnuradio-baz SHARED
 	baz_swap_ff.cc
 	baz_agc_cc.cc
 	baz_test_counter_cc.cc
-	baz_rtl_source_c.cc
-	rtl2832.cc
-	rtl2832-tuner_e4000.cc
-	rtl2832-tuner_fc0013.cc
-	rtl2832-tuner_fc0012.cc
-	rtl2832-tuner_fc2580.cc
-	rtl2832-tuner_e4k.cc
 	baz_udp_source.cc
 	baz_udp_sink.cc
+	baz_native_callback.cc
+	baz_native_mux.cc
+	baz_block_status.cc
+	baz_non_blocker.cc
 )
-target_link_libraries(gnuradio-baz ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES})
+
+if (LIBUSB_FOUND)
+	LIST(APPEND baz_sources
+		baz_rtl_source_c.cc
+		rtl2832.cc
+		rtl2832-tuner_e4000.cc
+		rtl2832-tuner_fc0013.cc
+		rtl2832-tuner_fc0012.cc
+		rtl2832-tuner_fc2580.cc
+		rtl2832-tuner_e4k.cc
+	)
+endif ()
+
+if (UHD_FOUND)
+	LIST(APPEND baz_sources baz_gate.cc)
+endif ()
+
+add_library(gnuradio-baz SHARED
+	${baz_sources}
+)
+
+target_link_libraries(gnuradio-baz ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES} ${LIBUSB_LIBRARIES} ${UHD_LIBRARIES})
 set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "gnuradio_baz_EXPORTS")
 
 ########################################################################

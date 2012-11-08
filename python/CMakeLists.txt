@@ -38,6 +38,7 @@ GR_PYTHON_INSTALL(
 	op25.py
 	message_callback.py
 	borip_server.py
+	std_flusher.py
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 

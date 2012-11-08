@@ -32,6 +32,7 @@ project(gr-baz CXX C)
 enable_testing()
 
 set(IN_GR_BAZ True)
+set(GR_BAZ_WITH_CMAKE True)
 
 #select the release build type by default to get optimization flags
 if(NOT CMAKE_BUILD_TYPE)
@@ -45,10 +46,10 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
 ########################################################################
 # Compiler specific setup
 ########################################################################
-if(CMAKE_COMPILER_IS_GNUCXX AND NOT WIN32)
-    #http://gcc.gnu.org/wiki/Visibility
-    add_definitions(-fvisibility=hidden)
-endif()
+if (CMAKE_COMPILER_IS_GNUCXX AND NOT WIN32)
+	#http://gcc.gnu.org/wiki/Visibility
+	#add_definitions(-fvisibility=hidden)	# FIXME
+endif ()
 
 ########################################################################
 # Find boost
@@ -116,10 +117,16 @@ endif()
 ########################################################################
 find_package(UHD)
 
-if(UHD_FOUND)
+if (UHD_FOUND)
     include_directories(${UHD_INCLUDE_DIRS})
     link_directories(${UHD_LIBRARY_DIRS})
-endif()
+endif ()
+
+find_package(USB)
+
+if (LIBUSB_FOUND)
+	include_directories(${LIBUSB_INCLUDE_DIR})
+endif ()
 
 ########################################################################
 # Setup the include and linker paths

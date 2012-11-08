@@ -17,8 +17,8 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
-install(FILES
-    baz_any.xml
+SET(baz_blocks
+	baz_any.xml
 	baz_any_source.xml
 	baz_any_sink.xml
 	baz_pow_cc.xml
@@ -33,12 +33,26 @@ install(FILES
 	baz_test_counter_cc.xml
 	gr_mpsk_receiver_debug_cc.xml
 	baz_auto_fec.xml
-	baz_rtl_source_c.xml
 	op25.xml
 	baz_message_callback.xml
 	baz_borip_sink.xml
 	baz_udp_source.xml
 	baz_udp_sink.xml
+	baz_block_status.xml
+	baz_any_single.xml
+	baz_non_blocker.xml
+)
+
+if (LIBUSB_FOUND)
+	LIST(APPEND baz_blocks baz_rtl_source_c.xml)
+endif ()
+
+if (UHD_FOUND)
+	LIST(APPEND baz_blocks baz_gate.xml)
+endif ()
+
+install(FILES
+    ${baz_blocks}
     DESTINATION share/gnuradio/grc/blocks
 )
 

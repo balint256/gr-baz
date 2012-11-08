@@ -54,6 +54,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef LIBUSB_FOUND
+
 GR_SWIG_BLOCK_MAGIC(baz,rtl_source_c);
 
 baz_rtl_source_c_sptr baz_make_rtl_source_c (bool defer_creation = false, int output_size = 0);
@@ -127,6 +129,8 @@ public:	// SWIG get: tuner ranges/values
 	/*RTL2832_NAMESPACE::*//*num_name_map_t*/std::map<int,std::string> gain_modes() const;
 	std::pair<bool,int> calc_appropriate_gain_mode()/* const*/;
 };
+
+#endif // LIBUSB_FOUND
 
 ///////////////////////////////////////////////////////////////////////////////
 
