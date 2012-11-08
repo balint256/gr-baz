@@ -18,12 +18,18 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 #
+
+_verbose = True
+
+import math
 from gnuradio import gr, gru, op25 as _op25
+
 try:
     from gnuradio import fsk4   # LEGACY
+    if _verbose:
+		print "Imported legacy fsk4"
 except:
     pass
-import math
 
 # Reference code
 #class decode_watcher(threading.Thread):
@@ -71,16 +77,20 @@ class op25_decoder(gr.hier_block2):
             levels = [ -2.0, 0.0, 2.0, 4.0 ]
             self.slicer = _op25.fsk4_slicer_fb(levels)
             self.p25_decoder = _op25.decoder_bf()   # FIXME: Message queue?
+            if _verbose:
+				print "Using new decoder_bf"
         except:
             try:
                 self.p25_decoder = _op25.decoder_ff(self.op25_msgq)   # LEGACY
+                if _verbose:
+					print "Using legacy decoder_ff"
             except:
                 raise Exception("Could not find a decoder to use")
         
         # Reference code
         #self.decode_watcher = decode_watcher(self.op25_msgq, self.traffic)
         
-        if self.key is not None:
+        if (self.key is not None) and (len(self.key) > 0): # Relates to key string passed in from GRC block
             self.set_key(self.key)
         
         # Reference code
@@ -114,9 +124,13 @@ class op25_decoder(gr.hier_block2):
             self.auto_tune_msgq = gr.msg_queue(2)
         try:
             self.demod_fsk4 = _op25.fsk4_demod_ff(self.auto_tune_msgq, self.channel_rate, self.symbol_rate)
+            if _verbose:
+				print "Using new fsk4_demod_ff"
         except:
             try:
                 self.demod_fsk4 = fsk4.demod_ff(self.auto_tune_msgq, self.channel_rate, self.symbol_rate)   # LEGACY
+                if _verbose:
+					print "Using legacy fsk4.demod_ff"
             except:
                 raise Exception("Could not find a FSK4 demodulator to use")
         
@@ -136,11 +150,20 @@ class op25_decoder(gr.hier_block2):
             self.connect(self.demod_fsk4, (self, 1))
     
     def set_key(self, key):
-        if type(key) == str:
-            if len(key) == 0:
-                return
-            key = int(key, 16) # Convert from hex string
-        self.p25_decoder.set_key(key)
+        try:
+            if type(key) == str:
+                if len(key) == 0:	# FIXME: Go back into the clear
+                    #print "Cannot set key using empty string"
+                    return False
+                key = int(key, 16) # Convert from hex string
+            if not hasattr(self.p25_decoder, 'set_key'):
+                print "This version of the OP25 decoder does not support decryption"
+                return False
+            self.p25_decoder.set_key(key)
+            return True
+        except Exception, e:
+            print "Exception while setting key:", e
+            return False
     
     # Reference code
     #def adjust_channel_offset(self, delta_hz):

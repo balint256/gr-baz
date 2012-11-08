@@ -1,0 +1,152 @@
+<?xml version="1.0"?>
+<block>
+    <name>Gate</name>
+    <key>gate</key>
+    <category>Misc</category>
+    <import>from gnuradio import gr</import>
+    <import>import baz</import>
+    <make>baz.gate($(type.size), $block, $threshold, $trigger_length, $tag, $delay, $sample_rate, $no_delay)</make>
+
+    <callback>set_blocking($block)</callback>
+    <callback>set_threshold($threshold)</callback>
+    <callback>set_trigger_length($trigger_length)</callback>
+    <callback>set_tagging($tagging)</callback>
+    <callback>set_delay($delay)</callback>
+    <callback>set_sample_rate($sample_rate)</callback>
+    <callback>set_no_delay($no_delay)</callback>
+
+  <param>
+		<name>Type</name>
+		<key>type</key>
+		<type>enum</type>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>size:8</opt>
+		</option>
+		<option>
+			<name>Float</name>
+			<key>float</key>
+			<opt>size:4</opt>
+		</option>
+		<option>
+			<name>Int</name>
+			<key>int</key>
+			<opt>size:4</opt>
+		</option>
+		<option>
+			<name>Short</name>
+			<key>short</key>
+			<opt>size:2</opt>
+		</option>
+		<option>
+			<name>Byte</name>
+			<key>byte</key>
+			<opt>size:1</opt>
+		</option>
+	</param>
+
+	<param>
+		<name>Block</name>
+		<key>block</key>
+		<value>True</value>
+		<type>bool</type>
+		<!--<hide>#if str($block) == 'True' then 'part' else 'none'#</hide>-->
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
+  <param>
+		<name>Threshold</name>
+		<key>threshold</key>
+		<value>1.0</value>
+		<type>real</type>
+  </param>
+
+  <param>
+		<name>Trigger length (samples)</name>
+		<key>trigger_length</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $trigger_length() == 0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+		<name>Tag</name>
+		<key>tag</key>
+		<value>True</value>
+		<type>bool</type>
+		<!--<hide>#if str($block) == 'True' then 'part' else 'none'#</hide>-->
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
+	<param>
+		<name>Set delay</name>
+		<key>no_delay</key>
+		<value>False</value>
+		<type>bool</type>
+		<!--<hide>#if str($block) == 'True' then 'part' else 'none'#</hide>-->
+		<option>
+			<name>Yes</name>
+			<key>False</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>True</key>
+		</option>
+	</param>
+
+	<param>
+		<name>Delay (s)</name>
+		<key>delay</key>
+		<value>0.0</value>
+		<type>real</type>
+		<hide>#if $delay() == 0.0 then 'part' else 'none'#</hide>
+  </param>
+
+  <param>
+		<name>Sample rate</name>
+		<key>sample_rate</key>
+		<value>samp_rate</value>
+		<type>int</type>
+  </param>
+
+<!-- Must come before sink/source -->
+  <!--<check></check>-->
+
+  <sink>
+    <name>sig</name>
+    <type>$type</type>
+  </sink>
+
+  <sink>
+    <name>gate</name>
+    <type>float</type>
+  </sink>
+
+  <sink>
+    <name>time</name>
+    <type>$type</type>
+    <optional>1</optional>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>$type</type>
+  </source>
+
+    <doc></doc>
+</block>

@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+## Block Status
+###################################################
+-->
+<block>
+	<name>Block Status</name>
+	<key>baz_block_status</key>
+	<category>Misc</category>
+	<import>import baz</import>
+
+	<make>baz.block_status($(type.size), $(id)_msgq_out, $work_iterations, $samples_processed)</make>
+
+	<!--<callback></callback>-->
+
+  <!-- ############################################################## -->
+
+	<param>
+		<name>IO Type</name>
+		<key>type</key>
+		<type>enum</type>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>size:8</opt>
+		</option>
+		<option>
+			<name>Float</name>
+			<key>float</key>
+			<opt>size:4</opt>
+		</option>
+		<option>
+			<name>Int</name>
+			<key>int</key>
+			<opt>size:4</opt>
+		</option>
+		<option>
+			<name>Short</name>
+			<key>short</key>
+			<opt>size:2</opt>
+		</option>
+		<option>
+			<name>Byte</name>
+			<key>byte</key>
+			<opt>size:1</opt>
+		</option>
+	</param>
+
+	<param>
+		<name>Work Iterations</name>
+		<key>work_iterations</key>
+		<value>0</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Samples Processed</name>
+		<key>samples_processed</key>
+		<value>0</value>
+		<type>int</type>
+	</param>
+
+  <!-- ############################################################## -->
+
+  <sink>
+		<name>in</name>
+		<type>$type</type>
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>$type</type>
+	</source>
+
+	<source>
+		<name>status</name>
+    <type>msg</type>
+		<!--<optional>1</optional>-->
+	</source>
+
+	<doc></doc>
+</block>

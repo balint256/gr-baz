@@ -8,7 +8,7 @@
 #if $block_import
 import $block_import
 #endif</import>-->
-    <make>$block_maker</make>
+    <make>$block_maker()</make>
     <!--
 	<param>
 		<name>Import</name>
@@ -21,20 +21,21 @@ import $block_import
 		<key>block_desc</key>
 		<type>string</type>
     </param>
-    
+
     <param>
 		<name>Maker</name>
 		<key>block_maker</key>
-		<type>raw</type>
+		<!--<type>raw</type>-->
+		<type>string</type>
     </param>
-    
+
   <param>
 		<name>Num Inputs</name>
 		<key>num_inputs</key>
 		<value>1</value>
 		<type>int</type>
   </param>
-  
+
   <param>
 		<name>Num Outputs</name>
 		<key>num_outputs</key>
@@ -42,16 +43,16 @@ import $block_import
 		<type>int</type>
   </param>
 <!-- Must come before sink/source -->
-  <check>$num_inputs &gt;= 0</check>
-  <check>$num_outputs &gt;= 0</check>
-  <check>len("$block_maker") &gt; 0</check>
-  
+  <!--<check>$num_inputs &gt;= 0</check>
+  <check>$num_outputs &gt;= 0</check>-->
+  <check>len("$block_maker()") &gt; 0</check>
+
   <sink>
     <name>in</name>
     <type></type>
     <nports>$num_inputs</nports>
   </sink>
-    
+
   <source>
     <name>out</name>
     <type></type>

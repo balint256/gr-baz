@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <block>
-    <name>Any Block Source</name>
-    <key>any_source</key>
-    <category>Sources</category>
-	<import>from gnuradio import gr</import>
+    <name>Any Block (Single)</name>
+    <key>any_single</key>
+    <category>Misc</category>
+    <import>from gnuradio import gr</import>
 <!--<import>
 #if $block_import
 import $block_import
 #endif</import>-->
     <make>$block_maker()</make>
-	<!--
+    <!--
 	<param>
 		<name>Import</name>
 		<key>block_import</key>
@@ -29,28 +29,15 @@ import $block_import
 		<type>string</type>
     </param>
 
-  <param>
-		<name>Num Outputs</name>
-		<key>num_outputs</key>
-		<value>1</value>
-		<type>int</type>
-  </param>
 <!-- Must come before sink/source -->
-  <check>$num_outputs &gt; 0</check>
   <check>len("$block_maker()") &gt; 0</check>
-
-  <source>
-    <name>out</name>
-    <type></type>
-    <nports>$num_outputs</nports>
-  </source>
 
     <doc>
 Supports any generic Python GR block - just type the raw maker code/function into 'Maker'.
 
 'Desc' is so that you can recognise what this block does when glancing at the flow graph.
 
-This block wraps a GR block with at least one source only.
+This block wraps a GR block with at least one source AND at least one sink.
 
 Don't forget to use the Import block to import the necessary Python packages for your 'Maker' function!
     </doc>

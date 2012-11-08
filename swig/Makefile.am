@@ -28,7 +28,7 @@ if PYTHON
 # SWIG Python interface and library
 
 TOP_SWIG_IFILES = \
-	baz.i
+	baz_swig.i
 
 # Install so that they end up available as:
 #   import baz

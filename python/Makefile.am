@@ -32,7 +32,8 @@ modpython_PYTHON = \
 	auto_fec.py \
 	op25.py \
 	message_callback.py \
-	borip_server.py
+	borip_server.py \
+	std_flusher.py
 
 noinst_PYTHON = \
-	qa_baz.py			
+	qa_baz.py
