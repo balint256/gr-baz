@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+## Block Status
+###################################################
+-->
+<block>
+	<name>Non-blocker</name>
+	<key>baz_non_blocker</key>
+	<category>Misc</category>
+	<import>import baz</import>
+
+	<make>baz.non_blocker($(type.size), $block)</make>
+
+	<callback>set_blocking($block)</callback>
+
+  <!-- ############################################################## -->
+
+	<param>
+		<name>Type</name>
+		<key>type</key>
+		<type>enum</type>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>size:8</opt>
+		</option>
+		<option>
+			<name>Float</name>
+			<key>float</key>
+			<opt>size:4</opt>
+		</option>
+		<option>
+			<name>Int</name>
+			<key>int</key>
+			<opt>size:4</opt>
+		</option>
+		<option>
+			<name>Short</name>
+			<key>short</key>
+			<opt>size:2</opt>
+		</option>
+		<option>
+			<name>Byte</name>
+			<key>byte</key>
+			<opt>size:1</opt>
+		</option>
+	</param>
+
+	<param>
+		<name>Block</name>
+		<key>block</key>
+		<value>True</value>
+		<type>bool</type>
+		<!--<hide>#if str($eof) == 'True' then 'part' else 'none'#</hide>-->
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
+  <!-- ############################################################## -->
+
+    <sink>
+		<name>in</name>
+		<type>$type</type>
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>$type</type>
+	</source>
+
+	<doc></doc>
+</block>
