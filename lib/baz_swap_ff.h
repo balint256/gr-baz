@@ -49,7 +49,7 @@ typedef boost::shared_ptr<baz_swap_ff> baz_swap_ff_sptr;
  * \brief Return a shared_ptr to a new instance of baz_swap_ff.
  *
  * To avoid accidental use of raw pointers, baz_swap_ff's
- * constructor is private.  howto_make_square2_ff is the public
+ * constructor is private.  baz_make_swap_ff is the public
  * interface for creating new instances.
  */
 baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
@@ -63,7 +63,7 @@ baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
 class baz_swap_ff : public gr_sync_block
 {
 private:
-  // The friend declaration allows howto_make_square2_ff to
+  // The friend declaration allows baz_make_swap_ff to
   // access the private constructor.
 
   friend baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
