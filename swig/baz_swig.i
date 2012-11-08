@@ -6,6 +6,10 @@
 //#include "howto_square_ff.h"
 //#include "howto_square2_ff.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif // HAVE_CONFIG_H
+
 #include "baz_print_char.h"
 #include "baz_unpacked_to_packed_bb.h"
 #include "baz_pow_cc.h"
@@ -18,6 +22,19 @@
 #include "baz_rtl_source_c.h"
 #include "baz_udp_source.h"
 #include "baz_udp_sink.h"
+
+#ifdef GR_BAZ_WITH_CMAKE
+
+#include "baz_native_callback.h"
+#include "baz_native_mux.h"
+#include "baz_block_status.h"
+#include "baz_non_blocker.h"
+
+#ifdef UHD_FOUND
+#include "baz_gate.h"
+#endif // UHD_FOUND
+
+#endif // GR_BAZ_WITH_CMAKE
 %}
 
 //%include "howto_square_ff.i"
@@ -351,3 +368,109 @@ class baz_udp_sink : public gr_sync_block
   void set_payload_size(int payload_size);
   void set_status_msgq(gr_msg_queue_sptr queue);
 };
+
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef GR_BAZ_WITH_CMAKE
+
+class baz_native_callback_target
+{
+public:
+  virtual void callback(float f, unsigned long samples_processed)=0; // FIXME: Item size
+};
+
+typedef boost::shared_ptr<baz_native_callback_target> baz_native_callback_target_sptr;
+
+///////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,native_callback_x)
+
+baz_native_callback_x_sptr baz_make_native_callback_x (int size, /*baz_native_callback_target_sptr*/gr_basic_block_sptr target, bool threshold_enable=false, float threshold_level=0.0);
+
+class baz_native_callback_x : public gr_sync_block
+{
+private:
+  baz_native_callback_x (int size, /*baz_native_callback_target_sptr*/gr_basic_block_sptr target, bool threshold_enable, float threshold_level);  	// private constructor
+public:
+  void set_size(int size);
+  void set_target(/*baz_native_callback_target_sptr*/gr_basic_block_sptr target);
+  void set_threshold_enable(bool enable);
+  void set_threshold_level(float threshold_level);
+
+  inline int size() const
+  { return d_size; }
+  // Target
+  inline bool threshold_enable() const
+  { return d_threshold_enable; }
+  inline float threshold_level() const
+  { return d_threshold_level; }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,native_mux)
+
+baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count, int trigger_count = -1);
+
+class baz_native_mux : public gr_sync_block, public baz_native_callback_target
+{
+private:
+  baz_native_mux (int item_size, int input_count, int trigger_count);  	// private constructor
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,block_status)
+
+baz_block_status_sptr baz_make_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed);
+
+class baz_block_status : public gr_sync_block
+{
+private:
+  baz_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed);  	// private constructor
+ public:
+  void set_size(int size);
+
+  inline int size() const
+  { return d_size; }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,non_blocker)
+
+baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking = false);
+
+class baz_non_blocker : public gr_block
+{
+private:
+  baz_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking);  	// private constructor
+public:
+  void set_blocking(bool enable = true);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef UHD_FOUND
+
+GR_SWIG_BLOCK_MAGIC(baz,gate)
+
+baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false);
+
+class baz_gate : public gr_sync_block
+{
+private:
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay);  	// private constructor
+public:
+  void set_blocking(bool enable);
+  void set_threshold(float threshold);
+  void set_trigger_length(int trigger_length);
+  void set_tagging(bool enable);
+  void set_delay(double delay);
+  void set_sample_rate(int sample_rate);
+  void set_no_delay(bool no_delay);
+};
+
+#endif // UHD_FOUND
+
+#endif // GR_BAZ_WITH_CMAKE
