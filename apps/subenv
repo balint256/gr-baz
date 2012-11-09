@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# Constants
+PYTHON_VER=2.7
+
+# Arguments
+MODULE="$1"
+
+# Checks
+if [ -z "$MODULE" ]; then
+	echo "Please supply the module name"
+	return
+fi
+
+# Variables
+BASE_PATH=/home/balint/install/$MODULE
+
+if [ -d "$BASE_PATH" ]; then
+	echo "$BASE_PATH"
+else
+	echo "$BASE_PATH is not a valid directory"
+	return
+fi
+
+# Sub-environment
+LD_LIBRARY_PATH=$BASE_PATH/lib:$LD_LIBRARY_PATH
+PYTHONPATH=$BASE_PATH/lib/python$PYTHON_VER/site-packages/gnuradio:$BASE_PATH/lib/python$PYTHON_VER/site-packages:$PYTHON_PATH
+# 'export' is necessary
+export SUBENV="$MODULE"
+
+# Start the new session
+bash -i
