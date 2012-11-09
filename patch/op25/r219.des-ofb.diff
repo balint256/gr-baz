@@ -1,0 +1,2887 @@
+Index: python/usrp_p25_rx.py
+===================================================================
+--- python/usrp_p25_rx.py	(revision 219)
++++ python/usrp_p25_rx.py	(working copy)
+@@ -34,16 +34,21 @@
+ from gnuradio.wxgui import stdgui2, fftsink2, scopesink2
+ from math import pi
+ from optparse import OptionParser
+-from usrpm import usrp_dbid
++#from usrpm import usrp_dbid
+ 
+ # Python is doing strange things to our packages
+ # So we try to handle it here
+ 
+ try:
+-    from gnuradio import fsk4, op25
++    from gnuradio import fsk4
+ except Exception:
+-    import fsk4, op25
++    import fsk4
+ 
++try:
++	from gnuradio import op25
++except Exception:
++	import op25
++
+ # The P25 receiver
+ #
+ class p25_rx_block (stdgui2.std_top_block):
+@@ -82,7 +87,9 @@
+         parser.add_option("-g", "--gain", type="eng_float", default=None, help="set USRP gain in dB (default is midpoint)")
+         parser.add_option("-i", "--input", default=None, help="input file name")
+         parser.add_option("-w", "--wait", action="store_true", default=False, help="block on startup")
+-	parser.add_option("-t", "--transient", action="store_true", default=False, help="enable transient captures")
++        parser.add_option("-t", "--transient", action="store_true", default=False, help="enable transient captures")
++        parser.add_option("-a", "--audio-output", type="string", default="sysdefault", help="Audio output device")
++        parser.add_option("-A", "--antenna", type="string", default=None, help="Antenna")
+         (options, args) = parser.parse_args()
+         if len(args) != 0:
+             parser.print_help()
+@@ -140,8 +147,9 @@
+         demod_fsk4 = fsk4.demod_ff(autotuneq, channel_rate, self.symbol_rate)
+         # ALSA output device (if not locked)
+         try:
+-            sink = audio.sink(8000, "plughw:0,0", True) # ToDo: get actual device from prefs
+-        except Exception:
++            sink = audio.sink(8000, self.options.audio_output, True) # ToDo: get actual device from prefs
++        except Exception, e:
++            print e
+             sink = gr.null_sink(gr.sizeof_float)
+ 
+         # connect it all up
+@@ -305,6 +313,9 @@
+         r = self.usrp.tune(0, subdev, frequency)
+         if not r:
+             raise RuntimeError("failed to set USRP frequency")
++        if self.options.antenna is not None:
++			print "Antenna:", self.options.antenna
++			subdev.select_rx_antenna(self.options.antenna)
+         # capture file
+         if preserve:
+             try:
+Index: python/op25_c4fm_mod.py
+===================================================================
+--- python/op25_c4fm_mod.py	(revision 219)
++++ python/op25_c4fm_mod.py	(working copy)
+@@ -1,3 +1,5 @@
++#!/usr/bin/env python
++
+ #
+ # Copyright 2005,2006,2007 Free Software Foundation, Inc.
+ #
+Index: python/audio_p25_rx.py
+===================================================================
+--- python/audio_p25_rx.py	(revision 219)
++++ python/audio_p25_rx.py	(working copy)
+@@ -21,6 +21,20 @@
+ # Software Foundation, Inc., 51 Franklin Street, Boston, MA
+ # 02110-1301, USA.
+ 
++# Original 'audio_p25_rx.py' modified to output IMBE audio, and read/write WAV/float data files.
++# By balint256 on http://tech.groups.yahoo.com/group/op25-dev/
++#
++# NOTE: wx must be set to 'nongl' mode (widgets are the older non-OpenGL type)
++#   Make sure your ~/.gnuradio/config.conf has a '[wxgui]' section, which contains the line 'style=nongl'
++#
++# Voice output requires the environment variable 'IMBE' set to 'soft', AND modification to op25_decoder_ff.cc to prevent
++#   excessive zero values being output (which chops up the real output stream and produces too much silence) - this can
++#   be done by only producing 'general_work' output values when actual voice data is synthesised (i.e. return the number
++#   of synthesised samples produced and don't pad the output buffer with silence)
++#
++# If you want to capture using Wireshark, don't forget to run this as root!
++#   Use the '-w' wait option, then start Wireshark and begin capturing, then return to your terminal and hit any key.
++
+ import os
+ import pickle
+ import sys
+@@ -31,15 +45,15 @@
+ import gnuradio.wxgui.plot as plot
+ import numpy
+ 
+-from gnuradio import audio, eng_notation, fsk4, gr, gru, op25
++from gnuradio import audio, eng_notation, fsk4, gr, gru, op25, blks2
+ from gnuradio.eng_option import eng_option
+ from gnuradio.wxgui import stdgui2, fftsink2, scopesink2
+ from math import pi
+ from optparse import OptionParser
+-try:
+-  from usrpm import usrp_dbid
+-except Exception:
+-  ignore = True
++#try:
++#  from usrpm import usrp_dbid
++#except Exception:
++#  ignore = True
+ 
+ # The P25 receiver
+ #
+@@ -48,7 +62,7 @@
+     # Initialize the P25 receiver
+     #
+     def __init__(self, frame, panel, vbox, argv):
+-
++        #print "Init"
+         stdgui2.std_top_block.__init__(self, frame, panel, vbox, argv)
+ 
+         # do we have a USRP?
+@@ -56,11 +70,19 @@
+             self.usrp = None
+             from gnuradio import usrp
+             self.usrp = usrp.source_c()
+-        except Exception:
++        except Exception, e:
++            print "Could not create USRP source:", e
+             ignore = True
++        
++        # Defaults
++        self.audio_rate = 48000
++        self.channel_rate = 125000
++        self.gain = 15
++        
++        # The WAV writer (needed for 'close' after app quits, see bottom '__main__')
++        self.wav_out = None
+ 
+         # setup (read-only) attributes
+-        self.channel_rate = 125000
+         self.symbol_rate = 4800
+         self.symbol_deviation = 600.0
+ 
+@@ -70,30 +92,69 @@
+ 
+         # command line argument parsing
+         parser = OptionParser(option_class=eng_option)
++        
+         parser.add_option("-a", "--audio", action="store_true", default=False, help="use direct audio input")
+         parser.add_option("-I", "--audio-input", type="string", default="", help="pcm input device name.  E.g., hw:0,0 or /dev/dsp")
+-        parser.add_option("-i", "--input", default=None, help="input file name")
++        parser.add_option("-r", "--rate", type="int", default=self.audio_rate, help="input audio capture or float file rate (default: %default Hz)")
++        
++        parser.add_option("-i", "--input", type="string", default=None, help="complex input file name (must have info sidecar file)")
++        parser.add_option("-F", "--float-input", type="string", default=None, help="float input file name")
++        parser.add_option("-W", "--wav-input", type="string", default=None, help="WAV input file name")
++        parser.add_option("-e", "--repeat", action="store_true", default=False, help="Repeat input file endlessly (default: %default)")
++        
++        parser.add_option("-o", "--output", type="string", default=None, help="voice output file name (float samples by default)")
++        parser.add_option("-O", "--output-wav", action="store_true", default=False, help="voice output should be WAV (default: float)")
++        parser.add_option("-b", "--output-dibits", type="string", default=None, help="dump raw FSK4 dibits to file")
++        
++        parser.add_option("-w", "--wait", action="store_true", default=False, help="block on startup")
++        
+         parser.add_option("-f", "--frequency", type="eng_float", default=0.0, help="USRP center frequency", metavar="Hz")
+-        parser.add_option("-d", "--decim", type="int", default=256, help="source decimation factor")
+-        parser.add_option("-w", "--wait", action="store_true", default=False, help="block on startup")
++        
++        parser.add_option("-d", "--decim", type="int", default=256, help="USRP source decimation factor (default: %default)")
++        parser.add_option("-R", "--rx-subdev-spec", type="subdev", default=(0, 0), help="select USRP Rx side A or B (default=A)")
++        
++        parser.add_option("-D", "--chan-decim", type="int", default=None, help="channel decimation factor (default: %default)")
++        parser.add_option("-g", "--gain", type="eng_float", default=None, help=("set USRP gain in dB (default is midpoint), or audio gain factor (default: %s)" % self.gain))
++        
+         parser.add_option("-s", "--datascope-raw-input", action="store_true", default=False, help="monitor prior to symbol filter")
+-        parser.add_option("-R", "--rx-subdev-spec", type="subdev", default=(0, 0), help="select USRP Rx side A or B (default=A)")
+-        parser.add_option("-g", "--gain", type="eng_float", default=None, help="set USRP gain in dB (default is midpoint), or audio gain factor")
++        
++        parser.add_option("-k", "--des-key", type="string", default=None, help="DES-OFB key")
++        parser.add_option("-m", "--multiply", type="eng_float", default=2.0, help="Audio level multiplier")
++        
++        parser.add_option("-A", "--audio-output", type="string", default="sysdefault", help="Audio output device")
++        
+         (options, args) = parser.parse_args()
+         if len(args) != 0:
+             parser.print_help()
+             sys.exit(1)
++        
++        self.options = options
++        
++        self.repeat = options.repeat
++        self.output_dibits = options.output_dibits
++        self.output_name = options.output
++        self.output_wav = options.output_wav
++        self.audio_mul = options.multiply
++        
++        if options.rate:
++          self.audio_rate = int(options.rate);
+ 
+         self.baseband_input = False
+-        if options.audio:
+-            self.channel_rate = 48000
++        if options.audio or options.float_input or options.wav_input:
++            self.channel_rate = self.audio_rate
+             self.baseband_input = True
+ 
+         self.datascope_raw_input = options.datascope_raw_input
+ 
+-        # initialize the UI
++        # initialize the UI (must come before graph is built)
+         # 
+         self.__init_gui(frame, panel, vbox)
++        
++        # self.p25_decoder now exists
++        if options.des_key:
++          des_key = int(options.des_key, 16)
++          #print "Setting DES key:", options.des_key
++          self.p25_decoder.set_key(des_key)
+ 
+         # wait for gdb
+         if options.wait:
+@@ -101,14 +162,22 @@
+             raw_input("Press 'Enter' to continue...")
+ 
+         # configure specified data source
+-        if options.input:
+-            self.open_file(options.input)
++        if options.wav_input:
++            self.open_file(options.wav_input, options.gain, options.chan_decim, wav=True)
++            self.notebook.AdvanceSelection()
++        elif options.float_input:
++            self.open_file(options.float_input, options.gain, options.chan_decim, floating=True)
++            self.notebook.AdvanceSelection()
++        elif options.input:
++            self.open_file(options.input, None, options.chan_decim)
+         elif options.frequency:
+             self._set_state("CAPTURING")
+-            self.open_usrp(options.rx_subdev_spec, options.decim, options.gain, options.frequency, True)
++            # 'chan_decim' not used
++            # 'Reserve file' flag is now 'False'
++            self.open_usrp(options.rx_subdev_spec, options.decim, options.gain, options.frequency, False) #True, chan_decim=decim
+         elif options.audio:
+             self._set_state("CAPTURING")
+-            self.open_audio(self.channel_rate, options.gain, options.audio_input)
++            self.open_audio(self.audio_rate, options.gain, options.audio_input, options.chan_decim)
+             # skip past unused FFT spectrum plot
+             self.notebook.AdvanceSelection()
+         else:
+@@ -116,13 +185,23 @@
+ 
+     # setup common flow graph elements
+     #
+-    def __build_graph(self, source, capture_rate):
++    def __build_graph(self, source, capture_rate, chan_decim=None):
++        print "Building graph with capture rate:", capture_rate, ", channel rate:", self.channel_rate, ", channel decim:", chan_decim
+         # tell the scope the source rate
+         self.spectrum.set_sample_rate(capture_rate)
+         # channel filter
+         self.channel_offset = 0.0
+-        channel_decim = capture_rate // self.channel_rate
++        
++        if chan_decim is None:
++          channel_decim = capture_rate // self.channel_rate
++        else:
++          channel_decim = chan_decim
++        if int(channel_decim) == 0:
++          throw("Invalid channel decimation rate: " + str(channel_decim))
++          
+         channel_rate = capture_rate // channel_decim
++        print "Channel decim:", channel_decim, ", channel rate:", channel_rate
++        
+         trans_width = 12.5e3 / 2;
+         trans_centre = trans_width + (trans_width / 2)
+         # discriminator tap doesn't do freq. xlation, FM demodulation, etc.
+@@ -137,34 +216,71 @@
+             # FM demodulator
+             fm_demod_gain = channel_rate / (2.0 * pi * self.symbol_deviation)
+             fm_demod = gr.quadrature_demod_cf(fm_demod_gain)
++        
+         # symbol filter        
+         symbol_decim = 1
+         #symbol_coeffs = gr.firdes.root_raised_cosine(1.0, channel_rate, self.symbol_rate, 0.2, 500)
+         # boxcar coefficients for "integrate and dump" filter
+         samples_per_symbol = channel_rate // self.symbol_rate
++        print "Samples per symbol:", samples_per_symbol
+         symbol_coeffs = (1.0/samples_per_symbol,)*samples_per_symbol
+-        self.symbol_filter = gr.fir_filter_fff(symbol_decim, symbol_coeffs)
++        self.symbol_filter = gr.fir_filter_fff(symbol_decim, symbol_coeffs) # FIXME: Why is this not using RRC?
+ 
+         # C4FM demodulator
+         autotuneq = gr.msg_queue(2)
++        print "Symbol rate:", self.symbol_rate
+         demod_fsk4 = fsk4.demod_ff(autotuneq, channel_rate, self.symbol_rate)
+-        # for now no audio output
+-        sink = gr.null_sink(gr.sizeof_float)
++        
++        if self.wav_out != None:
++          self.wav_out.close();
++          self.wav_out = None
++        
++        if self.output_name is None:
++          #print "Outputting to null"
++          #self.sink = gr.null_sink(gr.sizeof_float)
++          print "Outputting to audio sink"
++          self.mul = gr.multiply_const_vff((self.audio_mul, ))
++          self.sink = blks2.rational_resampler_fff(interpolation=48,decimation=8,taps=None,fractional_bw=None,)
++          self.audio_out = audio.sink(48000, self.options.audio_output, True)
++          self.connect(self.sink, self.mul, self.audio_out)
++        else:
++          if self.output_wav:
++            print "Outputting WAV to:", self.output_name
++            self.sink = gr.wavfile_sink(self.output_name, 1, 8000, 16)
++            self.wav_out = self.sink
++          else:
++            print "Outputting float to:", self.output_name
++            self.sink = gr.file_sink(gr.sizeof_float, self.output_name);
++          
++        if self.output_dibits:
++          sinkx = gr.file_sink(gr.sizeof_float, self.output_dibits)
++        
+         # connect it all up
+         if self.baseband_input:
+             self.rescaler = gr.multiply_const_ff(1)
+-            sinkx = gr.file_sink(gr.sizeof_float, "rx.dat")
+-            self.__connect([[source, self.rescaler, self.symbol_filter, demod_fsk4, self.p25_decoder, sink],
++            list = [[source, self.rescaler, self.symbol_filter, demod_fsk4, self.p25_decoder, self.sink],
+                         [self.symbol_filter, self.signal_scope],
+-                        [demod_fsk4, sinkx],
+-                        [demod_fsk4, self.symbol_scope]])
+-            self.connect_data_scope(not self.datascope_raw_input)
++                        [demod_fsk4, self.symbol_scope]]
++            
++            if self.output_dibits:
++              list.append([demod_fsk4, sinkx])
++              
++            self.__connect(list)
++            
++            #self.connect_data_scope(not self.datascope_raw_input)
+         else:
+             self.demod_watcher = demod_watcher(autotuneq, self.adjust_channel_offset)
+-            self.__connect([[source, self.channel_filter, self.squelch, fm_demod, self.symbol_filter, demod_fsk4, self.p25_decoder, sink],
++            list = [[source, self.channel_filter, self.squelch, fm_demod, self.symbol_filter, demod_fsk4, self.p25_decoder, self.sink],
+                         [source, self.spectrum],
+                         [self.symbol_filter, self.signal_scope],
+-                        [demod_fsk4, self.symbol_scope]])
++                        [demod_fsk4, self.symbol_scope]]
++            
++            if self.output_dibits:
++              list.append([demod_fsk4, sinkx])
++            
++            self.__connect(list)
++        
++        self.connect_data_scope(not self.datascope_raw_input)
+ 
+     # Connect up the flow graph
+     #
+@@ -269,33 +385,40 @@
+ 
+         # setup the notebook
+         self.notebook = wx.Notebook(self.panel)
+-        self.vbox.Add(self.notebook, 1, wx.EXPAND)       
++        self.vbox.Add(self.notebook, 1, wx.EXPAND)
++        
+         # add spectrum scope
+         self.spectrum = fftsink2.fft_sink_c(self.notebook, fft_size=512, fft_rate=2, average=True, peak_hold=True)
+         self.spectrum_plotter = self.spectrum.win.plot
+         self.spectrum_plotter.Bind(wx.EVT_LEFT_DOWN, self._on_spectrum_left_click)
+         self.notebook.AddPage(self.spectrum.win, "RF Spectrum")
++        
+         # add C4FM scope
+         self.signal_scope = scopesink2.scope_sink_f(self.notebook, sample_rate = self.channel_rate, v_scale=5, t_scale=0.001)
+         self.signal_plotter = self.signal_scope.win.graph
+         self.notebook.AddPage(self.signal_scope.win, "C4FM Signal")
++        
+         # add datascope
+         self.data_scope = datascope_sink_f(self.notebook, samples_per_symbol = self.channel_rate // self.symbol_rate, num_plots = 100)
+         self.data_plotter = self.data_scope.win.graph
+         wx.EVT_RADIOBOX(self.data_scope.win.radio_box, 11103, self.filter_select)
+         self.notebook.AddPage(self.data_scope.win, "Datascope")
++        
+         # add symbol scope
+         self.symbol_scope = scopesink2.scope_sink_f(self.notebook, frame_decim=1, sample_rate=self.symbol_rate, v_scale=1, t_scale=0.05)
+         self.symbol_plotter = self.symbol_scope.win.graph
+         self.symbol_scope.win.set_format_plus()
+         self.notebook.AddPage(self.symbol_scope.win, "Demodulated Symbols")
++        
+         # Traffic snapshot
+         self.traffic = TrafficPane(self.notebook)
+         self.notebook.AddPage(self.traffic, "Traffic")
++        
+         # Setup the decoder and report the TUN/TAP device name
+-        msgq = gr.msg_queue(2)
+-        self.decode_watcher = decode_watcher(msgq, self.traffic)
+-        self.p25_decoder = op25.decoder_ff(msgq)
++        self.op25_msgq = gr.msg_queue(2)
++        self.p25_decoder = op25.decoder_ff(self.op25_msgq)
++        
++        self.decode_watcher = decode_watcher(self.op25_msgq, self.traffic)
+         self.frame.SetStatusText("TUN/TAP: " + self.p25_decoder.device_name())
+ 
+     # read capture file properties (decimation etc.)
+@@ -308,32 +431,46 @@
+ 
+     # setup to rx from file
+     #
+-    def __set_rx_from_file(self, filename, capture_rate):
+-        file = gr.file_source(gr.sizeof_gr_complex, filename, True)
+-        throttle = gr.throttle(gr.sizeof_gr_complex, capture_rate)
++    def __set_rx_from_file(self, filename, capture_rate, chan_decim=None, floating=False, wav=False):
++        if floating == True:
++          file = gr.file_source(gr.sizeof_float, filename, self.repeat)
++          throttle = gr.throttle(gr.sizeof_float, capture_rate)
++        elif wav == True:
++          file = gr.wavfile_source(filename, self.repeat)
++          capture_rate = file.sample_rate() # bits_per_sample(), channels()
++          self.channel_rate = capture_rate
++          throttle = gr.throttle(gr.sizeof_float, capture_rate)
++        else:
++          file = gr.file_source(gr.sizeof_gr_complex, filename, self.repeat)
++          throttle = gr.throttle(gr.sizeof_gr_complex, capture_rate)
++        
+         self.__connect([[file, throttle]])
+-        self.__build_graph(throttle, capture_rate)
++        self.__build_graph(throttle, capture_rate, chan_decim)
+ 
+     # setup to rx from Audio
+     #
+-    def __set_rx_from_audio(self, capture_rate):
+-        self.__build_graph(self.source, capture_rate)
++    def __set_rx_from_audio(self, capture_rate, chan_decim):
++        self.__build_graph(self.source, capture_rate, chan_decim)
+ 
+     # setup to rx from USRP
+     #
+-    def __set_rx_from_usrp(self, subdev_spec, decimation_rate, gain, frequency, preserve):
++    def __set_rx_from_usrp(self, subdev_spec, decimation_rate, gain, frequency, preserve, chan_decim=None):
+         from gnuradio import usrp
+         # setup USRP
+         self.usrp.set_decim_rate(decimation_rate)
+         if subdev_spec is None:
+             subdev_spec = usrp.pick_rx_subdevice(self.usrp)
++            #print subdev_spec
++        #print subdev_spec
+         self.usrp.set_mux(usrp.determine_rx_mux_value(self.usrp, subdev_spec))
+         subdev = usrp.selected_subdev(self.usrp, subdev_spec)
+         capture_rate = self.usrp.adc_freq() / self.usrp.decim_rate()
++        #print capture_rate
+         self.info["capture-rate"] = capture_rate
+         if gain is None:
+             g = subdev.gain_range()
+             gain = float(g[0]+g[1])/2
++            #print gain
+         subdev.set_gain(gain)
+         r = self.usrp.tune(0, subdev, frequency)
+         if not r:
+@@ -349,7 +486,7 @@
+         else:
+             self.capture_filename = None
+         # everything else
+-        self.__build_graph(self.usrp, capture_rate)
++        self.__build_graph(self.usrp, capture_rate, chan_decim)
+ 
+     # Change the UI state
+     #
+@@ -541,28 +678,47 @@
+ 
+     # Open an existing capture file
+     #
+-    def open_file(self, capture_file):
+-        try:
+-            self.__read_file_properties(capture_file + ".info")
+-            capture_rate = self.info["capture-rate"]
+-            self.__set_rx_from_file(capture_file, capture_rate)
++    def open_file(self, capture_file, gain=None, chan_decim=None, floating=False, wav=False):
++        #try:
++            #source_decim = None
++            
++            if not (floating or wav):
++              self.__read_file_properties(capture_file + ".info")
++              capture_rate = self.info["capture-rate"]
++              #try:
++              #  source_decim = self.info["source-decim"]
++              #except:
++              #  source_decim = None
++            else:
++              capture_rate = self.audio_rate
++            
++            self.__set_rx_from_file(capture_file, capture_rate, chan_decim, floating, wav)
+             self._set_titlebar(capture_file)
+             self._set_state("RUNNING")
+-        except Exception, x:
+-            wx.MessageBox("Cannot open capture file: " + x.message, "File Error", wx.CANCEL | wx.ICON_EXCLAMATION)
++            
++            if floating or wav:
++              if gain is None:
++                  gain = self.gain
++              gain = int(gain)
++              self.rescaler.set_k(gain)
++              self.gain_control.SetValue(gain)
++              self.gain_field.SetValue(str(gain))
++        #except Exception, x:
++        #    wx.MessageBox("Cannot open capture file: " + x.message, "File Error", wx.CANCEL | wx.ICON_EXCLAMATION)
+ 
+-    def open_audio(self, capture_rate, gain, audio_input_filename):
++    def open_audio(self, capture_rate, gain, audio_input_filename, chan_decim):
+             self.info = {
+                 "capture-rate": capture_rate,
+                 "center-freq": 0,
+                 "source-dev": "AUDIO",
+                 "source-decim": 1 }
+             self.source = audio.source(capture_rate, audio_input_filename)
+-            self.__set_rx_from_audio(capture_rate)
++            self.__set_rx_from_audio(capture_rate, chan_decim)
+             self._set_titlebar("Capturing")
+             self._set_state("CAPTURING")
++            
+             if gain is None:
+-                gain = 50
++                gain = self.gain
+             gain = int(gain)
+             self.rescaler.set_k(gain)
+             self.gain_control.SetValue(gain)
+@@ -621,7 +777,6 @@
+ # A snapshot of important fields in current traffic
+ #
+ class TrafficPane(wx.Panel):
+-
+     # Initializer
+     #
+     def __init__(self, parent):
+@@ -867,7 +1022,6 @@
+     def get_marker (self):
+         return self.marker
+ 
+-
+ class datascope_input_watcher (threading.Thread):
+     def __init__ (self, msgq, event_receiver, frame_decim, num_plots, samples_per_symbol, **kwds):
+         threading.Thread.__init__ (self, **kwds)
+@@ -924,7 +1078,6 @@
+             self.skip_samples = self.num_plots * self.samples_per_symbol * 20
+ 
+ class datascope_window (wx.Panel):
+-
+     def __init__ (self, info, parent, id = -1,
+                   samples_per_symbol=10, num_plots=100,
+                   pos = wx.DefaultPosition, size = wx.DefaultSize, name = ""):
+@@ -943,7 +1096,6 @@
+         self.SetSizer (self.sizer)
+         self.SetAutoLayout (True)
+         self.sizer.Fit (self)
+-        
+ 
+     # second row of control buttons etc. appears BELOW control_box
+     def make_control2_box (self):
+@@ -1037,4 +1189,9 @@
+ #
+ if '__main__' == __name__:
+     app = stdgui2.stdapp(p25_rx_block, "APCO P25 Receiver", 3)
++    wav_out = app.TopWindow.top_block().wav_out
+     app.MainLoop()
++    print "Exit"
++    if wav_out is not None:
++        wav_out.close()
++        print "WAV output file closed"
+Index: python/cqpsk.py
+===================================================================
+--- python/cqpsk.py	(revision 219)
++++ python/cqpsk.py	(working copy)
+@@ -1,3 +1,5 @@
++#!/usr/bin/env python
++
+ #
+ # Copyright 2005,2006,2007 Free Software Foundation, Inc.
+ #
+Index: imbe_vocoder/src/python/Makefile.in (deleted)
+===================================================================
+Index: imbe_vocoder/src/python/run_tests (deleted)
+===================================================================
+Index: imbe_vocoder/src/python/Makefile (deleted)
+===================================================================
+Index: imbe_vocoder/src/lib/op25_imbe.i
+===================================================================
+--- imbe_vocoder/src/lib/op25_imbe.i	(revision 219)
++++ imbe_vocoder/src/lib/op25_imbe.i	(working copy)
+@@ -2,6 +2,10 @@
+ 
+ %feature("autodoc", "1");		// generate python docstrings
+ 
++%{
++#include "malloc.h"
++%}
++
+ %include "exception.i"
+ %import "gnuradio.i"			// the common stuff
+ 
+Index: imbe_vocoder/src/lib/op25_imbe_vocoder.cc
+===================================================================
+--- imbe_vocoder/src/lib/op25_imbe_vocoder.cc	(revision 219)
++++ imbe_vocoder/src/lib/op25_imbe_vocoder.cc	(working copy)
+@@ -265,6 +265,11 @@
+ 	}
+ }
+ 
++void op25_imbe_vocoder::decode(Word16 *frame_vector, Word16 *snd)
++{
++  decode(&my_imbe_param, frame_vector, snd);
++}
++
+ void op25_imbe_vocoder::compress_frame(Word16 snd[])
+ {
+ 	Word16 frame_vector[8];	
+Index: imbe_vocoder/src/lib/op25_imbe_vocoder.h
+===================================================================
+--- imbe_vocoder/src/lib/op25_imbe_vocoder.h	(revision 219)
++++ imbe_vocoder/src/lib/op25_imbe_vocoder.h	(working copy)
+@@ -28,6 +28,11 @@
+ #include <stdint.h>
+ #include <vector>
+ #include <deque>
++
++#include "imbe.h" // FIXME: This header is useless in /usr/local/include w/o typedefs
++#include "dsp_sub.h"
++#include "encode.h"
++
+ typedef std::vector<bool> bit_vector;
+ 
+ class op25_imbe_vocoder;
+@@ -89,6 +94,8 @@
+ 		    gr_vector_const_void_star &input_items,
+ 		    gr_vector_void_star &output_items);
+ 
++    void decode(Word16 *frame_vector, Word16 *snd);
++
+   private:
+ 	static const int RXBUF_MAX = 80;
+ 
+Index: imbe_vocoder/configure.ac
+===================================================================
+--- imbe_vocoder/configure.ac	(revision 219)
++++ imbe_vocoder/configure.ac	(working copy)
+@@ -87,7 +87,9 @@
+ 
+ STD_DEFINES_AND_INCLUDES="$GNURADIO_CORE_CFLAGS $BOOST_CFLAGS"
+ AC_SUBST(STD_DEFINES_AND_INCLUDES)
+- 
++
++PKG_CHECK_MODULES(GRUEL, gruel)
++
+ AC_CONFIG_FILES([\
+ 	  Makefile \
+ 	  config/Makefile \
+Index: imbe_vocoder/Makefile.common
+===================================================================
+--- imbe_vocoder/Makefile.common	(revision 219)
++++ imbe_vocoder/Makefile.common	(working copy)
+@@ -26,6 +26,9 @@
+ # swig includes 
+ swigincludedir = $(grincludedir)/swig
+ 
++# gruel includes
++gruelincludedir = $(GRUEL_INCLUDEDIR)/gruel
++
+ # Install this stuff in the appropriate subdirectory
+ # This usually ends up at:
+ #   ${prefix}/lib/python${python_version}/site-packages/gnuradio
+@@ -35,4 +38,4 @@
+ 
+ # swig flags
+ SWIGPYTHONFLAGS = -fvirtual -python -modern
+-SWIGGRFLAGS = -I$(GNURADIO_CORE_INCLUDEDIR)/swig -I$(GNURADIO_CORE_INCLUDEDIR)
++SWIGGRFLAGS = -I$(GNURADIO_CORE_INCLUDEDIR)/swig -I$(gruelincludedir)/swig -I$(GNURADIO_CORE_INCLUDEDIR)
+Index: imbe_vocoder/config/Makefile.in (deleted)
+===================================================================
+Index: imbe_vocoder/config/Makefile (deleted)
+===================================================================
+Index: decoder/src/python/qa_op25.py
+===================================================================
+--- decoder/src/python/qa_op25.py	(revision 219)
++++ decoder/src/python/qa_op25.py	(working copy)
+@@ -31,7 +31,7 @@
+ class qa_op25(gr_unittest.TestCase):
+ 
+     def setUp(self):
+-        self.fg = gr.flow_graph ()
++        self.fg = gr.top_block ()
+ 
+     def tearDown(self):
+         self.fg = None
+Index: decoder/src/lib/ldu2.cc
+===================================================================
+--- decoder/src/lib/ldu2.cc	(revision 219)
++++ decoder/src/lib/ldu2.cc	(working copy)
+@@ -22,18 +22,143 @@
+  */
+ 
+ #include <ldu2.h>
++#include <itpp/base/vec.h>
++#include <itpp/base/mat.h>
++#include <itpp/base/binary.h>
++#include <itpp/base/converters.h>
++#include <iostream>
++#include "stdio.h"
+ 
++using namespace std;
++using namespace itpp;
++
+ using std::string;
+ 
+ ldu2::ldu2(const_bit_queue& frame_body) :
+    voice_data_unit(frame_body)
+ {
++   memset(m_mi, 0, sizeof(m_mi));
++   m_kid = 0;
++   m_algid = 0;
+ }
+ 
+ ldu2::~ldu2()
+ {
+ }
+ 
++static int adjust_bit_index_for_status(int i)
++{
++   int x = i / 70;
++   return i + (x * 2);
++}
++
++typedef vector<itpp::Vec<int> > VecArray;
++
++static itpp::Mat<int> ham_10_6_3_6("1 1 1 0 0 1 1 0 0 0; 1 1 0 1 0 1 0 1 0 0; 1 0 1 1 1 0 0 0 1 0; 0 1 1 1 1 0 0 0 0 1");
++
++static void vec_mod(ivec& vec)
++{
++   for (int i = 0; i < vec.length(); ++i)
++      vec[i] = vec[i] % 2;
++}
++
++void ldu2::do_correct_errors(bit_vector& frame_body)
++{
++   printf("\n");	// Extra space after last console voice line
++   
++   voice_data_unit::do_correct_errors(frame_body);
++   
++   unsigned char lc[30];
++   unsigned short ham[24];
++   int lc_bit_idx = 0;
++   VecArray arrayVec;
++   itpp::Vec<int> vecRaw(10); // First 6 bits contain data
++   
++   for (int i = 400; i < 1360; i += 184)
++   {
++      for (int j = 0; j < 40; j++)
++      {
++         int x = adjust_bit_index_for_status(i + j);
++         bool b = frame_body[x];
++         unsigned char ch = (b ? 0x1 : 0x0);
++         
++         lc[lc_bit_idx / 8]   |= (ch << (7 - (lc_bit_idx % 8)));
++         ham[lc_bit_idx / 10] = ((ham[lc_bit_idx / 10]) << 1) | ch;
++         vecRaw(lc_bit_idx % 10) = ch;
++         
++         ++lc_bit_idx;
++         
++         if ((lc_bit_idx % 10) == 0)
++            arrayVec.push_back(vecRaw);
++      }
++   }
++   
++   if (lc_bit_idx != 240)
++   {
++      printf("ERROR: Not enough bits\n");
++      return;
++   }
++   
++   if (arrayVec.size() != 24)
++   {
++      printf("ERROR: Not enough vecs: %d\n", arrayVec.size());
++      return;
++   }
++   
++   itpp::Vec<int> vecZero(4);
++   vecZero.zeros();
++   
++   bvec data;
++   
++   for (int i = 0; i < arrayVec.size(); ++i)
++   {
++      itpp::Vec<int>& vec = arrayVec[i];
++      bvec vB(to_bvec(vec));
++      //printf("Vec %02i: %s", i, format_vec(vec).c_str());
++      
++      itpp::Mat<int>& mat = ham_10_6_3_6;;
++      itpp::Vec<int> vS = mat * vec;
++      vec_mod(vS);
++      bvec vb(to_bvec(vS));
++      //printf("Check %i: %s\n", j, format_vec(vecCheck).c_str());
++      if (bin2dec(vb) == 0)
++      {
++         //printf(" - OK\n");
++      }
++      else
++      {
++         ++m_iHammingErrors;
++         
++         //std::stringstream ss;
++         //ss << i << " " << vec << " ";
++         //ss << vecCheck;
++         //printf(" - Parity error: %s\n", ss.str().c_str());
++      }
++      
++      data = concat(data, vB.mid(0, 6));  // Includes RS for last 72 bits
++   }
++   
++   if (data.length() != 144)
++   {
++      cout << "ERROR: Not enough bits after Hamming(10,6,3): " << data.length() << endl;
++      return;
++   }
++   
++   m_bValid = true;
++   
++   //bin2dec(data.mid(0, 8));
++   
++   printf("LDU2: MI=");
++   for (int i = 0; i < 72; i += 8)
++   {
++      m_mi[/*8 - */i/8] = bin2dec(data.mid(i, 8));  // [Byte swapping]
++      printf("%02X", (int)m_mi[/*8 - */i/8]);
++   }
++   printf("\n");
++   m_algid = bin2dec(data.mid(72, 8));
++   m_kid = bin2dec(data.mid(80, 16));
++}
++
+ string
+ ldu2::duid_str() const
+ {
+Index: decoder/src/lib/voice_data_unit.h
+===================================================================
+--- decoder/src/lib/voice_data_unit.h	(revision 219)
++++ decoder/src/lib/voice_data_unit.h	(working copy)
+@@ -26,6 +26,8 @@
+ 
+ #include <abstract_data_unit.h>
+ 
++extern int generate_cyclic_16_8_5_syndromes();
++
+ /**
+  * P25 Logical Data Unit 1 (compressed IBME voice).
+  */
+@@ -37,7 +39,17 @@
+     * voice_data_unit (virtual) destuctor
+     */
+    virtual ~voice_data_unit();
++   
++    union {
++        unsigned char m_lsd_byte[2];
++        unsigned short m_lsd;
++    };
++    bool m_lsd_valid;
++    bool m_lsd_bytes_valid[2];
+ 
++    bool m_bValid;
++    int m_iHammingErrors;
++
+ protected:
+ 
+    /**
+Index: decoder/src/lib/des.h
+===================================================================
+--- decoder/src/lib/des.h	(revision 0)
++++ decoder/src/lib/des.h	(working copy)
+@@ -0,0 +1,15 @@
++typedef unsigned long DES_KS[16][2];	/* Single-key DES key schedule */
++typedef unsigned long DES3_KS[48][2];	/* Triple-DES key schedule */
++
++/* In deskey.c: */
++void deskey(DES_KS,unsigned char *,int);
++void des3key(DES3_KS,unsigned char *,int);
++
++/* In desport.c, desborl.cas or desgnu.s: */
++void des(DES_KS,unsigned char *);
++/* In des3port.c, des3borl.cas or des3gnu.s: */
++void des3(DES3_KS,unsigned char *);
++
++extern int Asmversion;	/* 1 if we're linked with an asm version, 0 if C */
++
++
+Index: decoder/src/lib/op25_decoder_ff.cc
+===================================================================
+--- decoder/src/lib/op25_decoder_ff.cc	(revision 219)
++++ decoder/src/lib/op25_decoder_ff.cc	(working copy)
+@@ -36,6 +36,15 @@
+ #include <voice_du_handler.h>
+ #include <op25_yank.h>
+ 
++#include <voice_data_unit.h>
++#include <hdu.h>
++#include <ldu1.h>
++#include <ldu2.h>
++#include <software_imbe_decoder.h>
++#include <iomanip>
++
++#include "bch.h"
++
+ using namespace std;
+ 
+ op25_decoder_ff_sptr
+@@ -46,6 +55,11 @@
+ 
+ op25_decoder_ff::~op25_decoder_ff()
+ {
++   if (f)
++   {
++      fclose(f);
++      f = NULL;
++   }  
+ }
+ 
+ void
+@@ -60,6 +74,8 @@
+    fill(&nof_input_items_reqd[0], &nof_input_items_reqd[nof_inputs], nof_samples_reqd);
+ }
+ 
++
++
+ int
+ op25_decoder_ff::general_work(int nof_output_items, gr_vector_int& nof_input_items, gr_vector_const_void_star& input_items, gr_vector_void_star& output_items)
+ {
+@@ -78,6 +94,7 @@
+          } else {
+             d = 1;
+          }
++//fwrite(&d, 1, 1, f);
+          receive_symbol(d);
+       }
+       consume_each(nof_input_items[0]);
+@@ -85,15 +102,17 @@
+       // produce audio
+       audio_samples *samples = d_imbe->audio();
+       float *out = reinterpret_cast<float*>(output_items[0]);
++//if ((nof_input_items[0] > 0) && (samples->size() > 0))
++//fprintf(stderr, "# output items: %i, # input items: %i, input items length: %d, audio: %i\n", nof_output_items, nof_input_items[0], nof_input_items.size(), samples->size());
+       const int n = min(static_cast<int>(samples->size()), nof_output_items);
+       if(0 < n) {
+          copy(samples->begin(), samples->begin() + n, out);
+          samples->erase(samples->begin(), samples->begin() + n);
+       }
+-      if(n < nof_output_items) {
++      /*if(n < nof_output_items) {
+          fill(out + n, out + nof_output_items, 0.0);
+-      }
+-      return nof_output_items;
++      }*/
++      return n/*of_output_items*/;
+ 
+    } catch(const std::exception& x) {
+       cerr << x.what() << endl;
+@@ -116,8 +135,24 @@
+    d_frame_hdr(),
+    d_imbe(imbe_decoder::make()),
+    d_state(SYNCHRONIZING),
+-   d_sniffer_du_handler(NULL)
++   d_sniffer_du_handler(NULL),
++   d_data_handling_count(0)
+ {
++   // Hax //////////////////////////////
++   bHeader = false; bNewLine = false/*; bData = false; bEnd = false*/;
++   usTGID = 0; usNAC = 0;
++   ucLCF = 0;
++   iSource = 0; iDestination = 0;
++   iExpectingLDU = 0;
++   bDump = true;
++   /////////////////////////////////////
++   
++   generate_cyclic_16_8_5_syndromes();
++   
++   f = fopen("dump.txt", "w");   // a Append
++   if (f == NULL)
++      perror("Failed to open LSD dump");
++
+    d_sniffer_du_handler =  new sniffer_du_handler(d_data_unit_handler);
+    d_data_unit_handler = data_unit_handler_sptr(d_sniffer_du_handler);
+    d_data_unit_handler = data_unit_handler_sptr(new snapshot_du_handler(d_data_unit_handler, msgq));
+@@ -146,6 +181,8 @@
+    return (errs <= 4);
+ }
+ 
++static itpp::bvec zeroes("0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0");
++
+ data_unit_sptr
+ op25_decoder_ff::identified()
+ {
+@@ -161,12 +198,36 @@
+    };
+    size_t NID_SZ = sizeof(NID) / sizeof(NID[0]);
+ 
+-   itpp::bvec b(63), zeroes(16);
+-   itpp::BCH bch(63, 16, 11, "6 3 3 1 1 4 1 3 6 7 2 3 5 4 5 3", true);
++   itpp::bvec b(63)/*, zeroes(16)*/;
++/*	for (int i = 0; i < zeroes.size(); ++i)
++		fprintf(stderr, "%d", (zeroes[i]?1:0));
++	fprintf(stderr, "\n");
++*/
++   itpp::BCH bch(63, 16, 11, itpp::ivec("6 3 3 1 1 4 1 3 6 7 2 3 5 4 5 3"), true);
+    yank(d_frame_hdr,  NID, NID_SZ, b, 0);
+-   b = bch.decode(b);
+-   if(b != zeroes) {
+-      b = bch.encode(b);
++   //b = bch.decode(b);
++   //if(b != zeroes) {
++	bit_vector bv(16);
++	for (int i = 0; i < b.size(); ++i)
++		bv[i] = b[i];
++	if (bchDec(bv) == 0) {
++		for (int i = 0; i < b.size(); ++i)
++			b[i] = bv[i];
++/*	for (int i = 0; i < b.size(); ++i)
++		fprintf(stderr, "%d", (b[i]?1:0));
++	fprintf(stderr, "\n");
++*/
++//      b = bch.encode(b);
++    
++/*    for (int i = 0; i < (b.size() / 2); ++i)
++	{
++		int c = 0x00;
++		c |= (int)b[i*2+0] << 1;
++		c |= (int)b[i*2+1] << 0;
++		fprintf(stderr, "%d", c);
++	}
++	fprintf(stderr, "\n");
++*/
+       yank_back(b, 0, d_frame_hdr, NID, NID_SZ);
+       d_data_unit = data_unit::make_data_unit(d_frame_hdr);
+    } else {
+@@ -205,7 +266,217 @@
+       d_data_unit->extend(d);
+       if(d_data_unit->is_complete()) {
+          d_data_unit->correct_errors();
++         
++         string strType = d_data_unit->duid_str();
++         
++         if (strType == "PDU")
++         {
++            cout << "PDU" << endl;
++         }
++         else if (strType == "TSBK")
++         {
++			 //cout << "Trunking signalling block" << endl;
++		 }
++         
++         unsigned long long ullMID;
++         bool bHaveIV = false;
++         
++         if (strType == "LDU1")
++         {
++            data_unit* pDU = d_data_unit.get();
++            ldu1* pLDU1 = (ldu1*)pDU;
++            
++            bool bFirst = (ssName.str().size() == 0);
++            if (bFirst)
++               ssName << "NAC:" << usNAC << " TGID:" << usTGID;
++            
++            if (bDump) printf("LDU1 ");
++            if (pLDU1->m_bValid)
++            {
++               if (pLDU1->ucLCF == 0x00)
++               {
++                  if (bDump) printf("MFID: 0x%02X Emergency: %d Reserved: 0x%04X TGID: 0x%04X Source: 0x%06X", pLDU1->ucMFID,
++                     pLDU1->bEmergency,
++                     pLDU1->usReserved,
++                     pLDU1->usTGID,
++                     pLDU1->iSource);
++                  
++                  if (bFirst)
++                     ssName << " Src:" << pLDU1->iSource;
++                  
++                  if (bHeader && (pLDU1->usTGID != usTGID))
++                  {
++                     if (bDump) cout << " Different TGID to header!";
++                  }
++               }
++               else if (pLDU1->ucLCF == 0x00)
++               {
++                  printf("MFID: 0x%02X Reserved: 0x%04X Destination: 0x%06X Source: 0x%06X", pLDU1->ucMFID,
++                     pLDU1->usReserved,
++                     pLDU1->iDestination,
++                     pLDU1->iSource);
++                  
++                  if (bFirst)
++                     ssName << " Src:" << pLDU1->iSource << " Dest:" << pLDU1->iDestination;
++               }
++               else
++               {
++                  if (bDump) printf("Unknown LCF 0x%02X", pLDU1->ucLCF);
++                  if (bFirst)
++                     ssName << " LCF:" << (int)pLDU1->ucLCF;
++               }
++            }
++            else
++            {
++               if (bDump) cout << "invalid";
++               if (bFirst)
++                  ssName << " Invalid";
++            }
++            
++            if (pLDU1->m_iHammingErrors > 0)
++            {
++               if (bDump) cout << " (" << pLDU1->m_iHammingErrors << " Hamming errors)";
++            }
++            
++            if (bDump) cout << endl;
++         }
++         else if (strType == "LDU2")
++         {
++            data_unit* pDU = d_data_unit.get();
++            ldu2* pLDU2 = (ldu2*)pDU;
++            
++            if (bDump) printf("LDU2 ");
++            
++            memcpy(&ullMID, pLDU2->m_mi, sizeof(unsigned long long)); // Only copies first 8 of 9 bytes (64 bit IV)
++            bHaveIV = true;
++            
++            if (bDump) printf("AlgID: 0x%02X KID: 0x%04X IV: 0x%016llX", pLDU2->m_algid, pLDU2->m_kid, ullMID);
++            
++            if (pLDU2->m_iHammingErrors > 0)
++            {
++               if (bDump) cout << " (" << pLDU2->m_iHammingErrors << " Hamming errors)";
++            }
++            
++            if (bDump) cout << endl;
++         }
++         
++         if ((strType == "LDU1") || (strType == "LDU2")) // Write bits into stringstream
++         {
++            data_unit* pDU = d_data_unit.get();
++            voice_data_unit* vdu = (voice_data_unit*)pDU;
++            if (/*f && */bHeader/* && !bEnd*/) // File open, seen header, still in stream
++            {
++               if ((iExpectingLDU == 1) && (strType == "LDU2"))
++               {
++                  ssBits << "!\"Expecting LDU1\"";
++               }
++               else if ((iExpectingLDU == 2) && (strType == "LDU1"))
++               {
++                  ssBits << "!\"Expecting LDU2\"";
++               }
++               
++               for (int j = 0; j < 2; ++j)
++               {
++                  if (vdu->m_lsd_bytes_valid[j] == false)
++                     ssBits << "!#8#";
++                  for (int i = 0; i < 8; ++i)
++                  {
++                     bool b = ((vdu->m_lsd_byte[j] & (0x80 >> (i % 8))) != 0x00);
++                     ssBits << (b ? "1" : "0");
++                  }
++               }
++               
++               //bData = true;
++               //bNewLine = false;
++            }
++         }
++         //else if (bHeader)// if ((strType == "HDU") || (strType == "LDU"))
++         else if (ssBits.str().size() > 0)
++         {
++            string strBits = ssBits.str();
++            
++            if (ssName.str().empty() == false)
++               strBits = ssName.str() + "|" + strBits;
++            
++//            fwrite(strBits.c_str(), strBits.size(), 1, f);
++//            fwrite("\r\n", 2, 1, f);
++            
++            ssBits.str("");
++            bHeader = false;
++            
++            if (bNewLine == false)
++            {
++               if (bDump) cout << endl;
++               bNewLine = true;
++            }
++         }
++         
++         if (strType == "LDU1")
++         {
++            iExpectingLDU = 2;
++         }
++         else if (strType == "LDU2")
++         {
++            iExpectingLDU = 1;
++         }
++         else if (strType == "HDU")
++         {
++            bHeader = true;   // Seen header
++            
++            data_unit* pDU = d_data_unit.get();
++            hdu* pHDU = (hdu*)pDU;
++            
++            usNAC = pHDU->nac();
++            usTGID = pHDU->tgid();
++            
++            if (bDump)
++            {
++               printf("HDU NAC: 0x%04X TGID: 0x%04X", usNAC, usTGID);
++               
++               memcpy(&ullMID, pHDU->m_mi, sizeof(unsigned long long)); // Only copies first 8 of 9 bytes (64 bit IV)
++               bHaveIV = true;
++               
++               printf(" AlgID: 0x%02X KID: 0x%04X IV: 0x%016llX\n", pHDU->m_algid, pHDU->m_kid, ullMID);
++               
++               //printf("\n");
++            }
++else cout << "."; fflush(stdout);
++            bNewLine = false;
++            
++            iExpectingLDU = 1;
++            
++            ssName.str("");
++         }
++         else if (strType != "TDU")
++			cout << ".";
++         
++         if ((bHaveIV) && (strType == "HDU"))
++         {
++            imbe_decoder* pDecoder = d_imbe.get();
++            software_imbe_decoder* pSoft = dynamic_cast<software_imbe_decoder*>(pDecoder);
++            if (pSoft)
++            {
++               cout << endl << "HDU: New IV" << endl;
++               pSoft->set_iv(ullMID);
++            }
++         }
++         
++         ++d_data_handling_count;
++//cout << setw(6) << d_data_handling_count << " [Data handler: ";
+          d_data_unit_handler->handle(d_data_unit);
++//cout << "]" << endl;
++         
++         if ((bHaveIV) && (strType == "LDU2"))
++         {
++            imbe_decoder* pDecoder = d_imbe.get();
++            software_imbe_decoder* pSoft = dynamic_cast<software_imbe_decoder*>(pDecoder);
++            if (pSoft)
++            {
++               cout << endl << "LDU2: New IV" << endl;
++               pSoft->set_iv(ullMID);
++            }
++         }
++         
+          data_unit_sptr null;
+          d_data_unit = null;
+          d_state = SYNCHRONIZING;
+@@ -213,3 +484,22 @@
+       break;
+    }
+ }
++
++void op25_decoder_ff::set_key(const char* key)
++{
++   //
++}
++
++void op25_decoder_ff::set_key(unsigned long long key)
++{
++   imbe_decoder* pDecoder = d_imbe.get();
++   software_imbe_decoder* pSoft = dynamic_cast<software_imbe_decoder*>(pDecoder);
++   if (pSoft == NULL)
++   {
++      printf("Cannot set key for non-software IMBE decoder\n");
++      return;
++   }
++   
++   //printf("Decoder key: %llX\n", key);
++   pSoft->set_key(key);
++}
+Index: decoder/src/lib/hdu.h
+===================================================================
+--- decoder/src/lib/hdu.h	(revision 219)
++++ decoder/src/lib/hdu.h	(working copy)
+@@ -59,6 +59,10 @@
+     * \return A string containing the fields to display.
+     */
+    virtual std::string snapshot() const;
++   
++   uint8_t m_mi[9];
++   uint16_t m_kid;
++   uint8_t m_algid;
+ 
+ protected:
+ 
+@@ -96,7 +100,7 @@
+     */
+    virtual uint16_t frame_size_max() const;
+ 
+-private:
++public:
+ 
+    /**
+     * Return a string describing the encryption algorithm ID (ALGID).
+@@ -132,6 +136,7 @@
+     * \return A string identifying the NAC.
+     */
+    virtual std::string nac_str() const;
++   virtual unsigned short nac() const;
+ 
+    /**
+     * Returns a string describing the talk group id (TGID).
+@@ -139,6 +144,7 @@
+     * \return A string identifying the TGID.
+     */
+    virtual std::string tgid_str() const;
++   virtual unsigned short tgid() const;
+ };
+ 
+ #endif /* INCLUDED_HDU_H */
+Index: decoder/src/lib/voice_data_unit.cc
+===================================================================
+--- decoder/src/lib/voice_data_unit.cc	(revision 219)
++++ decoder/src/lib/voice_data_unit.cc	(working copy)
+@@ -25,30 +25,313 @@
+ #include <voice_data_unit.h>
+ #include <op25_imbe_frame.h>
+ 
++#include <iostream>
++#include <map>
++#include <itpp/base/vec.h>
++#include <itpp/base/mat.h>
++#include <itpp/base/binary.h>
++#include <itpp/base/converters.h>
++
++#include <software_imbe_decoder.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++
+ using namespace std;
++using namespace itpp;
+ 
+ voice_data_unit::~voice_data_unit()
+ {
+ }
+ 
+-voice_data_unit::voice_data_unit(const_bit_queue& frame_body) :
+-   abstract_data_unit(frame_body)
++voice_data_unit::voice_data_unit(const_bit_queue& frame_body)
++   : abstract_data_unit(frame_body)
++   , m_lsd(0)
++   , m_lsd_valid(false)
++   , m_bValid(false)
++   , m_iHammingErrors(0)
+ {
++    memset(m_lsd_bytes_valid, 0x00, sizeof(m_lsd_bytes_valid));
+ }
+ 
+-void
+-voice_data_unit::do_correct_errors(bit_vector& frame_body)
++static imat cyclic_16_8_5(
++"0 0 1 1 1 1 0 0 1 0 0 0 0 0 0 0;"
++"1 0 0 1 1 1 1 0 0 1 0 0 0 0 0 0;"
++"0 1 0 0 1 1 1 1 0 0 1 0 0 0 0 0;"
++"0 0 0 1 1 0 1 1 0 0 0 1 0 0 0 0;"
++"1 0 1 1 0 0 0 1 0 0 0 0 1 0 0 0;"
++"1 1 1 0 0 1 0 0 0 0 0 0 0 1 0 0;"
++"1 1 1 1 0 0 1 0 0 0 0 0 0 0 1 0;"
++"0 1 1 1 1 0 0 1 0 0 0 0 0 0 0 1"
++);
++
++static void vec_mod(ivec& vec)
+ {
++   for (int i = 0; i < vec.length(); ++i)
++      vec[i] = vec[i] % 2;
+ }
+ 
++typedef map<unsigned char,unsigned short> SyndromeTable;
++static SyndromeTable g_tblSynd;
++
++int generate_cyclic_16_8_5_syndromes()
++{
++   if (g_tblSynd.empty() == false)
++      return -1;
++   
++   //g_tblSynd.clear();
++   
++   // n=16, k=8
++   
++   // E1
++   ivec v("1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0");
++   ivec r(cyclic_16_8_5 * v);
++   vec_mod(r);
++   bvec b(to_bvec(r));
++   unsigned char ch = (unsigned char)bin2dec(b);
++   bvec bV(to_bvec(v));
++   unsigned short us = (unsigned short)bin2dec(bV);
++   g_tblSynd.insert(make_pair(ch, us));
++   //cout << b << " -> " << bV << endl;
++   
++   // E2
++   for (int i = 0; i <= (16 - 2); ++i)
++   {
++      ivec v2(v);
++      v2[15-i] = 1;
++      r = cyclic_16_8_5 * v2;
++      bV = to_bvec(v2);
++      
++      vec_mod(r);
++      b = to_bvec(r);
++      unsigned char ch = (unsigned char)bin2dec(b);
++      unsigned short us = (unsigned short)bin2dec(bV);
++      g_tblSynd.insert(make_pair(ch, us));
++      //cout << b << " -> " << bV << endl;
++   }
++   
++   // E3 - disabled: min.d = 5, t=floor(5/2)=2
++   /*for (int i = 0; i <= (16 - 2); ++i)
++   {
++      for (int j = 0; j < i; ++j)
++      {
++         ivec v3(v);
++         v3[15-i] = 1;
++         v3[15-j] = 1;
++         r = cyclic_16_8_5 * v3;
++         bV = to_bvec(v3);
++         
++         vec_mod(r);
++         b = to_bvec(r);
++         unsigned char ch = (unsigned char)bin2dec(b);
++         unsigned short us = (unsigned short)bin2dec(bV);
++         g_tblSynd.insert(make_pair(ch, us));
++         //cout << b << " -> " << bV << endl;
++      }
++   }*/
++   
++   //cout << "Generated " << g_tblSynd.size() << " syndromes." << endl;
++   
++   return g_tblSynd.size();
++}
++
++static int adjust_bit_index_for_status(int i)
++{
++   int x = i / 70;
++   return i + (x * 2);
++}
++
++static int decode_cyclic_16_8_5(const ivec& vec, ivec& out)
++{
++   //generate_cyclic_16_8_5_syndromes();
++   
++   ///////////
++   
++   ivec vc(cyclic_16_8_5 * vec);
++   vec_mod(vc);
++   bvec vb(to_bvec(vc));
++   
++   unsigned char ch = (unsigned char)bin2dec(vb);
++   if (ch == 0x00)
++      return 0;
++   
++//   cout << "Error detected: " << vc << endl;
++   
++   SyndromeTable::iterator it = g_tblSynd.find(ch);
++   int j = 0;
++   while (it == g_tblSynd.end())
++   {
++      ++j;
++      vc = concat(ivec("0 0 0 0 0 0 0 0"), vc); // Restore to 16 bits
++      vc.shift_left(vc[0]);   // Rotate (s * x)
++      //cout << "After SHL " << j << ": " << vc << endl;
++      vc = cyclic_16_8_5 * vc;
++      vec_mod(vc);
++      vb = to_bvec(vc);
++      ch = (unsigned char)bin2dec(vb);
++      it = g_tblSynd.find(ch);
++      
++      if (j >= 15)
++         break;
++   }
++   
++   if (it == g_tblSynd.end())
++   {
++//      cout << "FAILed to find cycled syndrome!" << endl;
++      return -1;
++   }
++   
++//   cout << "took " << j << " shifts.";
++   
++   unsigned short us = it->second;
++   bvec es(dec2bin(16, us));
++   if (j > 0)
++      es.shift_right(es.mid(16-j, j)); // e
++//   cout << " Pattern: " << es/* << endl*/;
++   vb = to_bvec(vec);
++   vb -= es;
++   out = to_ivec(vb);
++   //cout << ", out: " << out;
++   
++   vc = cyclic_16_8_5 * out;
++   vec_mod(vc);
++   vb = to_bvec(vc);
++   if (bin2dec(vb) != 0x00)
++   {
++//      cout << "FAILed to correct code!" << endl;
++      return -1;
++   }
++   
++   //cout << endl << vec << " " << out;
++//   cout << endl;
++   
++   return 1;
++}
++
++static bool decode_cyclic_16_8_5(ivec& vec)
++{
++   return decode_cyclic_16_8_5(vec, vec);
++}
++
++static void corrupt(ivec& v, int n)
++{
++   ivec vc(16);
++   vc.zeros();
++   for (int i = 0; i < n; ++i)
++   {
++      do
++      {
++         int x = rand() % vc.length();
++         if (vc[x] != 1)
++         {
++            vc[x] = 1;
++            v[x] = 1 - v[x];
++            break;
++         }
++      } while (true);
++   }
++   
++//   cout << "Noise: " << vc << ", result: " << v << endl;
++}
++
++void voice_data_unit::do_correct_errors(bit_vector& frame_body)
++{
++   ivec lsd1(16), lsd2(16);
++   //int lsd_idx = 0;
++   
++   for (int i = 0; i < 32; ++i)
++   {
++      int x = 1504 + i;
++      x = adjust_bit_index_for_status(x);
++      if (i < 16)
++         lsd1[i] = frame_body[x];
++      else
++         lsd2[i-16] = frame_body[x];
++   }
++   
++//   cout << duid_str() << ": ";
++//   cout << "lsd1: " << lsd1 << " lsd2: " << lsd2 << endl;
++   
++   /////////////////////////////
++/*
++   ivec _lsd1(lsd1), _lsd2(lsd2);
++   corrupt(lsd1, 2);
++   corrupt(lsd2, 2);
++*/
++   /////////////////////////////
++   
++   //cout << "Decoding 1:" << endl;
++   int iDecode1 = decode_cyclic_16_8_5(lsd1);
++   //printf("%s", ((iDecode1 == 0) ? "." : "*"));
++   if (iDecode1 >= 0)
++   {
++      m_lsd_bytes_valid[0] = true;
++      //cout << "OK";
++   }
++   else if (iDecode1 == -1)
++   {
++      //cout << "Error 1" << endl;
++   }
++   //cout << ", ";
++   //cout << "Decoding 2:" << endl;
++   int iDecode2 = decode_cyclic_16_8_5(lsd2);
++   //printf("%s", ((iDecode2 == 0) ? "." : "*"));
++   if (iDecode2 >= 0)
++   {
++      m_lsd_bytes_valid[1] = true;
++      //cout << "OK";
++   }
++   else
++   {
++      //cout << "Error 2" << endl;
++   }
++   //fflush(stdout);
++/*
++   if (lsd1 != _lsd1)
++      cout << "Error 1" << lsd1 << endl;
++   if (lsd2 != _lsd2)
++      cout << "Error 2" << lsd2 << endl;
++*/
++   m_lsd = 0;
++   for (int i = 0; i < 8; ++i)
++      m_lsd = m_lsd | (lsd1[i] << (7 - i));  // Little-endian byte swap
++   for (int i = 0; i < 8; ++i)
++      m_lsd = m_lsd | (lsd2[i] << (15 - i)); // Little-endian byte swap
++   
++   if (m_lsd_bytes_valid[0] && m_lsd_bytes_valid[1])
++      m_lsd_valid = true;
++   
++   /*cout << "\"";
++   for (int i = 0; i < 2; ++i)
++   {
++      if (!iscntrl(m_lsd_byte[i]))  // isgraph
++         printf("%c", m_lsd_byte[i]);
++      else
++         printf("<%02X>", m_lsd_byte[i]);
++   }
++   cout << "\"" << endl;*/
++}
++
+ void
+ voice_data_unit::do_decode_audio(const_bit_vector& frame_body, imbe_decoder& imbe)
+ {
+-   voice_codeword cw(voice_codeword_sz);
+-   for(size_t i = 0; i < nof_voice_codewords; ++i) {
+-      imbe_deinterleave(frame_body, cw, i);
+-      imbe.decode(cw);
+-   }
++    voice_codeword cw(voice_codeword_sz);              // 144
++    for(size_t i = 0; i < nof_voice_codewords; ++i) {  // 9
++//printf("[");fflush(stdout);
++        imbe_deinterleave(frame_body, cw, i);
++//printf("-");fflush(stdout);
++        if (i == 8)
++        {
++            software_imbe_decoder* pSoft = dynamic_cast<software_imbe_decoder*>(&imbe);
++            if (pSoft)
++            {
++                unsigned long long ullLSDKS = pSoft->get_ks(16);
++                // FIXME
++            }
++        }
++        imbe.decode(cw);
++//printf("]");fflush(stdout);
++    }
+ }
+ 
+ uint16_t
+Index: decoder/src/lib/ldu1.h
+===================================================================
+--- decoder/src/lib/ldu1.h	(revision 219)
++++ decoder/src/lib/ldu1.h	(working copy)
+@@ -50,6 +50,15 @@
+     */
+    std::string duid_str() const;
+ 
++    virtual void do_correct_errors(bit_vector& frame_body);
++    
++    unsigned char ucLCF;
++    unsigned char ucMFID;
++    bool bEmergency;
++    unsigned short usReserved;
++    unsigned short usTGID;
++    unsigned int iDestination;
++    unsigned int iSource;
+ };
+ 
+ #endif /* INCLUDED_LDU1_H */
+Index: decoder/src/lib/data_unit.cc
+===================================================================
+--- decoder/src/lib/data_unit.cc	(revision 219)
++++ decoder/src/lib/data_unit.cc	(working copy)
+@@ -29,14 +29,25 @@
+ #include <tdu.h>
+ #include <tsbk.h>
+ #include <op25_yank.h>
++#include <stdio.h>
+ 
+ using namespace std;
+ 
+ data_unit_sptr
+ data_unit::make_data_unit(const_bit_queue& frame_body)
+ {
++/*	for (int i = 0; i < (frame_body.size() / 2); ++i)
++	{
++		unsigned char c = 0x00;
++		c |= (unsigned char)frame_body[i*2+0] << 1;
++		c |= (unsigned char)frame_body[i*2+1] << 0;
++		fprintf(stderr, "%d", c);
++	}
++	fprintf(stderr, "\n");
++*/
+    data_unit_sptr d;
+    uint8_t duid = extract(frame_body, 60, 64);
++//fprintf(stderr, "DUID: 0x%d\n", duid);
+    switch(duid) {
+    case 0x0:
+       d = data_unit_sptr(new hdu(frame_body));
+@@ -60,6 +71,8 @@
+    case 0xf:
+       d = data_unit_sptr(new tdu(frame_body, true));
+       break;
++   default:
++		fprintf(stderr, "Unknown DUID: 0x%d\n", duid);
+    };
+    return d;
+ }
+Index: decoder/src/lib/snapshot_du_handler.cc
+===================================================================
+--- decoder/src/lib/snapshot_du_handler.cc	(revision 219)
++++ decoder/src/lib/snapshot_du_handler.cc	(working copy)
+@@ -41,7 +41,7 @@
+ void
+ snapshot_du_handler::handle(data_unit_sptr du)
+ {
+-   if(d_msgq) {
++   if((d_msgq) && (!d_msgq->full_p())) {
+       string snapshot(du->snapshot());
+       if(snapshot.size() > 0) {
+          const size_t snapshot_sz = snapshot.size() + 1;
+Index: decoder/src/lib/Makefile.am
+===================================================================
+--- decoder/src/lib/Makefile.am	(revision 219)
++++ decoder/src/lib/Makefile.am	(working copy)
+@@ -28,7 +28,7 @@
+ ourpythondir = $(grpythondir)
+ ourlibdir    = $(grpyexecdir)
+ 
+-AM_CPPFLAGS = $(STD_DEFINES_AND_INCLUDES) $(PYTHON_CPPFLAGS) $(WITH_INCLUDES)
++AM_CPPFLAGS = $(STD_DEFINES_AND_INCLUDES) $(PYTHON_CPPFLAGS) $(WITH_INCLUDES) -I../../../imbe_vocoder/src/lib
+ 
+ SWIGPYTHONARGS = $(SWIGPYTHONFLAGS) $(SWIGGRFLAGS) $(WITH_SWIG_INCLUDES) \
+ 	$(WITH_INCLUDES)
+@@ -81,7 +81,11 @@
+ 	op25_decoder_ff.cc \
+ 	software_imbe_decoder.cc \
+ 	vc55_imbe_decoder.cc \
+-	value_string.cc
++	value_string.cc \
++	deskey.cc \
++	desport.cc \
++	dessp.cc \
++	bch.cc
+ 
+ # magic flags
+ _op25_la_LDFLAGS = $(NO_UNDEFINED) -module -avoid-version
+@@ -91,7 +95,8 @@
+ _op25_la_LIBADD = \
+ 	$(PYTHON_LDFLAGS) \
+ 	-lstdc++ \
+-	-litpp
++	-litpp \
++	-L../../../imbe_vocoder/src/lib/.libs -lop25_imbe
+ 
+ op25.cc op25.py: $(LOCAL_IFILES) $(ALL_IFILES)
+ 	$(SWIG) $(SWIGPYTHONARGS) -module op25 -o op25.cc $(LOCAL_IFILES)
+Index: decoder/src/lib/imbe_decoder_factory.cc
+===================================================================
+--- decoder/src/lib/imbe_decoder_factory.cc	(revision 219)
++++ decoder/src/lib/imbe_decoder_factory.cc	(working copy)
+@@ -6,7 +6,10 @@
+ 
+ #include <cstdlib>
+ #include <cstring>
++#include <iostream>
+ 
++using namespace std;
++
+ imbe_decoder_sptr
+ imbe_decoder::make()
+ {
+@@ -14,16 +17,21 @@
+    const char *imbe_type = getenv("IMBE");
+    if(imbe_type) {
+       if(strcasecmp(imbe_type, "offline") == 0) {
++         cout << "Using offline IMBE decoder" << endl;
+          imbe = imbe_decoder_sptr(new offline_imbe_decoder());
+       } else if(strcasecmp(imbe_type, "soft") == 0) {
++         cout << "Using software IMBE decoder" << endl;
+          imbe = imbe_decoder_sptr(new software_imbe_decoder());
+       } else if(strcasecmp(imbe_type, "vc55") == 0) {
++         cout << "Using VC55 IMBE decoder" << endl;
+          imbe = imbe_decoder_sptr(new vc55_imbe_decoder());
+       } else {
++         cout << "Falling back to dummy IMBE decoder" << endl;
+          imbe = imbe_decoder_sptr(new dummy_imbe_decoder());
+       }
+    } else {
+-      imbe = imbe_decoder_sptr(new dummy_imbe_decoder());
++      cout << "Using software IMBE decoder" << endl;
++      imbe = imbe_decoder_sptr(new software_imbe_decoder());
+    }
+    return imbe;
+ }
+Index: decoder/src/lib/dessp.cc
+===================================================================
+--- decoder/src/lib/dessp.cc	(revision 0)
++++ decoder/src/lib/dessp.cc	(working copy)
+@@ -0,0 +1 @@
++link dessp.c
+\ No newline at end of file
+
+Property changes on: decoder/src/lib/dessp.cc
+___________________________________________________________________
+Added: svn:special
+## -0,0 +1 ##
++*
+\ No newline at end of property
+Index: decoder/src/lib/bch.h
+===================================================================
+--- decoder/src/lib/bch.h	(revision 0)
++++ decoder/src/lib/bch.h	(working copy)
+@@ -0,0 +1,4 @@
++#include <vector>
++typedef std::vector<bool> bit_vector;
++int bchDec(bit_vector& Codeword);
++
+Index: decoder/src/lib/ldu1.cc
+===================================================================
+--- decoder/src/lib/ldu1.cc	(revision 219)
++++ decoder/src/lib/ldu1.cc	(working copy)
+@@ -22,12 +22,29 @@
+  */
+ 
+ #include <ldu1.h>
++#include <itpp/base/vec.h>
++#include <itpp/base/mat.h>
++#include <itpp/base/binary.h>
++#include <itpp/base/converters.h>
++#include <iostream>
++#include "stdio.h"
+ 
+ using std::string;
++using std::vector;
+ 
+-ldu1::ldu1(const_bit_queue& frame_body) :
+-   voice_data_unit(frame_body)
++using namespace std;
++using namespace itpp;
++
++ldu1::ldu1(const_bit_queue& frame_body)
++   : voice_data_unit(frame_body)
+ {
++   ucLCF = 0;
++   ucMFID = 0;
++   bEmergency = false;
++   usReserved = 0;
++   usTGID = 0;
++   iDestination = 0;
++   iSource = 0;
+ }
+ 
+ ldu1::~ldu1()
+@@ -39,3 +56,144 @@
+ {
+    return string("LDU1");
+ }
++
++static int adjust_bit_index_for_status(int i)
++{
++   int x = i / 70;
++   return i + (x * 2);
++}
++
++typedef vector<itpp::Vec<int> > VecArray;
++
++// http://www.tcs.hut.fi/~pat/matrices.html
++/*static itpp::Mat<int> ham_10_6_3_1("1 1 0 1 1 0 1 0 0 0; 1 0 1 1 0 1 0 1 0 0; 0 1 1 1 0 0 0 0 1 0; 0 0 0 0 1 1 0 0 0 1");
++static itpp::Mat<int> ham_10_6_3_2("1 1 0 1 0 0 1 0 0 0; 1 0 1 0 1 0 0 1 0 0; 0 1 1 0 0 1 0 0 1 0; 0 0 0 1 1 1 0 0 0 1");
++static itpp::Mat<int> ham_10_6_3_3("1 1 0 1 0 1 1 0 0 0; 1 0 1 0 1 0 0 1 0 0; 0 1 1 0 0 1 0 0 1 0; 0 0 0 1 1 1 0 0 0 1");
++static itpp::Mat<int> ham_10_6_3_4("1 1 0 1 0 1 1 0 0 0; 1 0 1 0 1 1 0 1 0 0; 0 1 1 0 1 1 0 0 1 0; 0 0 0 1 1 1 0 0 0 1");
++// http://books.google.com.au/books?id=Qty2dAApiqwC&pg=PA355&lpg=PA355&dq=hamming+%2210,6,3%22&source=bl&ots=xXqTpgxp0d&sig=2itZo7UhMnLS61MrgpPh7GPG4v0&hl=en&ei=tZcoTKy4PI3Zceud1cUC&sa=X&oi=book_result&ct=result&resnum=8&ved=0CEAQ6AEwBw#v=onepage&q=hamming%20%2210%2C6%2C3%22&f=false
++static itpp::Mat<int> ham_10_6_3_5("1 1 1 0 0 0 1 0 0 0; 1 0 0 1 1 0 0 1 0 0; 0 1 0 1 0 1 0 0 1 0; 0 0 1 0 1 1 0 0 0 1");
++*///http://www.freepatentsonline.com/5206864.pdf
++static itpp::Mat<int> ham_10_6_3_6("1 1 1 0 0 1 1 0 0 0; 1 1 0 1 0 1 0 1 0 0; 1 0 1 1 1 0 0 0 1 0; 0 1 1 1 1 0 0 0 0 1");
++
++//static itpp::Mat<int>* ham_10_6_3[] = {&ham_10_6_3_1, &ham_10_6_3_2, &ham_10_6_3_3, &ham_10_6_3_4, &ham_10_6_3_5, &ham_10_6_3_6};
++
++static void vec_mod(ivec& vec)
++{
++   for (int i = 0; i < vec.length(); ++i)
++      vec[i] = vec[i] % 2;
++}
++
++template <typename T>
++static string format_vec(itpp::Vec<T> v)
++{
++   std::stringstream ss;
++   for (int i = 0; i < v.length(); i++)
++   {
++      if (i > 0)
++         ss << " ";
++      ss << v[i];
++   }
++   return ss.str();
++}
++
++void ldu1::do_correct_errors(bit_vector& frame_body)
++{
++   voice_data_unit::do_correct_errors(frame_body);
++   
++   //printf("LDU1 size: %d\n", frame_body.size());
++   unsigned char lc[30];
++   unsigned short ham[24];
++   int lc_bit_idx = 0;
++   VecArray arrayVec;
++   itpp::Vec<int> vecRaw(10); // First 6 bits contain data
++   
++   for (int i = 400; i < 1360; i += 184)
++   {
++      for (int j = 0; j < 40; j++)
++      {
++         int x = adjust_bit_index_for_status(i + j);
++         bool b = frame_body[x];
++         unsigned char ch = (b ? 0x1 : 0x0);
++         
++         lc[lc_bit_idx / 8]   |= (ch << (7 - (lc_bit_idx % 8)));
++         ham[lc_bit_idx / 10] = ((ham[lc_bit_idx / 10]) << 1) | ch;
++         vecRaw(lc_bit_idx % 10) = ch;
++         
++         ++lc_bit_idx;
++         
++         if ((lc_bit_idx % 10) == 0)
++            arrayVec.push_back(vecRaw);
++      }
++   }
++   
++   if (lc_bit_idx != 240)
++   {
++      printf("ERROR: Not enough bits\n");
++      return;
++   }
++   
++   if (arrayVec.size() != 24)
++   {
++      printf("ERROR: Not enough vecs: %d\n", arrayVec.size());
++      return;
++   }
++   
++   itpp::Vec<int> vecZero(4);
++   vecZero.zeros();
++   
++   bvec data;
++   
++   for (int i = 0; i < arrayVec.size(); ++i)
++   {
++      itpp::Vec<int>& vec = arrayVec[i];
++      bvec vB(to_bvec(vec));
++      //printf("Vec %02i: %s", i, format_vec(vec).c_str());
++      
++      itpp::Mat<int>& mat = ham_10_6_3_6;;
++      itpp::Vec<int> vS = mat * vec;
++      vec_mod(vS);
++      bvec vb(to_bvec(vS));
++      //printf("Check %i: %s\n", j, format_vec(vecCheck).c_str());
++      if (bin2dec(vb) == 0)
++      {
++         //printf(" - OK\n");
++      }
++      else
++      {
++         ++m_iHammingErrors;
++         
++         //std::stringstream ss;
++         //ss << i << " " << vec << " ";
++         //ss << vecCheck;
++         //printf(" - Parity error: %s\n", ss.str().c_str());
++      }
++      
++      data = concat(data, vB.mid(0, 6));  // Includes RS for last 72 bits
++   }
++   
++   if (data.length() != 144)
++   {
++      cout << "ERROR: Not enough bits after Hamming(10,6,3): " << data.length() << endl;
++      return;
++   }
++   
++   m_bValid = true;
++   
++   ucLCF = bin2dec(data.mid(0, 8));
++   ucMFID = bin2dec(data.mid(8, 8));
++   if (ucLCF == 0x00)
++   {
++      bEmergency = data[16];
++      usReserved = bin2dec(data.mid(17, 15));
++      usTGID = bin2dec(data.mid(32, 16));
++      iSource = bin2dec(data.mid(48, 24));
++   }
++   else if (ucLCF == 0x03)
++   {
++      usReserved = bin2dec(data.mid(16, 8));
++      iDestination = bin2dec(data.mid(24, 24));
++      iSource = bin2dec(data.mid(48, 24));
++   }
++   //else
++   //   printf("Unknown LCF 0x%02X\n", ucLCF);
++}
+Index: decoder/src/lib/ldu2.h
+===================================================================
+--- decoder/src/lib/ldu2.h	(revision 219)
++++ decoder/src/lib/ldu2.h	(working copy)
+@@ -44,11 +44,17 @@
+     * ldu2 (virtual) destructor.
+     */
+    virtual ~ldu2();
++   
++   virtual void do_correct_errors(bit_vector& frame_body);
+ 
+    /**
+     * Returns a string describing the Data Unit ID (DUID).
+     */
+    std::string duid_str() const;
++   
++   uint8_t m_mi[9];
++   uint16_t m_kid;
++   uint8_t m_algid;
+ };
+ 
+ #endif /* INCLUDED_LDU2_H */
+Index: decoder/src/lib/deskey.cc
+===================================================================
+--- decoder/src/lib/deskey.cc	(revision 0)
++++ decoder/src/lib/deskey.cc	(working copy)
+@@ -0,0 +1 @@
++link deskey.c
+\ No newline at end of file
+
+Property changes on: decoder/src/lib/deskey.cc
+___________________________________________________________________
+Added: svn:special
+## -0,0 +1 ##
++*
+\ No newline at end of property
+Index: decoder/src/lib/bch.cc
+===================================================================
+--- decoder/src/lib/bch.cc	(revision 0)
++++ decoder/src/lib/bch.cc	(working copy)
+@@ -0,0 +1,162 @@
++
++#include <stdio.h>
++#include <vector>
++#include <bch.h>
++/*
++ * Copyright 2010, KA1RBI 
++ */
++static const int bchGFexp[64] = {
++	1, 2, 4, 8, 16, 32, 3, 6, 12, 24, 48, 35, 5, 10, 20, 40,
++	19, 38, 15, 30, 60, 59, 53, 41, 17, 34, 7, 14, 28, 56, 51, 37,
++	9, 18, 36, 11, 22, 44, 27, 54, 47, 29, 58, 55, 45, 25, 50, 39,
++	13, 26, 52, 43, 21, 42, 23, 46, 31, 62, 63, 61, 57, 49, 33, 0
++};
++
++static const int bchGFlog[64] = {
++	-1, 0, 1, 6, 2, 12, 7, 26, 3, 32, 13, 35, 8, 48, 27, 18,
++	4, 24, 33, 16, 14, 52, 36, 54, 9, 45, 49, 38, 28, 41, 19, 56,
++	5, 62, 25, 11, 34, 31, 17, 47, 15, 23, 53, 51, 37, 44, 55, 40,
++	10, 61, 46, 30, 50, 22, 39, 43, 29, 60, 42, 21, 20, 59, 57, 58
++};
++
++static const int bchG[48] = {
++	1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0,
++	1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0,
++	1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1
++};
++
++int bchDec(bit_vector& Codeword)
++{
++
++   int elp[24][ 22], S[23];
++   int D[23], L[24], uLu[24];
++   int root[11], locn[11], reg[12];
++   int i,j,U,q,count;
++   int SynError, CantDecode;
++
++   SynError = 0; CantDecode = 0;
++
++   for(i = 1; i <= 22; i++) {
++      S[i] = 0;
++      // FOR j = 0 TO 62
++      for(j = 0; j <= 62; j++) {
++         if( Codeword[j]) { S[i] = S[i] ^ bchGFexp[(i * j) % 63]; }
++      }
++      if( S[i]) { SynError = 1; }
++      S[i] = bchGFlog[S[i]];
++      // printf("S[%d] %d\n", i, S[i]);
++   }
++
++   if( SynError) { //if there are errors, try to correct them
++      L[0] = 0; uLu[0] = -1; D[0] = 0;    elp[0][ 0] = 0;
++      L[1] = 0; uLu[1] = 0;  D[1] = S[1]; elp[1][ 0] = 1;
++      //FOR i = 1 TO 21
++      for(i = 1; i <= 21; i++) {
++         elp[0][ i] = -1; elp[1][ i] = 0;
++      }
++      U = 0;
++
++      do {
++         U = U + 1;
++         if( D[U] == -1) {
++            L[U + 1] = L[U];
++            // FOR i = 0 TO L[U]
++            for(i = 0; i <= L[U]; i++) {
++               elp[U + 1][ i] = elp[U][ i]; elp[U][ i] = bchGFlog[elp[U][ i]];
++            }
++         } else {
++            //search for words with greatest uLu(q) for which d(q)!=0
++            q = U - 1;
++            while((D[q] == -1) &&(q > 0)) { q = q - 1; }
++            //have found first non-zero d(q)
++            if( q > 0) {
++               j = q;
++               do { j = j - 1; if((D[j] != -1) &&(uLu[q] < uLu[j])) { q = j; }
++               } while( j > 0) ;
++            }
++
++            //store degree of new elp polynomial
++            if( L[U] > L[q] + U - q) {
++               L[U + 1] = L[U] ;
++            } else {
++               L[U + 1] = L[q] + U - q;
++            }
++
++            ///* form new elp(x) */
++            // FOR i = 0 TO 21
++            for(i = 0; i <= 21; i++) {
++               elp[U + 1][ i] = 0;
++            }
++            // FOR i = 0 TO L(q)
++            for(i = 0; i <= L[q]; i++) {
++               if( elp[q][ i] != -1) {
++                  elp[U + 1][ i + U - q] = bchGFexp[(D[U] + 63 - D[q] + elp[q][ i]) % 63];
++               }
++            }
++            // FOR i = 0 TO L(U)
++            for(i = 0; i <= L[U]; i++) {
++               elp[U + 1][ i] = elp[U + 1][ i] ^ elp[U][ i];
++               elp[U][ i] = bchGFlog[elp[U][ i]];
++            }
++         }
++         uLu[U + 1] = U - L[U + 1];
++
++         //form(u+1)th discrepancy
++         if( U < 22) {
++            //no discrepancy computed on last iteration
++            if( S[U + 1] != -1) { D[U + 1] = bchGFexp[S[U + 1]]; } else { D[U + 1] = 0; }
++            // FOR i = 1 TO L(U + 1)
++            for(i = 1; i <= L[U + 1]; i++) {
++               if((S[U + 1 - i] != -1) &&(elp[U + 1][ i] != 0)) {
++                  D[U + 1] = D[U + 1] ^ bchGFexp[(S[U + 1 - i] + bchGFlog[elp[U + 1][ i]]) % 63];
++               }
++            }
++            //put d(u+1) into index form */
++            D[U + 1] = bchGFlog[D[U + 1]];
++         }
++      } while((U < 22) &&(L[U + 1] <= 11));
++
++      U = U + 1;
++      if( L[U] <= 11) { // /* Can correct errors */
++         //put elp into index form
++         // FOR i = 0 TO L[U]
++         for(i = 0; i <= L[U]; i++) {
++            elp[U][ i] = bchGFlog[elp[U][ i]];
++         }
++
++         //Chien search: find roots of the error location polynomial
++         // FOR i = 1 TO L(U)
++         for(i = 1; i <= L[U]; i++) {
++            reg[i] = elp[U][ i];
++         }
++         count = 0;
++         // FOR i = 1 TO 63
++         for(i = 1; i <= 63; i++) {
++            q = 1;
++            //FOR j = 1 TO L(U)
++            for(j = 1; j <= L[U]; j++) {
++               if( reg[j] != -1) {
++                  reg[j] =(reg[j] + j) % 63; q = q ^ bchGFexp[reg[j]];
++               }
++            }
++            if( q == 0) { //store root and error location number indices
++               root[count] = i; locn[count] = 63 - i; count = count + 1;
++            }
++         }
++         if( count == L[U]) {
++            //no. roots = degree of elp hence <= t errors
++            //FOR i = 0 TO L[U] - 1
++            for(i = 0; i <= L[U]-1; i++) {
++               Codeword[locn[i]] = Codeword[locn[i]] ^ 1;
++            }
++            CantDecode = count;
++         } else { //elp has degree >t hence cannot solve
++            CantDecode = -1;
++         }
++      } else {
++         CantDecode = -2;
++      }
++   }
++   return CantDecode;
++}
++
+Index: decoder/src/lib/abstract_data_unit.h
+===================================================================
+--- decoder/src/lib/abstract_data_unit.h	(revision 219)
++++ decoder/src/lib/abstract_data_unit.h	(working copy)
+@@ -156,7 +156,7 @@
+     *
+     * \return A string identifying the DUID.
+     */
+-   virtual std::string duid_str() const = 0;
++   //virtual std::string duid_str() const = 0;
+ 
+    /**
+     * Return a reference to the frame body.
+Index: decoder/src/lib/data_unit.h
+===================================================================
+--- decoder/src/lib/data_unit.h	(revision 219)
++++ decoder/src/lib/data_unit.h	(working copy)
+@@ -31,6 +31,8 @@
+ #include <imbe_decoder.h>
+ #include <stdint.h>
+ 
++#include <string>
++
+ typedef std::deque<bool> bit_queue;
+ typedef const std::deque<bool> const_bit_queue;
+ 
+@@ -130,6 +132,8 @@
+     * \return A string containing the fields to display.
+     */
+    virtual std::string snapshot() const = 0;
++   
++   virtual std::string duid_str() const { return ""; }
+ 
+ protected:
+ 
+Index: decoder/src/lib/desport.cc
+===================================================================
+--- decoder/src/lib/desport.cc	(revision 0)
++++ decoder/src/lib/desport.cc	(working copy)
+@@ -0,0 +1 @@
++link desport.c
+\ No newline at end of file
+
+Property changes on: decoder/src/lib/desport.cc
+___________________________________________________________________
+Added: svn:special
+## -0,0 +1 ##
++*
+\ No newline at end of property
+Index: decoder/src/lib/software_imbe_decoder.cc
+===================================================================
+--- decoder/src/lib/software_imbe_decoder.cc	(revision 219)
++++ decoder/src/lib/software_imbe_decoder.cc	(working copy)
+@@ -36,6 +36,8 @@
+ #include <math.h>
+ #include <string.h>
+ 
++#include <decode.h>
++
+ static const int BMTn[3600] = {
+ 	3, 3, 4, 5, 6, 7, 8, 3, 4, 5, 6, 7, 8, 9, 3, 4,
+ 	5, 6, 7, 8, 9, 10, 3, 4, 5, 6, 7, 8, 9, 10, 3, 4,
+@@ -756,8 +758,8 @@
+ software_imbe_decoder::software_imbe_decoder()
+ {
+    int i,j;
+-	//initialize
+-   Old = 1; New = 0;
++   //initialize
++   Old = 1; New = 0; OldL = 0;
+    psi1 = 0.0;
+    for(i=0; i < 58; i++) {
+       for(j=0; j < 2; j++) {
+@@ -772,12 +774,179 @@
+    for(i=0; i < 256; i++) {
+       Olduw[i] = 0.0;
+    }
++   
++   memset(&m_ksDES, 0, sizeof(m_ksDES));
++   m_bUseKey = false;
++   m_keyDES = 0;
++   m_ivNext = 0;
++   m_iKSIndex = 0;
++   m_ks = 0;
++   m_iDESIterations = 0;
++   
++   //memset(&m_param, 0, sizeof(m_param));
++   //decode_init(&m_param);
++   //m_pVocoder = new op25_imbe_vocoder();
++   m_pVocoder = op25_imbe_make_vocoder(false, false, 0, NULL, 0, false);
+ }
+ 
+ software_imbe_decoder::~software_imbe_decoder()
+ {
+ }
+ 
++static void print_data(unsigned char* c, int n)
++{
++	for (int i = 0; i < n; ++i)
++		printf("%02X", (int)c[i]);
++}
++
++static void print_bits(unsigned char* c, int n, int s)
++{
++	for (int i = s; i < (s+n); ++i)
++	{
++		unsigned char b = c[i/8];
++		b >>= (7 - (i % 8));
++		b &= 1;
++		printf("%s", (b ? "1" : "0"));
++	}
++}
++
++void software_imbe_decoder::set_key(unsigned long long key)
++{
++	m_bUseKey = true;
++	//m_keyDES = key;	// Assume little-endian byte order input
++	
++	/*unsigned long long k = 0;
++	for (int i = 0; i < 64; ++i)
++	{
++		if (((i+1) % 8) == 0)	// Skip LSB parity bit
++			continue;
++		
++		k = (k << 1) | (key & (1ULL << (63 - i)) ? 1 : 0);
++	}*/
++	
++	//printf("ULL: %llX\n", key);
++	//printf("Parity removed ULL: %llX\n", k);
++	
++	unsigned char* p = (unsigned char*)&key/*k*/;
++	unsigned char* pK = (unsigned char*)&m_keyDES;
++	
++	printf("DES key: ");
++	for (int i = 0; i < 8/*7*/; ++i)
++	{
++		pK[i] = p[7/*6*/-i];	// Byte swap
++		printf("%02X", (int)pK[i]);
++	}
++	//printf(" (little endian: %llX)", m_keyDES);
++	printf("\n");
++	//print_bits(pK, 0, 56);
++	//printf("\n");
++	
++	deskey(m_ksDES, pK, 0);	// 0: encrypt (for OFB mode)
++}
++
++void software_imbe_decoder::set_iv(unsigned long long iv)	// [Assuming correct byte order]
++{
++	if (m_iDESIterations > 0)
++	{
++		printf("DES: %i bits used from %i iterations\n", m_iKSIndex, m_iDESIterations);
++	}
++	
++	m_ivNext = iv;
++	
++	/*unsigned char* p = (unsigned char*)&iv;
++	unsigned char* pIV = (unsigned char*)&m_ivNext;
++	for (int i = 0; i < 8; ++i)
++	{
++		unsigned char b = p[7-i];	// Byte swap
++		b = ((b * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32;
++		//printf("%02X", (int)p[7-i]);
++		pIV[i] = b;
++	}*/
++	
++	m_iKSIndex = 0;
++	m_iDESIterations = 0;
++	
++	m_ks = m_ivNext;
++	des(m_ksDES, (unsigned char*)&m_ks);	// First initialisation
++	++m_iDESIterations;
++	
++	des(m_ksDES, (unsigned char*)&m_ks);	// Throw out first iteration & prepare for second
++	++m_iDESIterations;
++	
++	get_ks(64);		// Reserved 3 + first 5 of LC (3 left)
++	get_ks(3 * 8);	// Use remaining 3 bytes for LC
++}
++
++static unsigned long long swap_bytes(unsigned long long l)
++{
++	unsigned long long r;
++	unsigned char* pL = (unsigned char*)&l;
++	unsigned char* pR = (unsigned char*)&r;
++	for (int i = 0; i < 8; ++i)
++		pR[i] = pL[7-i];
++	return r;
++}
++
++unsigned long long software_imbe_decoder::get_ks(int count)	// 1..64
++{
++	unsigned long long ullCurrent = swap_bytes(m_ks);
++	const int max_len = 64;
++	int pos = m_iKSIndex % max_len;
++	
++//	printf("KS[%02i]: pos=%02i, current=", count, pos);
++//	print_data((unsigned char*)&m_ks, 8);
++//	printf(", ULL=%llX", ullCurrent);
++	
++	m_iKSIndex += count;
++	
++	if ((pos + count) <= max_len)	// Up to 64
++	{
++//		printf(" (");
++		
++		if ((m_iKSIndex % max_len) == 0)
++		{
++			des(m_ksDES, (unsigned char*)&m_ks);	// Prepare for next iteration
++			++m_iDESIterations;
++			
++//			printf(">");
++		}
++		else
++		{
++//			printf("<");
++		}
++		
++//		printf(", new pos=%02i)", (m_iKSIndex % max_len));
++		
++		unsigned long long result = (ullCurrent >> (((max_len - 1) - pos) - (count-1))) & ((count == max_len) ? (unsigned long long)-1 : ((1ULL << count) - 1));
++		
++//		printf(", result=%llX", result);
++		
++//		printf("\n");
++		
++		return result;
++	}
++	
++	// Over-flow 64-bit boundary (so all of rest of current will be used)
++	
++//	printf(" (>, new pos=%02i)", (m_iKSIndex % max_len));
++	
++	des(m_ksDES, (unsigned char*)&m_ks);	// Compute second part
++	++m_iDESIterations;
++	
++	unsigned long long first = ullCurrent << pos;	// RHS will be zeros
++	
++	ullCurrent = swap_bytes(m_ks);
++	int remainder = count - (max_len - pos);
++	first >>= (((max_len - 1) - remainder) - ((max_len - 1) - pos));
++	unsigned long long next = (ullCurrent >> (((max_len - 1) - 0) - (remainder-1))) & ((1ULL << remainder) - 1);
++	
++//	printf(", result=%llX", (first | next));
++	
++//	printf("\n");
++	
++	return (first | next);
++}
++
+ void
+ software_imbe_decoder::decode(const voice_codeword& cw)
+ {
+@@ -786,15 +955,54 @@
+ 	unsigned int u1,u2,u3,u4,u5,u6,u7;
+ 	unsigned int E0 = 0;
+ 	unsigned int ET = 0;
+-	unsigned char O[12];
++	//unsigned char O[12];
+ 
+ 	// PN/Hamming/Golay - etc.
+-	imbe_header_decode(cw, u0, u1, u2, u3, u4, u5, u6, u7, E0, ET) ;
++	imbe_header_decode(cw, u0, u1, u2, u3, u4, u5, u6, u7, E0, ET);	// E0 & ET are not used, and are always returned as 0
+ 
+-	//replace the sync bit(LSB of u7) with the BOT flag
+-	u7 = u7 | 0x01; //ECC procedure called above always returns u7 LSB = 0
++	//replace the sync bit(LSB of u7) with the BOT flag (Beginning Of Transmission?)
++	//u7 = u7 | 0x01; //ECC procedure called above always returns u7 LSB = 0
++	
++	if (m_bUseKey)
++	{
++		u0 ^= (int)get_ks(12);
++		u1 ^= (int)get_ks(12);
++		u2 ^= (int)get_ks(12);
++		u3 ^= (int)get_ks(12);
++		
++		u4 ^= (int)get_ks(11);
++		u5 ^= (int)get_ks(11);
++		u6 ^= (int)get_ks(11);
++		
++		u7 ^= (int)get_ks(7);
++	}
++	
++	fprintf(stderr, "\n%04X %04X %04X %04X %04X %04X %04X %04X\n", u0, u1, u2, u3, u4, u5, u6, u7);
++	
++	Word16 frame_vector[8] = { u0, u1, u2, u3, u4, u5, u6, u7 };
++	frame_vector[7] >>= 1;	// TEST
++	
++	Word16 snd[FRAME];
++	//::decode(&m_param, frame_vector, snd);
++	m_pVocoder->decode(frame_vector, snd);
++	
++	audio_samples *samples = audio();
++	for (int en = 0; en < FRAME; en++)
++	{
++		// The unvoiced samples are loud and the voiced are low...I don't know why.
++		// Most of the difference is compensated by removing the 146.6433 factor
++		// in the synth_unvoiced procedure.  The final tweak is done by raising the
++		// voiced samples:
++		//float sample = suv[en] + sv[en] * 4; //balance v/uv loudness
++		float sample = snd[en];
++//		if(abs((int)sample) > 32767)
++//			sample = 32767 * (sample < 0) ? -1 : 1; // * sgn(sample)
++		//sample /= 16384.0; /* 32768.0 - but audio amplitude is not full range of int16  */
++		sample /= 8192.0;
++		samples->push_back(sample);
++	}
+ 
+-	O[0] = (((u0 / 16) & 240) + (u1 / 256));
++	/*O[0] = (((u0 / 16) & 240) + (u1 / 256));
+ 	O[1] = (((u2 / 16) & 240) + (u3 / 256));
+ 	O[2] = (((u4 / 8) & 224) + ((u5 / 64) & 28) + (u6 / 512));
+ 	O[3] = (((u6 / 2) & 128) + u7);
+@@ -808,7 +1016,7 @@
+ 	O[11] = E0 + 4 * ET;
+ 
+ 	decode_audio(O); // process 88-bit frame
+-}
++*/}
+ 
+ void
+ software_imbe_decoder::adaptive_smoothing(float SE, float ER, float ET)
+@@ -1019,6 +1227,20 @@
+       iTk =(int) Tk;
+       TD = Tk - iTk;
+       // temporarily use Mu(ell, New) as temp
++if (ell >= 57)
++ printf("ell = %i\n", ell);
++if (New >= 2)
++ printf("New = %i\n", New);
++if (iTk >= 58)
++{
++ printf("iTk = %i, Tk = %f, OldL = %i, L = %i, ell = %i\n", iTk, Tk, OldL, L, ell);
++}
++if (Old >= 2) {
++ printf("Old = %i\n", iTk);
++ iTk = 0;
++}
++if (iTk+1 >= 58)
++ printf("iTk+1 = %i\n", iTk+1);
+       Mu[ell][ New] = Tp *((1 - TD) * log2Mu[iTk][ Old] + TD * log2Mu[iTk + 1][ Old]);
+       Tmp = Tmp + Mu[ell][ New];
+    }
+Index: decoder/src/lib/software_imbe_decoder.h
+===================================================================
+--- decoder/src/lib/software_imbe_decoder.h	(revision 219)
++++ decoder/src/lib/software_imbe_decoder.h	(working copy)
+@@ -28,6 +28,12 @@
+ 
+ #include <stdint.h>
+ 
++//#include <imbe.h>
++//#include <op25_imbe_vocoder.h>
++#include "../../../imbe_vocoder/src/lib/op25_imbe_vocoder.h"
++
++#include <des.h>
++
+ /**
+  * A software implementation of the imbe_decoder interface.
+  */
+@@ -50,8 +56,21 @@
+ 	 * \cw in IMBE codeword (including parity check bits).
+ 	 */
+ 	virtual void decode(const voice_codeword& cw);
++        
++        void set_key(unsigned long long key);
++        void set_iv(unsigned long long iv);
++        unsigned long long get_ks(int count);
+ 
+ private:
++        unsigned long long m_keyDES, m_ivNext, m_ks;
++        int m_iKSIndex;
++        bool m_bUseKey;
++        DES_KS m_ksDES;
++        int m_iDESIterations;
++        
++        //IMBE_PARAM m_param;
++        //op25_imbe_vocoder* m_pVocoder;
++        op25_imbe_vocoder_sptr m_pVocoder;
+ 
+ 	//NOTE: Single-letter variable names are upper case only; Lower
+ 	//				  case if needed is spelled. e.g. L, ell
+@@ -97,5 +116,4 @@
+ 	void unpack(uint8_t *buf, uint32_t& u0, uint32_t& u1, uint32_t& u2, uint32_t& u3, uint32_t& u4, uint32_t& u5, uint32_t& u6, uint32_t& u7, uint32_t& E0, uint32_t& ET);
+ };
+ 
+-
+ #endif /* INCLUDED_SOFTWARE_IMBE_DECODER_H */
+Index: decoder/src/lib/hdu.cc
+===================================================================
+--- decoder/src/lib/hdu.cc	(revision 219)
++++ decoder/src/lib/hdu.cc	(working copy)
+@@ -32,9 +32,36 @@
+ 
+ using namespace std;
+ 
++static const size_t KID_BITS[] = {
++      378, 379, 392, 393, 394, 395, 396, 397,
++      410, 411, 412, 413, 414, 415, 428, 429
++   };
++static const size_t KID_BITS_SZ = sizeof(KID_BITS) / sizeof(KID_BITS[0]);
++
++static const size_t MI_BITS[] = {
++      114, 115, 116, 117, 118, 119, 132, 133,
++      134, 135, 136, 137, 152, 153, 154, 155,
++      156, 157, 170, 171, 172, 173, 174, 175,
++      188, 189, 190, 191, 192, 193, 206, 207,
++      208, 209, 210, 211, 226, 227, 228, 229,
++      230, 231, 244, 245, 246, 247, 248, 249,
++      262, 263, 264, 265, 266, 267, 280, 281,
++      282, 283, 284, 285, 300, 301, 302, 303,
++      304, 305, 318, 319, 320, 321, 322, 323,
++   };
++static const size_t MI_BITS_SZ = sizeof(MI_BITS) / sizeof(MI_BITS[0]);
++
++static const size_t ALGID_BITS[] = {
++      356, 357, 360, 361, 374, 375, 376, 377
++   };
++static const size_t ALGID_BITS_SZ = sizeof(ALGID_BITS) / sizeof(ALGID_BITS[0]);
++
+ hdu::hdu(const_bit_queue& frame_body) :
+    abstract_data_unit(frame_body)
+ {
++   memset(m_mi, 0, sizeof(m_mi));
++   m_kid = 0;
++   m_algid = 0;
+ }
+ 
+ hdu::~hdu()
+@@ -112,6 +139,10 @@
+ {
+    apply_golay_correction(frame);
+    apply_rs_correction(frame);
++   
++   m_kid = extract(frame, KID_BITS, KID_BITS_SZ);
++   extract(frame, MI_BITS, MI_BITS_SZ, m_mi);
++   m_algid = extract(frame, ALGID_BITS, ALGID_BITS_SZ);
+ }
+ 
+ void
+@@ -185,10 +216,10 @@
+ string
+ hdu::algid_str() const
+ {
+-   const size_t ALGID_BITS[] = {
++   /*const size_t ALGID_BITS[] = {
+       356, 357, 360, 361, 374, 375, 376, 377
+    };
+-   const size_t ALGID_BITS_SZ = sizeof(ALGID_BITS) / sizeof(ALGID_BITS[0]);
++   const size_t ALGID_BITS_SZ = sizeof(ALGID_BITS) / sizeof(ALGID_BITS[0]);*/
+    uint8_t algid = extract(frame_body(), ALGID_BITS, ALGID_BITS_SZ);
+    return lookup(algid, ALGIDS, ALGIDS_SZ);
+ }
+@@ -196,11 +227,11 @@
+ string
+ hdu::kid_str() const
+ {
+-   const size_t KID_BITS[] = {
++   /*const size_t KID_BITS[] = {
+       378, 379, 392, 393, 394, 395, 396, 397,
+       410, 411, 412, 413, 414, 415, 428, 429
+    };
+-   const size_t KID_BITS_SZ = sizeof(KID_BITS) / sizeof(KID_BITS[0]);
++   const size_t KID_BITS_SZ = sizeof(KID_BITS) / sizeof(KID_BITS[0]);*/
+    uint16_t kid = extract(frame_body(), KID_BITS, KID_BITS_SZ);
+    ostringstream os;
+    os << hex << showbase << setfill('0') << setw(4) << kid;
+@@ -210,7 +241,7 @@
+ std::string
+ hdu::mi_str() const
+ {
+-   const size_t MI_BITS[] = {
++   /*const size_t MI_BITS[] = {
+       114, 115, 116, 117, 118, 119, 132, 133,
+       134, 135, 136, 137, 152, 153, 154, 155,
+       156, 157, 170, 171, 172, 173, 174, 175,
+@@ -221,7 +252,7 @@
+       282, 283, 284, 285, 300, 301, 302, 303,
+       304, 305, 318, 319, 320, 321, 322, 323,
+    };
+-   const size_t MI_BITS_SZ = sizeof(MI_BITS) / sizeof(MI_BITS[0]);
++   const size_t MI_BITS_SZ = sizeof(MI_BITS) / sizeof(MI_BITS[0]);*/
+ 
+    uint8_t mi[9];
+    extract(frame_body(), MI_BITS, MI_BITS_SZ, mi);
+@@ -248,27 +279,35 @@
+    return lookup(mfid, MFIDS, MFIDS_SZ);
+ }
+ 
+-string
+-hdu::nac_str() const
++unsigned short hdu::nac() const
+ {
+    const size_t NAC_BITS[] = {
+       48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59
+    };
+    const size_t NAC_BITS_SZ = sizeof(NAC_BITS) / sizeof(NAC_BITS[0]);
+-   uint32_t nac = extract(frame_body(), NAC_BITS, NAC_BITS_SZ);
+-   return lookup(nac, NACS, NACS_SZ);
++   return extract(frame_body(), NAC_BITS, NAC_BITS_SZ);
+ }
+ 
+ string
+-hdu::tgid_str() const
++hdu::nac_str() const
+ {
++   return lookup(nac(), NACS, NACS_SZ);
++}
++
++unsigned short hdu::tgid() const
++{
+    const size_t TGID_BITS[] = {
+       432, 433, 434, 435, 448, 449, 450, 451,
+       452, 453, 466, 467, 468, 469, 470, 471
+    };
+    const size_t TGID_BITS_SZ = sizeof(TGID_BITS) / sizeof(TGID_BITS[0]);
+-   const uint16_t tgid = extract(frame_body(), TGID_BITS, TGID_BITS_SZ);
++   return extract(frame_body(), TGID_BITS, TGID_BITS_SZ);
++}
++
++string
++hdu::tgid_str() const
++{
+    ostringstream os;
+-   os << hex << showbase << setfill('0') << setw(4) << tgid;
++   os << hex << showbase << setfill('0') << setw(4) << tgid();
+    return os.str();
+ }
+Index: decoder/src/lib/op25_decoder_ff.h
+===================================================================
+--- decoder/src/lib/op25_decoder_ff.h	(revision 219)
++++ decoder/src/lib/op25_decoder_ff.h	(working copy)
+@@ -32,6 +32,8 @@
+ #include <imbe_decoder.h>
+ #include <sniffer_du_handler.h>
+ 
++#include <sstream>
++
+ typedef boost::shared_ptr<class op25_decoder_ff> op25_decoder_ff_sptr;
+ 
+ op25_decoder_ff_sptr op25_make_decoder_ff(gr_msg_queue_sptr msgq);
+@@ -68,6 +70,9 @@
+     * \return A pointer to a NUL-terminated character string.
+     */
+    const char *device_name() const;
++   
++   void set_key(const char* key);
++   void set_key(unsigned long long key);
+ 
+ private:
+ 
+@@ -148,7 +153,22 @@
+     * The sniffer (TUN/TAP) data unit handler.
+     */
+    sniffer_du_handler *d_sniffer_du_handler;
++   
++   uint64_t d_data_handling_count;
+ 
++private:	// Hax
++	FILE* f; // LSD dump
++	
++	bool bHeader, bNewLine/*, bData, bEnd*/;
++	std::stringstream ssBits, ssName;
++	//*: NAC
++	//HDU: TGID
++	unsigned short usTGID, usNAC;
++	//LDU1: LCF (single, group), Source, Dest (repeated TGID)
++	unsigned char ucLCF;
++	int iSource, iDestination;
++	int iExpectingLDU;
++	bool bDump;
+ };
+ 
+ #endif /* INCLUDED_OP25_DECODER_FF_H */
+Index: decoder/src/lib/op25.i
+===================================================================
+--- decoder/src/lib/op25.i	(revision 219)
++++ decoder/src/lib/op25.i	(working copy)
+@@ -2,6 +2,10 @@
+ 
+ %feature("autodoc", "1");
+ 
++%{
++#include "malloc.h"	// ptrdiff_t
++%}
++
+ %include "exception.i"
+ %import "gnuradio.i"
+ 
+@@ -34,4 +38,6 @@
+    op25_decoder_ff(gr_msg_queue_sptr msgq);
+ public:
+    const char *device_name() const;
++   //void set_key(const char* key);
++   void set_key(unsigned long long key);
+ };
+Index: decoder/configure.ac
+===================================================================
+--- decoder/configure.ac	(revision 219)
++++ decoder/configure.ac	(working copy)
+@@ -88,7 +88,9 @@
+ 
+ STD_DEFINES_AND_INCLUDES="$GNURADIO_CORE_CFLAGS $BOOST_CFLAGS"
+ AC_SUBST(STD_DEFINES_AND_INCLUDES)
+- 
++
++PKG_CHECK_MODULES(GRUEL, gruel)
++
+ AC_CONFIG_FILES([\
+ 	  Makefile \
+ 	  config/Makefile \
+Index: decoder/INSTALL (deleted)
+===================================================================
+Index: decoder/Makefile.common
+===================================================================
+--- decoder/Makefile.common	(revision 219)
++++ decoder/Makefile.common	(working copy)
+@@ -26,6 +26,9 @@
+ # swig includes 
+ swigincludedir = $(grincludedir)/swig
+ 
++# gruel includes
++gruelincludedir = $(GRUEL_INCLUDEDIR)/gruel
++
+ # Install this stuff in the appropriate subdirectory
+ # This usually ends up at:
+ #   ${prefix}/lib/python${python_version}/site-packages/gnuradio
+@@ -35,7 +38,7 @@
+ 
+ # swig flags
+ SWIGPYTHONFLAGS = -fvirtual -python -modern
+-SWIGGRFLAGS = -I$(GNURADIO_CORE_INCLUDEDIR)/swig -I$(GNURADIO_CORE_INCLUDEDIR)
++SWIGGRFLAGS = -I$(GNURADIO_CORE_INCLUDEDIR)/swig -I$(gruelincludedir)/swig -I$(GNURADIO_CORE_INCLUDEDIR)
+ 
+ # Don't assume that make predefines $(RM), because BSD make does
+ # not. We define it now in configure.ac using AM_PATH_PROG, but now
+Index: repeater/src/lib/repeater.i
+===================================================================
+--- repeater/src/lib/repeater.i	(revision 219)
++++ repeater/src/lib/repeater.i	(working copy)
+@@ -2,6 +2,10 @@
+ 
+ %feature("autodoc", "1");		// generate python docstrings
+ 
++%{
++#include <malloc.h>
++%}
++
+ %include "exception.i"
+ %import "gnuradio.i"			// the common stuff
+ 
+Index: repeater/configure.ac
+===================================================================
+--- repeater/configure.ac	(revision 219)
++++ repeater/configure.ac	(working copy)
+@@ -87,7 +87,9 @@
+ 
+ STD_DEFINES_AND_INCLUDES="$GNURADIO_CORE_CFLAGS $BOOST_CFLAGS"
+ AC_SUBST(STD_DEFINES_AND_INCLUDES)
+- 
++
++PKG_CHECK_MODULES(GRUEL, gruel)
++
+ AC_CONFIG_FILES([\
+ 	  Makefile \
+ 	  config/Makefile \
+Index: repeater/Makefile.common
+===================================================================
+--- repeater/Makefile.common	(revision 219)
++++ repeater/Makefile.common	(working copy)
+@@ -26,6 +26,9 @@
+ # swig includes 
+ swigincludedir = $(grincludedir)/swig
+ 
++# gruel includes
++gruelincludedir = $(GRUEL_INCLUDEDIR)/gruel
++
+ # Install this stuff in the appropriate subdirectory
+ # This usually ends up at:
+ #   ${prefix}/lib/python${python_version}/site-packages/gnuradio
+@@ -35,4 +38,4 @@
+ 
+ # swig flags
+ SWIGPYTHONFLAGS = -fvirtual -python -modern
+-SWIGGRFLAGS = -I$(GNURADIO_CORE_INCLUDEDIR)/swig -I$(GNURADIO_CORE_INCLUDEDIR)
++SWIGGRFLAGS = -I$(GNURADIO_CORE_INCLUDEDIR)/swig -I$(gruelincludedir)/swig -I$(GNURADIO_CORE_INCLUDEDIR)
