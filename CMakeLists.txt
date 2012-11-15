@@ -176,6 +176,7 @@ CHECK_INCLUDE_FILE_CXX(boost/thread/xtime.hpp HAVE_BOOST_THREAD_XTIME_H)
 CHECK_CXX_SYMBOL_EXISTS(CLOCK_MONOTONIC "boost/thread/xtime.hpp" HAVE_CLOCK_MONOTONIC)
 if(HAVE_BOOST_THREAD_XTIME_H AND HAVE_CLOCK_MONOTONIC)
 	CHECK_CXX_SYMBOL_EXISTS(boost::xtime_get "boost/thread/xtime.hpp" HAVE_XTIME)
+	#boost::xtime xt; boost::xtime_get (&xt, CLOCK_MONOTONIC);
 endif ()
 
 configure_file("${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
