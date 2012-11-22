@@ -324,10 +324,10 @@ UDP_SINK_NAME::work (int noutput_items,
 //fprintf(stderr, "[UDP Sink \"%s (%ld)\"] < Total size: %i, To send: %i, Sent: %i, Residual: %i, Prev residual: %i\n", name().c_str(), unique_id(), total_size, bytes_to_send, bytes_sent, d_residual, prev_residual);
 	  d_offset = (d_bor ? offsetof(BOR_PACKET, data) : 0);
 	  assert(d_bor ? d_offset == 4 : d_offset == 0);
-	  assert((d_residual + bytes_to_send) <= d_payload_size);
+	  //assert((d_residual + bytes_to_send) <= d_payload_size);
 	  unsigned char* start = d_bor_packet + d_offset + d_residual;
-	  memcpy(start, (in + std::max(0, bytes_sent - prev_residual)), bytes_to_send);
-	  d_residual += bytes_to_send;
+	  memcpy(start, (in + std::max(0, bytes_sent - prev_residual)), (bytes_to_send - d_residual));
+	  d_residual /*+*/= bytes_to_send;
 	  assert(d_residual <= d_payload_size);
 	  break;
 	}
@@ -355,7 +355,7 @@ UDP_SINK_NAME::work (int noutput_items,
 		  }
 		}
 		packet->header.idx = d_bor_counter++;
-		assert((d_residual + (bytes_to_send - d_residual)) == d_payload_size);
+		//assert((d_residual + (bytes_to_send - d_residual)) == d_payload_size);
 		memcpy(packet->data + d_residual, (in + std::max(0, bytes_sent - prev_residual)), (bytes_to_send - d_residual));
 		
 		r = send(d_socket, packet, (offsetof(BOR_PACKET, data) + bytes_to_send), 0);

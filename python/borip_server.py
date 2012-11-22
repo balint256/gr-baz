@@ -103,7 +103,23 @@ def _default_device_hint_mapper(hint):
         pass
     try:
         kv = parts[0].index('=')    # key=value
-        return "usrp_uhd"
+        parts = hint.split(",")		# Assumes no use of "
+        args = []
+        subdev = None
+        for part in parts:
+            part = part.strip()
+            if len(part) == 1 and part[0].lower() >= 'a' and part[0].lower() <= 'z':
+                subdev = part + ":0"
+                continue
+            idx = part.find(':')
+            if idx > 0 and part[0].lower() >= 'a' and part[0].lower() <= 'z':	# "?:"
+                subdev = part
+                continue
+            args += [part]
+        combined = ["addr=\"" + ",".join(args) + "\""]
+        if subdev is not None:
+            combined += ["subdev=\"" + subdev + "\""]
+        return {'module': "usrp_uhd", 'args': combined}
     except:
         pass
     return parts[0].upper() # FCD, RTL
@@ -392,26 +408,37 @@ class GnuRadioDevice(Device, NetworkTransport):
             raise Exception, e
     def gain_range(self): # Raises
         try:
-            fn = self._get_helper('gain_range')
+            fn = self._get_helper(['gain_range', 'get_gain_range'])
             if fn is None:
                 return Device.gain_range(self)
             _gr = fn()
             if isinstance(_gr, GainRange):
                 return _gr
-            gr = GainRange(_gr[0], _gr[1])
-            if len(_gr) > 2:
-                gr.step = _gr[2]
-            return gr
+            try:
+                gr = GainRange(_gr[0], _gr[1])
+                if len(_gr) > 2:
+				    gr.step = _gr[2]
+                return gr
+            except:
+                pass
+            try:
+                gr = GainRange(_gr.start(), _gr.stop())
+                if hasattr(_gr, 'step'):
+                    gr.step = _gr.step()
+                return gr
+            except:
+                pass
+            raise Exception, "Unknown type returned from gain_range"
         except Exception, e:
             self._last_error = str(e)
             #return Device.gain_range(self)
             raise Exception, e
     def master_clock(self): # Raises
-        return self._get_helper('master_clock', lambda: Device.master_clock(self))()
+        return self._get_helper(['master_clock', 'get_clock_rate'], lambda: Device.master_clock(self))()
     def samples_per_packet(self):
         return self._get_helper(['samples_per_packet', 'recv_samples_per_packet'], lambda: Device.samples_per_packet(self))()
     def antennas(self):
-        return self._get_helper('antennas', lambda: Device.antennas(self))()
+        return self._get_helper(['antennas', 'get_antennas'], lambda: Device.antennas(self))()
     def gain(self, gain=None):
         if gain is not None:
             fn = self._get_helper('set_gain')
@@ -420,7 +447,7 @@ class GnuRadioDevice(Device, NetworkTransport):
                 if res is not None and res == False:
                     return False
             return Device.gain(self, gain)
-        return self._get_helper('gain', lambda: Device.gain(self))()
+        return self._get_helper(['gain', 'get_gain'], lambda: Device.gain(self))()
     def sample_rate(self, rate=None):
         if rate is not None:
             fn = self._get_helper(['set_sample_rate', 'set_samp_rate'])
@@ -429,10 +456,10 @@ class GnuRadioDevice(Device, NetworkTransport):
                 if res is not None and res == False:
                     return False
             return Device.sample_rate(self, rate)
-        return self._get_helper(['sample_rate', 'samp_rate'], lambda: Device.sample_rate(self))()
+        return self._get_helper(['sample_rate', 'samp_rate', 'get_sample_rate', 'get_samp_rate'], lambda: Device.sample_rate(self))()
     def freq(self, freq=None):
         if freq is not None:
-            fn = self._get_helper(['set_freq', 'set_frequency'])
+            fn = self._get_helper(['set_freq', 'set_frequency', 'set_center_freq'])
             res = None
             if fn:
                 res = fn(freq)
@@ -461,7 +488,7 @@ class GnuRadioDevice(Device, NetworkTransport):
                     if self.options.verbose:
                         print "##> Unknown exception while using response from frequency set:", str(res), "-", str(e)
             return Device.freq(self, tuned, freq)
-        return self._get_helper(['freq', 'frequency'], lambda: Device.freq(self))()
+        return self._get_helper(['freq', 'frequency', 'get_center_freq'], lambda: Device.freq(self))()
     def was_tune_successful(self):
         fn = self._get_helper(['was_tune_successful', 'was_tuning_successful'])
         if fn:
@@ -502,7 +529,7 @@ class GnuRadioDevice(Device, NetworkTransport):
                 if res is not None and res == False:
                     return False
             return Device.antenna(self, antenna)
-        return self._get_helper('antenna', lambda: Device.antenna(self))()
+        return self._get_helper(['antenna', 'get_antenna'], lambda: Device.antenna(self))()
     # Network Transport
     def destination(self, dest=None):
         if dest is not None:
@@ -566,76 +593,86 @@ def _create_device(hint, options):
     if id is None or len(id) == 0:
         #return None
         raise Exception, "Empty ID"
-    parts = hint.split(" ")
-    if len(parts) > 0 and parts[0].lower() == id.lower():
-        parts = parts[1:]
-    if len(parts) > 0:
-        if options.debug:
-            print "--> Hint parts:", parts
-    args = []
-    append = False
-    accum = ""
-    for part in parts:
-        quote_list = _find_quotes(part)
-        
-        if (len(quote_list) % 2) != 0:  # Doesn't handle "a""b" as separate args
-            if append == False:
-                append = True
-                accum = part
+    
+    if isinstance(id, dict):
+        args = []
+        for arg in id['args']:
+            check = _remove_quoted(arg)
+            if check.count("(") != check.count(")"):
                 continue
+            args += [arg]
+        id = id['module']   # Must come last
+    else:
+        parts = hint.split(" ")
+        if len(parts) > 0 and parts[0].lower() == id.lower():
+            parts = parts[1:]
+        if len(parts) > 0:
+            if options.debug:
+                print "--> Hint parts:", parts
+        args = []
+        append = False
+        accum = ""
+        for part in parts:
+            quote_list = _find_quotes(part)
+            
+            if (len(quote_list) % 2) != 0:  # Doesn't handle "a""b" as separate args
+                if append == False:
+                    append = True
+                    accum = part
+                    continue
+                else:
+                    part = accum + part
+                    accum = ""
+                    append = False
+                    quote_list = _find_quotes(part)
+            elif append == True:
+                accum += part
+                continue
+            
+            quotes = True
+            key = None
+            value = part
+            
+            idx = part.find("=")
+            if idx > -1 and (len(quote_list) == 0 or idx < quote_list[0]):
+                key = part[0:idx]
+                value = part[idx + 1:]
+            
+            if len(quote_list) >= 2 and quote_list[0] == 0 and quote_list[-1] == (len(part) - 1):
+                quotes = False
             else:
-                part = accum + part
-                accum = ""
-                append = False
-                quote_list = _find_quotes(part)
-        elif append == True:
-            accum += part
-            continue
-        
-        quotes = True
-        key = None
-        value = part
-        
-        idx = part.find("=")
-        if idx > -1 and (len(quote_list) == 0 or idx < quote_list[0]):
-            key = part[0:idx]
-            value = part[idx + 1:]
-        
-        if len(quote_list) >= 2 and quote_list[0] == 0 and quote_list[-1] == (len(part) - 1):
-            quotes = False
-        else:
-            if quotes:
-                try:
-                    dummy = float(value)
-                    quotes = False
-                except:
-                    pass
+                if quotes:
+                    try:
+                        dummy = float(value)
+                        quotes = False
+                    except:
+                        pass
+                
+                if quotes:
+                    try:
+                        dummy = int(value, 16)
+                        quotes = False
+                        dummy = value.lower()
+                        if len(dummy) < 2 or dummy[0:2] != "0x":
+                            value = "0x" + value
+                    except:
+                        pass
+            
+            arg = ""
+            if key:
+                arg = key + "="
             
             if quotes:
-                try:
-                    dummy = int(value, 16)
-                    quotes = False
-                    dummy = value.lower()
-                    if len(dummy) < 2 or dummy[0:2] != "0x":
-                        value = "0x" + value
-                except:
-                    pass
-        
-        arg = ""
-        if key:
-            arg = key + "="
-        
-        if quotes:
-            value = value.replace("\"", "\\\"")
-            arg += "\"" + value + "\""
-        else:
-            arg += value
-        
-        check = _remove_quoted(arg)
-        if check.count("(") != check.count(")"):
-            continue
-        
-        args += [arg]
+                value = value.replace("\"", "\\\"")
+                arg += "\"" + value + "\""
+            else:
+                arg += value
+            
+            check = _remove_quoted(arg)
+            if check.count("(") != check.count(")"):
+                continue
+            
+            args += [arg]
     
     args_str = ",".join(args)
     if len(args_str) > 0:
@@ -894,6 +931,7 @@ class ThreadedTCPRequestHandler(SocketServer.StreamRequestHandler): # BaseReques
                             else:
                                 error = "Failed to create device"
                         except Exception, e:
+                            traceback.print_exc()
                             error = str(e)
                         if len(error) == 0:
                             self.device = device
