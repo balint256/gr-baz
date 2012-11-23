@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='ASCII'?>
 <flow_graph>
-  <timestamp>Thu May 31 23:41:53 2012</timestamp>
+  <timestamp>Fri Nov 23 10:50:21 2012</timestamp>
   <block>
     <key>options</key>
     <param>
@@ -42,6 +42,10 @@
     <param>
       <key>run</key>
       <value>True</value>
+    </param>
+    <param>
+      <key>max_nouts</key>
+      <value>0</value>
     </param>
     <param>
       <key>realtime_scheduling</key>
@@ -292,57 +296,6 @@
     <param>
       <key>_coordinate</key>
       <value>(264, 361)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>baz_udp_sink</key>
-    <param>
-      <key>id</key>
-      <value>sink</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>short</value>
-    </param>
-    <param>
-      <key>ipaddr</key>
-      <value></value>
-    </param>
-    <param>
-      <key>port</key>
-      <value>28888</value>
-    </param>
-    <param>
-      <key>psize</key>
-      <value>1472</value>
-    </param>
-    <param>
-      <key>eof</key>
-      <value>False</value>
-    </param>
-    <param>
-      <key>borip</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>status_in</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>vlen</key>
-      <value>1</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(264, 111)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -683,6 +636,57 @@
     <param>
       <key>_coordinate</key>
       <value>(588, 341)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>baz_udp_sink</key>
+    <param>
+      <key>id</key>
+      <value>sink</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>short</value>
+    </param>
+    <param>
+      <key>ipaddr</key>
+      <value></value>
+    </param>
+    <param>
+      <key>port</key>
+      <value>28888</value>
+    </param>
+    <param>
+      <key>psize</key>
+      <value>1472</value>
+    </param>
+    <param>
+      <key>eof</key>
+      <value>False</value>
+    </param>
+    <param>
+      <key>borip</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>status_in</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(264, 110)</value>
     </param>
     <param>
       <key>_rotation</key>

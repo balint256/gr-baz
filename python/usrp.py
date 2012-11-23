@@ -27,19 +27,35 @@ def determine_rx_mux_value(u, subdev_spec, subdev_spec_b=None):
 def selected_subdev(u, subdev_spec):	# Returns subdevice object
 	return u.selected_subdev(subdev_spec)
 
-class source_c(gr.hier_block2):
+class tune_result:
+	pass
+
+class device(gr.hier_block2):
 	"""
 	Legacy USRP via UHD
 	Assumes 64MHz clock in USRP 1
 	'address' as None implies check config for default
 	"""
-	def __init__(self, address=None, which=0, decim_rate=0, adc_freq=64e6, defer_creation=True):	# FIXME: 'which'
+	def __init__(self, address=None, which=0, decim_rate=0, nchan=1, adc_freq=64e6, defer_creation=True):	# FIXME: 'which', 'nchan'
 		"""
 		UHD USRP Source
 		"""
+		if self._args[1] == "fc32":
+			format_size = gr.sizeof_gr_complex
+		elif self._args[1] == "sc16":
+			format_size = gr.sizeof_short * 2
+		
+		empty_io = gr.io_signature(0, 0, 0)
+		format_io = gr.io_signature(1, 1, format_size)
+		
+		if self._args[0]:
+			io = (format_io, empty_io)
+		else:
+			io = (empty_io, format_io)
+		
 		gr.hier_block2.__init__(self, "uhd_usrp_wrapper",
-			gr.io_signature(0, 0, 0),
-			gr.io_signature(1, 1, gr.sizeof_gr_complex))	# FIXME: Sample format
+			io[0],
+			io[1])
 		
 		self._decim_rate = decim_rate
 		self._address = address
@@ -49,6 +65,7 @@ class source_c(gr.hier_block2):
 		self._gain_range = (0, 1)
 		self._tune_result = None
 		self._name = "(Legacy USRP)"
+		self._serial = ""
 		self._gain_step = 0
 		self._created = False
 		
@@ -58,7 +75,7 @@ class source_c(gr.hier_block2):
 		
 		self._reset_last_params()
 		
-		self._uhd_usrp_source = None
+		self._uhd_device = None
 		
 		if defer_creation == False:	# Deferred until 'selected_subdev' is called
 			self.create()
@@ -75,7 +92,7 @@ class source_c(gr.hier_block2):
 		pass
 	
 	def create(self, address=None, decim_rate=0, which=None, subdev_spec="", sample_rate=None):
-		if self._uhd_usrp_source is not None:	# Not supporting re-creation
+		if self._uhd_device is not None:	# Not supporting re-creation
 			return True
 		
 		if address is None:
@@ -110,36 +127,48 @@ class source_c(gr.hier_block2):
 				else:
 					raise Exception, "Unknown sub-device specification: " + str(subdev_spec)
 		
-		self._uhd_usrp_source = uhd.usrp_source(
-			device_addr=address,
-			stream_args=uhd.stream_args(
-				cpu_format="fc32",
-				channels=range(1),
-			),
+		stream_args = uhd.stream_args(
+			cpu_format=self._args[1],
+			channels=range(1),
 		)
 		
+		if self._args[0]:
+			self._uhd_device = uhd.usrp_sink(
+				device_addr=address,
+				stream_args=stream_args,
+			)
+		else:
+			self._uhd_device = uhd.usrp_source(
+				device_addr=address,
+				stream_args=stream_args,
+			)
+		
 		if subdev_spec is not None:
-			self._uhd_usrp_source.set_subdev_spec(subdev_spec, 0)
+			self._uhd_device.set_subdev_spec(subdev_spec, 0)
 		
 		try:
-			info = self._uhd_usrp_source.get_usrp_info(0)
+			info = self._uhd_device.get_usrp_info(0)
 			self._name = info.get("mboard_id")
-			serial = info.get("mboard_serial")
-			if serial != "":
-				self._name += (" (%s)" % (serial))
+			self._serial = info.get("mboard_serial")
+			if self._serial != "":
+				self._name += (" (%s)" % (self._serial))
 		except:
 			pass
 		
-		_gr = self._uhd_usrp_source.get_gain_range(0)
+		_gr = self._uhd_device.get_gain_range(0)
 		self._gain_range = (_gr.start(), _gr.stop())
 		self._gain_step = _gr.step()
 		
-		self.connect(self._uhd_usrp_source, self)
+		if self._args[1] == "sc16":
+			self.v2s = gr.vector_to_stream(gr.sizeof_short, 2)
+			self.connect(self._uhd_device, self.v2s, self)
+		else:
+			self.connect(self._uhd_device, self)
 		
 		self._created = True
 		
 		if sample_rate is not None:
-			self._uhd_usrp_source.set_samp_rate(sample_rate)
+			self._uhd_device.set_samp_rate(sample_rate)
 		else:
 			if self.set_decim_rate(decim_rate) == False:
 				raise Exception, "Invalid decimation: %s (sample rate: %s)" % (decim_rate, sample_rate)
@@ -159,9 +188,15 @@ class source_c(gr.hier_block2):
 	
 	def set_freq(self, freq):
 		self._last_freq = freq
-		self._tune_result = self._uhd_usrp_source.set_center_freq(freq, 0)
+		self._tune_result = self._uhd_device.set_center_freq(freq, 0)
 		#print "[UHD]", freq, "=", self._tune_result
-		return self._tune_result	# usrp.usrp_tune_result
+		#return self._tune_result	# usrp.usrp_tune_result
+		tr = tune_result()
+		tr.baseband_freq = self._tune_result.actual_rf_freq
+		tr.dxc_freq = self._tune_result.actual_dsp_freq
+		tr.residual_freq = (freq - tr.baseband_freq - tr.dxc_freq)
+		tr.inverted = False
+		return tr
 	
 	def tune(self, unit, subdev, freq):
 		return self.set_freq(freq)
@@ -188,16 +223,19 @@ class source_c(gr.hier_block2):
 	
 	def set_decim_rate(self, decim_rate):
 		self._decim_rate = decim_rate
-		if self._uhd_usrp_source is None:
+		if self._uhd_device is None:
 			return True
 		sample_rate = self.adc_freq() / decim_rate
 		#print "[UHD] Setting sample rate:", sample_rate
-		return self._uhd_usrp_source.set_samp_rate(sample_rate)
+		return self._uhd_device.set_samp_rate(sample_rate)
 
 	def db(self, side_idx, subdev_idx):
 		return self
 	
 	def converter_rate(self):
+		return self.adc_freq()
+	
+	def fpga_master_clock_freq(self):
 		return self.adc_freq()
 	
 	## Daughter-board #################
@@ -218,18 +256,26 @@ class source_c(gr.hier_block2):
 	
 	def set_gain(self, gain):
 		self._last_gain = gain
-		return self._uhd_usrp_source.set_gain(gain, 0)
+		return self._uhd_device.set_gain(gain, 0)
 	
 	def select_rx_antenna(self, antenna):
 		self._last_antenna = antenna
-		return self._uhd_usrp_source.set_antenna(antenna, 0)
+		return self._uhd_device.set_antenna(antenna, 0)
 	
 	def name(self):
 		return self._name
 	
+	def serial_number(self):
+		return self._serial
+	
 	def side_and_name(self):
 		try:
-			info = self._uhd_usrp_source.get_usrp_info(0)
+			info = self._uhd_device.get_usrp_info(0)
 			return "%s [%s]" % (self.name(), info.get("rx_subdev_name"))
 		except:
 			return self.name()
+
+class source_c(device): _args = (False, "fc32")
+class source_s(device): _args = (False, "sc16")
+class sink_c(device): _args = (True, "fc32")
+class sink_s(device): _args = (True, "sc16")

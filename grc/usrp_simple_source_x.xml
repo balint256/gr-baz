@@ -13,10 +13,21 @@
 self.$(id).set_format(width=$format.width, shift=$format.shift)
 #end if
 self.$(id).set_decim_rate($decimation)
-self.$(id).set_frequency($frequency, verbose=True)
-self.$(id).set_gain($gain)</make>
+self.$(id).set_frequency($frequency, verbose=True#slurp
+#if $lo_offset() != float('inf')
+, lo_offset=$lo_offset#slurp
+#end if
+)
+self.$(id).set_gain($gain)
+#if $status_out()
+if hasattr(self.$(id), '_get_u') and hasattr(self.$(id)._get_u(), 'set_status_msgq'): self.$(id)._get_u().set_status_msgq($(id)_msgq_out)
+#end if</make>
 	<callback>set_decim_rate($decimation)</callback>
-	<callback>set_frequency($frequency)</callback>
+	<callback>set_frequency($frequency#slurp
+#if $lo_offset() != float('inf')
+, lo_offset=$lo_offset#slurp
+#end if
+)</callback>
 	<callback>set_gain($gain)</callback>
 	<param>
 		<name>Output Type</name>
@@ -64,13 +75,25 @@ self.$(id).set_gain($gain)</make>
 		<type>int</type>
 	</param>
 	<param>
-		<name>Frequency</name>
+		<name>Frequency (Hz)</name>
 		<key>frequency</key>
 		<type>real</type>
 	</param>
 	<param>
-		<name>Gain</name>
+		<name>LO Offset (Hz)</name>
+		<key>lo_offset</key>
+		<value>float('inf')</value>
+		<type>real</type>
+		<hide>#if $lo_offset() == float('inf') then 'part' else 'none'#</hide>
+		<option>
+			<name>Default</name>
+			<key>float('inf')</key>
+		</option>
+	</param>
+	<param>
+		<name>Gain (dB)</name>
 		<key>gain</key>
+		<value>0</value>
 		<type>real</type>
 	</param>
 	<param>
@@ -128,9 +151,29 @@ self.$(id).set_gain($gain)</make>
 			<key>1</key>
 		</option>
 	</param>
+	<param>
+	    <name>Output status</name>
+	    <key>status_out</key>
+	    <value>False</value>
+	    <type>bool</type>
+	    <hide>#if str($status_out) == 'False' then 'part' else 'none'#</hide>
+	    <option>
+		    <name>Yes</name>
+		    <key>True</key>
+	    </option>
+	    <option>
+		    <name>No</name>
+		    <key>False</key>
+	    </option>
+    </param>
 	<source>
 		<name>out</name>
 		<type>$type</type>
+	</source>
+	<source>
+		<name>status</name>
+        <type>msg</type>
+		<optional>1</optional>
 	</source>
 	<doc>
 The USRP source outputs 64 Megasamples per second / decimation.

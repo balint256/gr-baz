@@ -525,8 +525,11 @@ class GnuRadioDevice(Device, NetworkTransport):
                     antenna = self.antennas()[antenna]
                 if len(antenna) == 0:
                     return False
-                res = fn(antenna)
-                if res is not None and res == False:
+                try:
+                    res = fn(antenna)
+                    if res is not None and res == False:
+                        return False
+                except:
                     return False
             return Device.antenna(self, antenna)
         return self._get_helper(['antenna', 'get_antenna'], lambda: Device.antenna(self))()

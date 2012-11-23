@@ -2,7 +2,7 @@
 ##################################################
 # Gnuradio Python Flow Graph
 # Title: Borip Usrp Legacy
-# Generated: Sun Jun  3 21:31:37 2012
+# Generated: Thu Nov 22 22:37:47 2012
 ##################################################
 
 from gnuradio import eng_notation
@@ -47,60 +47,99 @@ class borip_usrp_legacy(gr.top_block):
 		##################################################
 		# Blocks
 		##################################################
-		self.sink = baz.udp_sink(gr.sizeof_short*1, "", 28888, 1472, False, True)
-		self.sink.set_status_msgq(sink_msgq_in)
 		self.source = grc_usrp.simple_source_s(which=unit, side=side, rx_ant="")
 		self.source.set_decim_rate(256)
 		self.source.set_frequency(0, verbose=True)
 		self.source.set_gain(0)
-		self.source._get_u().set_status_msgq(source_msgq_out)
+		if hasattr(self.source, '_get_u') and hasattr(self.source._get_u(), 'set_status_msgq'): self.source._get_u().set_status_msgq(source_msgq_out)
+		self.sink = baz.udp_sink(gr.sizeof_short*1, "", 28888, 1472, False, True)
+		self.sink.set_status_msgq(sink_msgq_in)
 
 		##################################################
 		# Connections
 		##################################################
 		self.connect((self.source, 0), (self.sink, 0))
 
+	def get_unit(self):
+		return self.unit
+
 	def set_unit(self, unit):
 		self.unit = unit
 
+	def get_side(self):
+		return self.side
+
 	def set_side(self, side):
 		self.side = side
+
+	def get_tr_to_list(self):
+		return self.tr_to_list
 
 	def set_tr_to_list(self, tr_to_list):
 		self.tr_to_list = tr_to_list
 		self.set_set_freq(lambda f: self.self.tr_to_list(f, self.source._get_u().tune(0, self.source._subdev, f)))
 
+	def get_serial(self):
+		return self.serial
+
 	def set_serial(self, serial):
 		self.serial = serial
 		self.set_source_name(lambda: "USRP (" + self.serial() + ")")
+
+	def get_master_clock(self):
+		return self.master_clock
 
 	def set_master_clock(self, master_clock):
 		self.master_clock = master_clock
 		self.set_set_samp_rate(lambda r: self.source.set_decim_rate(self.self.master_clock()//r))
 		self.self.set_samp_rate(lambda: self.self.master_clock()/self.source._get_u().decim_rate())
 
+	def get_tune_tolerance(self):
+		return self.tune_tolerance
+
 	def set_tune_tolerance(self, tune_tolerance):
 		self.tune_tolerance = tune_tolerance
 
+	def get_source_name(self):
+		return self.source_name
+
 	def set_source_name(self, source_name):
 		self.source_name = source_name
+
+	def get_set_samp_rate(self):
+		return self.set_samp_rate
 
 	def set_set_samp_rate(self, set_samp_rate):
 		self.set_samp_rate = set_samp_rate
 		self.self.set_samp_rate(lambda: self.self.master_clock()/self.source._get_u().decim_rate())
 
+	def get_set_freq(self):
+		return self.set_freq
+
 	def set_set_freq(self, set_freq):
 		self.set_freq = set_freq
+
+	def get_set_antenna(self):
+		return self.set_antenna
 
 	def set_set_antenna(self, set_antenna):
 		self.set_antenna = set_antenna
 
+	def get_samp_rate(self):
+		return self.samp_rate
+
 	def set_samp_rate(self, samp_rate):
 		self.samp_rate = samp_rate
+
+	def get_gain_range(self):
+		return self.gain_range
 
 	def set_gain_range(self, gain_range):
 		self.gain_range = gain_range
 		self.set_gain_range(lambda: self.source._subdev.self.gain_range())
+
+	def get_antennas(self):
+		return self.antennas
 
 	def set_antennas(self, antennas):
 		self.antennas = antennas
