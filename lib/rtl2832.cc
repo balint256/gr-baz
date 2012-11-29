@@ -117,6 +117,7 @@ namespace RTL2832_NAMESPACE
 #define NOXON_VID		0x0ccd
 #define NOXON_PID		0x00b3
 #define NOXON_V2_PID	0x00e0
+#define NOXON_V3_PID	0x00D7
 
 /* Dexatek Technology Ltd. DK DVB-T Dongle */
 #define DEXATEK_VID		0x1d19
@@ -174,19 +175,20 @@ static struct _rtl2832_tuner_info
 	tuner::CreateTunerFn factory;
 	tuner::ProbeTunerFn probe;
 } _rtl2832_tuners[] = {
-	ADD_TUNER(e4000),
+	ADD_TUNER(e4k),	// Swapped this around with e4000
 	ADD_TUNER(fc0013),
 	ADD_TUNER(fc2580),
 	ADD_TUNER(fc0012),
-	ADD_TUNER(e4k)
+	ADD_TUNER(e4000)
 };
 
 static DEVICE_INFO _rtl2832_devices[] = {	// Tuner does auto-detection (ignores creator hint) by default now!
-	{ "ezcap EzTV",					EZCAP_VID,		EZCAP_PID, 		GET_CREATOR_FN(e4000)	},
+	{ "ezcap EzTV",					EZCAP_VID,		EZCAP_PID, 		NULL/*GET_CREATOR_FN(e4000)*/	},
 	// Use custom tuner name when creating device for ecap EZTV646 FC0013 but same PID: 2838
 	{ "Terratec NOXON (rev 1)",		NOXON_VID,		NOXON_PID, 		GET_CREATOR_FN(fc0013)	},
-	{ "Terratec NOXON (rev 2)", 	NOXON_VID,		NOXON_V2_PID, 	GET_CREATOR_FN(e4000)	},
-	{ "Hama nano",					HAMA_VID,		HAMA_PID,		GET_CREATOR_FN(e4000)	},
+	{ "Terratec NOXON (rev 2)", 	NOXON_VID,		NOXON_V2_PID, 	NULL/*GET_CREATOR_FN(e4000)*/	},
+	{ "Terratec NOXON (rev 3)",		NOXON_VID,		NOXON_V3_PID, 	NULL/*GET_CREATOR_FN(e4000)*/	},
+	{ "Hama nano",					HAMA_VID,		HAMA_PID, 		NULL/*GET_CREATOR_FN(e4000)*/	},
 	{ "Dexatek Technology (rev 1)",	DEXATEK_VID,	DEXATEK_PID,	GET_CREATOR_FN(fc0013)	},	// Also Logilink
 	{ "Dexatek Technology (rev 2)", DEXATEK_VID,	DEXATEK_V2_PID, GET_CREATOR_FN(fc0013)	},	// Also ZAAPA HD Tuner
 	{ "Dexatek Technology (rev 3)", DEXATEK_VID,	DEXATEK_V3_PID,	GET_CREATOR_FN(fc0013)	},
