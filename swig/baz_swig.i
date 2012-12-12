@@ -2,6 +2,10 @@
 
 %include "gnuradio.i"			// the common stuff
 
+//#ifdef HAVE_CONFIG_H
+%include "config.h"
+//#endif // HAVE_CONFIG_H
+
 %{
 //#include "howto_square_ff.h"
 //#include "howto_square2_ff.h"

@@ -80,6 +80,10 @@ dnl AX_BOOST_TEST_EXEC_MONITOR
 dnl AX_BOOST_UNIT_TEST_FRAMEWORK
 dnl AX_BOOST_WSERIALIZATION
 
+USRP_LIBUSB([
+  AC_DEFINE(LIBUSB_FOUND,1,[define if libusb is found])
+], [])
+
 dnl ##########################################################
 TMP_LDFLAGS="$LDFLAGS"
 TMP_CFLAGS="$CFLAGS"
