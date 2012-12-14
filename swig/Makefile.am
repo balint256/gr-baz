@@ -38,6 +38,9 @@ TOP_SWIG_IFILES = \
 baz_la_swig_libadd =		\
 	$(top_builddir)/lib/libgnuradio-baz.la
 
+# For config.h
+WITH_INCLUDES = -I$(top_srcdir)
+
 include $(top_srcdir)/Makefile.swig
 
 # add some of the variables generated inside the Makefile.swig.gen
