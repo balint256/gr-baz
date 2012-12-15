@@ -82,10 +82,14 @@ if (LIBUSB_FOUND)
 		rtl2832-tuner_fc2580.cc
 		rtl2832-tuner_e4k.cc
 	)
+else ()
+	SET(LIBUSB_LIBRARIES "")
 endif ()
 
 if (UHD_FOUND)
 	LIST(APPEND baz_sources baz_gate.cc)
+else ()
+	SET(UHD_LIBRARIES "")
 endif ()
 
 add_library(gnuradio-baz SHARED
