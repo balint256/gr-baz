@@ -3,46 +3,7 @@
 
 #include "rtl2832.h"
 
-namespace RTL2832_NAMESPACE
-{
-	namespace TUNERS_NAMESPACE
-	{
-		
-		class r820t : public RTL2832_NAMESPACE::tuner_skeleton
-		{
-			IMPLEMENT_INLINE_TUNER_FACTORY(r820t)
-		public:
-			r820t(demod* p);
-		public:
-			inline virtual const char* name() const
-			{ return "Fitipower R820T"; }
-		public:
-			int initialise(tuner::PPARAMS params = NULL);
-			int set_frequency(double freq);
-			int set_bandwidth(double bw);
-			int set_gain(double gain);
-		};
-		
-	}
-}
-
-#define R820T_I2C_ADDR		0x34
-#define R820T_CHECK_ADDR	0x00
-#define R820T_CHECK_VAL		0x69
-
-#define R820T_IF_FREQ		3570000
-
-//***************************************************************
-//*                       INCLUDES.H
-//***************************************************************
-//#define VERSION   "R820T_v1.49_ASTRO"
-#define VER_NUM  49
-
-#define USE_16M_XTAL		FALSE
-#define R828_Xtal		28800
-
-#define USE_DIPLEXER		FALSE
-#define TUNER_CLK_OUT		TRUE
+////////////////////////////////////////
 
 #ifndef _UINT_X_
 #define _UINT_X_ 1
@@ -54,40 +15,15 @@ typedef unsigned int   UINT32;
 #define TRUE	1
 #define FALSE	0
 
-#define FUNCTION_SUCCESS	0
-#define FUNCTION_ERROR		-1
-
 typedef enum _R828_ErrCode
 {
 	RT_Success,
 	RT_Fail
 }R828_ErrCode;
 
-typedef enum _Rafael_Chip_Type  //Don't modify chip list
-{
-	R828 = 0,
-	R828D,
-	R828S,
-	R820T,
-	R820C,
-	R620D,
-	R620S
-}Rafael_Chip_Type;
 //----------------------------------------------------------//
 //                   R828 Parameter                        //
 //----------------------------------------------------------//
-
-extern UINT8 R828_ADDRESS;
-
-#define DIP_FREQ  	  320000
-#define IMR_TRIAL    9
-#define VCO_pwr_ref   0x02
-
-extern UINT32 R828_IF_khz;
-extern UINT32 R828_CAL_LO_khz;
-extern UINT8  R828_IMR_point_num;
-extern UINT8  R828_IMR_done_flag;
-extern UINT8  Rafael_Chip;
 
 typedef enum _R828_Standard_Type  //Don't remove standand list!!
 {
@@ -119,8 +55,6 @@ typedef enum _R828_Standard_Type  //Don't remove standand list!!
 	STD_SIZE
 }R828_Standard_Type;
 
-extern UINT8  R828_Fil_Cal_flag[STD_SIZE];
-
 typedef enum _R828_SetFreq_Type
 {
 	FAST_MODE = TRUE,
@@ -132,7 +66,6 @@ typedef enum _R828_LoopThrough_Type
 	LOOP_THROUGH = TRUE,
 	SIGLE_IN     = FALSE
 }R828_LoopThrough_Type;
-
 
 typedef enum _R828_InputMode_Type
 {
@@ -188,34 +121,121 @@ typedef struct _R828_I2C_TYPE
 	UINT8 RegAddr;
 	UINT8 Data;
 }R828_I2C_TYPE;
+
+typedef struct _R828_SectType
+{
+	UINT8 Phase_Y;
+	UINT8 Gain_X;
+	UINT16 Value;
+}R828_SectType;
+
+typedef enum _BW_Type
+{
+	BW_6M = 0,
+	BW_7M,
+	BW_8M,
+	BW_1_7M,
+	BW_10M,
+	BW_200K
+}BW_Type;
+
+typedef struct _Sys_Info_Type
+{
+	UINT16		IF_KHz;
+	BW_Type		BW;
+	UINT32		FILT_CAL_LO;
+	UINT8		FILT_GAIN;
+	UINT8		IMG_R;
+	UINT8		FILT_Q;
+	UINT8		HP_COR;
+	UINT8       EXT_ENABLE;
+	UINT8       LOOP_THROUGH;
+	UINT8       LT_ATT;
+	UINT8       FLT_EXT_WIDEST;
+	UINT8       POLYFIL_CUR;
+}Sys_Info_Type;
+
+typedef struct _Freq_Info_Type
+{
+	UINT8		OPEN_D;
+	UINT8		RF_MUX_PLOY;
+	UINT8		TF_C;
+	UINT8		XTAL_CAP20P;
+	UINT8		XTAL_CAP10P;
+	UINT8		XTAL_CAP0P;
+	UINT8		IMR_MEM;
+}Freq_Info_Type;
+
+typedef struct _SysFreq_Info_Type
+{
+	UINT8		LNA_TOP;
+	UINT8		LNA_VTH_L;
+	UINT8		MIXER_TOP;
+	UINT8		MIXER_VTH_L;
+	UINT8      AIR_CABLE1_IN;
+	UINT8      CABLE2_IN;
+	UINT8		PRE_DECT;
+	UINT8      LNA_DISCHARGE;
+	UINT8      CP_CUR;
+	UINT8      DIV_BUF_CUR;
+	UINT8      FILTER_CUR;
+}SysFreq_Info_Type;
+
+////////////////////////////////////////
+
+namespace RTL2832_NAMESPACE { namespace TUNERS_NAMESPACE
+{
+class r820t : public RTL2832_NAMESPACE::tuner_skeleton
+{
+IMPLEMENT_INLINE_TUNER_FACTORY(r820t)
+public:
+	//UINT8  R828_ADDRESS;
+	UINT32 R828_IF_khz;
+	UINT32 R828_CAL_LO_khz;
+	UINT8  R828_IMR_point_num;
+	UINT8  R828_IMR_done_flag;
+	//UINT8  Rafael_Chip;
+	UINT8 R828_Arry[27];
+public:
+	R828_SectType IMR_Data[5];
+	R828_I2C_TYPE R828_I2C;
+	R828_I2C_LEN_TYPE R828_I2C_Len;
+	UINT8  R828_Fil_Cal_flag[STD_SIZE];
+	UINT8 R828_Fil_Cal_code[STD_SIZE];
+	UINT8 Xtal_cap_sel;
+	UINT8 Xtal_cap_sel_tmp;
+	SysFreq_Info_Type SysFreq_Info1;
+	Sys_Info_Type Sys_Info1;
+	//static Freq_Info_Type R828_Freq_Info;
+	Freq_Info_Type Freq_Info1;
+public:
+	r820t(demod* p);
+public:
+	inline virtual const char* name() const
+	{ return "Fitipower R820T"; }
+public:
+	int initialise(tuner::PPARAMS params = NULL);
+	int set_frequency(double freq);
+	int set_bandwidth(double bw);
+	int set_gain(double gain);
+};
+
+} }
+
 //----------------------------------------------------------//
-//                   R828 Function                         //
+//                   R828 Functions                         //
 //----------------------------------------------------------//
-R828_ErrCode R828_Init(RTL2832_NAMESPACE::tuner* pTuner);
-R828_ErrCode R828_Standby(RTL2832_NAMESPACE::tuner* pTuner, R828_LoopThrough_Type R828_LoopSwitch);
-R828_ErrCode R828_GPIO(RTL2832_NAMESPACE::tuner* pTuner, R828_GPIO_Type R828_GPIO_Conrl);
-R828_ErrCode R828_SetStandard(RTL2832_NAMESPACE::tuner* pTuner, R828_Standard_Type RT_Standard);
-R828_ErrCode R828_SetFrequency(RTL2832_NAMESPACE::tuner* pTuner, R828_Set_Info R828_INFO, R828_SetFreq_Type R828_SetFreqMode);
-R828_ErrCode R828_GetRfGain(RTL2832_NAMESPACE::tuner* pTuner, R828_RF_Gain_Info *pR828_rf_gain);
-R828_ErrCode R828_SetRfGain(RTL2832_NAMESPACE::tuner* pTuner, int gain);
-R828_ErrCode R828_RfGainMode(RTL2832_NAMESPACE::tuner* pTuner, int manual);
 
-int
-r820t_SetRfFreqHz(
-				  RTL2832_NAMESPACE::tuner* pTuner,
-				  unsigned long RfFreqHz
-				  );
-
-int
-r820t_SetStandardMode(
-					  RTL2832_NAMESPACE::tuner* pTuner,
-					  int StandardMode
-					  );
-
-int
-r820t_SetStandby(
-				 RTL2832_NAMESPACE::tuner* pTuner,
-				 int LoopThroughType
-				 );
+R828_ErrCode R828_Init(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner);
+R828_ErrCode R828_Standby(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_LoopThrough_Type R828_LoopSwitch);
+R828_ErrCode R828_GPIO(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_GPIO_Type R828_GPIO_Conrl);
+R828_ErrCode R828_SetStandard(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_Standard_Type RT_Standard);
+R828_ErrCode R828_SetFrequency(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_Set_Info R828_INFO, R828_SetFreq_Type R828_SetFreqMode);
+R828_ErrCode R828_GetRfGain(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_RF_Gain_Info *pR828_rf_gain);
+R828_ErrCode R828_SetRfGain(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, int gain);
+R828_ErrCode R828_RfGainMode(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, int manual);
+int r820t_SetRfFreqHz(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, unsigned long RfFreqHz);
+int r820t_SetStandardMode(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, int StandardMode);
+int r820t_SetStandby(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, int LoopThroughType);
 
 #endif /* __TUNER_R820T_H */
