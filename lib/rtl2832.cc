@@ -46,6 +46,7 @@
 #include "rtl2832-tuner_fc0013.h"
 #include "rtl2832-tuner_fc0012.h"
 #include "rtl2832-tuner_fc2580.h"
+#include "rtl2832-tuner_r820t.h"
 #include "rtl2832-tuner_e4k.h"
 
 ///////////////////////////////////////////////////////////
@@ -178,6 +179,7 @@ static struct _rtl2832_tuner_info
 	ADD_TUNER(e4k),	// Swapped this around with e4000
 	ADD_TUNER(fc0013),
 	ADD_TUNER(fc2580),
+	ADD_TUNER(r820t),
 	ADD_TUNER(fc0012),
 	ADD_TUNER(e4000)
 };

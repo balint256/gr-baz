@@ -61,6 +61,7 @@ libgnuradio_baz_la_SOURCES = \
 	rtl2832-tuner_fc0013.cc \
 	rtl2832-tuner_fc0012.cc \
 	rtl2832-tuner_fc2580.cc \
+	rtl2832-tuner_r820t.cc \
 	rtl2832-tuner_e4k.cc \
 	baz_udp_source.cc \
 	baz_udp_sink.cc
