@@ -4,7 +4,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <libusb\libusb.h>	// FIXME: Automake
+#ifdef LIBUSB_FOUND
+#include <libusb-1.0/libusb.h>
+#else
+#include <libusb/libusb.h>	// libusbx on Windows
+#endif // LIBUSB_FOUND
 
 #ifdef _WIN32
 

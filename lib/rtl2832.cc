@@ -147,8 +147,9 @@ namespace RTL2832_NAMESPACE
 #define PROLECTRIX_PID	0xd803
 
 /* Terratec Cinergy T */
-#define CINERGY_VID		0x0ccd
+#define CINERGY_VID		0x0ccd	// Same as NOXON
 #define CINERGY_PID		0x00a9
+#define CINERGY_V3_PID	0x00d3
 
 /* DIKOM HD */
 #define DIKOM_VID		0x1b80	// Same as Peak
@@ -165,6 +166,11 @@ namespace RTL2832_NAMESPACE
 /* SVEON STV20 DVB-T USB & FM */
 #define SVEON_VID		0x1b80
 #define SVEON_PID		0xd39d
+
+/* Compro Videomate */
+#define COMPRO_VID		0x185b
+#define COMPRO_V1_PID	0x0620
+#define COMPRO_V2_PID	0x0650
 
 #define GET_CREATOR_FN(c)	TUNERS_NAMESPACE::c::TUNER_FACTORY_FN_NAME
 #define GET_PROBE_FN(c)		TUNERS_NAMESPACE::c::TUNER_PROBE_FN_NAME
@@ -191,19 +197,22 @@ static DEVICE_INFO _rtl2832_devices[] = {	// Tuner does auto-detection (ignores 
 	{ "Terratec NOXON (rev 2)", 	NOXON_VID,		NOXON_V2_PID, 	NULL/*GET_CREATOR_FN(e4000)*/	},
 	{ "Terratec NOXON (rev 3)",		NOXON_VID,		NOXON_V3_PID, 	NULL/*GET_CREATOR_FN(e4000)*/	},
 	{ "Hama nano",					HAMA_VID,		HAMA_PID, 		NULL/*GET_CREATOR_FN(e4000)*/	},
-	{ "Dexatek Technology (rev 1)",	DEXATEK_VID,	DEXATEK_PID,	GET_CREATOR_FN(fc0013)	},	// Also Logilink
+	{ "Dexatek Technology (rev 1)",	DEXATEK_VID,	DEXATEK_PID,	GET_CREATOR_FN(fc0013/*fc2580*/)	},	// Also Logilink
 	{ "Dexatek Technology (rev 2)", DEXATEK_VID,	DEXATEK_V2_PID, GET_CREATOR_FN(fc0013)	},	// Also ZAAPA HD Tuner
-	{ "Dexatek Technology (rev 3)", DEXATEK_VID,	DEXATEK_V3_PID,	GET_CREATOR_FN(fc0013)	},
+	{ "Dexatek Technology (rev 3)", DEXATEK_VID,	DEXATEK_V3_PID,	GET_CREATOR_FN(fc0013/*fc2580*/)	},
 	{ "Peak",						PEAK_VID,		PEAK_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "Ardata MyVision",			ARDATA_VID,		ARDATA_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "MyGica/G-Tek",				MYGICA_VID,		MYGICA_PID,		GET_CREATOR_FN(fc0012)	},
 	{ "Lifeview",					LIFEVIEW_VID,	LIVEVIEW_PID,	GET_CREATOR_FN(fc0012)	},
 	{ "Prolectrix",					PROLECTRIX_VID,	PROLECTRIX_PID,	GET_CREATOR_FN(fc0012)	},
 	{ "Terratec Cinergy T (rev 1)", CINERGY_VID,	CINERGY_PID,	GET_CREATOR_FN(fc0012)	},
+	{ "Rerratec Cinergy T (rev 3)", CINERGY_VID,	CINERGY_V3_PID },	// e4000
 	{ "DIKOM HD",					DIKOM_VID,		DIKOM_PID,		GET_CREATOR_FN(fc0012)	},
-	{ "Twintech",					TWINTECH_VID,	TWINTECH_PID },
+	{ "Twintech",					TWINTECH_VID,	TWINTECH_PID },		// fc0013
 	{ "Genius TVGo (rev 2)",		GENIUS_VID,		GENIUS_PID },
-	{ "SVEON",						SVEON_VID,		SVEON_PID },
+	{ "SVEON",						SVEON_VID,		SVEON_PID },		// fc0012
+	{ "Compro Videomate U620F",		COMPRO_VID,		COMPRO_V1_PID },	// e4000
+	{ "Compro Videomate U650F",		COMPRO_VID,		COMPRO_V2_PID },	// e4000
 };
 
 static struct _rtl2832_tuner_info* get_tuner_factory_by_name(const char* name)
