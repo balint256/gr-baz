@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\Dev\SDK\libusb1\include"
+				AdditionalIncludeDirectories="C:\Dev\SDK\libusbx"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;RTL2832_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -65,7 +65,7 @@
 				AdditionalDependencies="libusb-1.0.lib"
 				OutputFile="$(OutDir)\librtl2832++.dll"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;C:\Dev\SDK\libusbx\Win32\Debug\dll&quot;"
+				AdditionalLibraryDirectories="C:\Dev\SDK\libusbx\Win32\Debug\dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -120,7 +120,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="C:\Dev\SDK\libusb1\include"
+				AdditionalIncludeDirectories="C:\Dev\SDK\libusbx"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;RTL2832_EXPORTS"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -286,6 +286,26 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\lib\rtl2832-tuner_r820t.cc"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\lib\rtl2832.cc"
 				>
 				<FileConfiguration
@@ -357,6 +377,10 @@
 			</File>
 			<File
 				RelativePath="..\..\lib\rtl2832-tuner_fc2580.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\rtl2832-tuner_r820t.h"
 				>
 			</File>
 			<File

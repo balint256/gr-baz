@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <libusb-1.0/libusb.h>	// FIXME: Automake
+#include <libusb\libusb.h>	// FIXME: Automake
 
 #ifdef _WIN32
 
