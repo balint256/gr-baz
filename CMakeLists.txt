@@ -133,7 +133,8 @@ endif ()
 ########################################################################
 include_directories(
     #${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/lib
+    ${PROJECT_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/lib
     ${Boost_INCLUDE_DIRS}
     ${GRUEL_INCLUDE_DIRS}
     ${GNURADIO_CORE_INCLUDE_DIRS}
@@ -181,7 +182,6 @@ endif ()
 
 configure_file("${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
 add_definitions(-DHAVE_CONFIG_H)
-include_directories("${PROJECT_BINARY_DIR}")
 
 ########################################################################
 # Add subdirectories
