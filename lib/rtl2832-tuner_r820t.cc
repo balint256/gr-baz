@@ -124,12 +124,20 @@ int r820t::initialise(tuner::PPARAMS params /*= NULL*/)
 	
 	if (R828_Init(this) != FUNCTION_SUCCESS)
 		return FAILURE;
+
+	if (r820t_SetStandardMode(this, DVB_T_6M) != FUNCTION_SUCCESS)
+		return FAILURE;
+
+	if (R828_RfGainMode(this, RF_MANUAL) != RT_Success)
+		return FAILURE;
 	
 	if (m_params.message_output && m_params.verbose)
 		m_params.message_output->on_log_message_ex(rtl2832::log_sink::LOG_LEVEL_VERBOSE, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());
 	
 	return SUCCESS;
 }
+
+// FIXME: r820t_SetStandby(this, SIGLE_IN)
 
 int r820t::set_frequency(double freq)
 {
@@ -2955,7 +2963,7 @@ R828_ErrCode R828_Standby(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R8
 		return RT_Fail;
 	
 	pTuner->R828_I2C.RegAddr = 0x0F;
-	pTuner->R828_I2C.Data    = 0x78;
+	pTuner->R828_I2C.Data    = /*0x78*/0x68;	// Enable CLK_OUT
 	if(I2C_Write(pTuner, &pTuner->R828_I2C) != RT_Success)
 		return RT_Fail;
 	

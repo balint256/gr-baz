@@ -903,7 +903,9 @@ int demod::init_demod()
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x16, 0x0000, 2));
 
 	/* set IF-frequency to 0 Hz */
-	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x19, 0x0000, 2));
+	//CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x19, 0x0000, 2));
+	for (i = 0; i < 6; i++)
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x16 + i, 0x00, 1));
 	
 	uint8_t* fir_coeff = (m_params.use_custom_fir_coefficients ? m_params.fir_coeff : default_fir_coeff);
 
@@ -914,13 +916,17 @@ int demod::init_demod()
 	for (i = 0; i < RTL2832_FIR_COEFF_COUNT; i++)
 		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x1c + i, fir_coeff[i], 1));
 
-	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x19, 0x25, 1));
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x19, /*0x25*/0x05, 1));
 
 	/* init FSM state-holding register */
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x93, 0xf0, 1));
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x94, 0x0f, 1));
 
 	/* disable AGC (en_dagc, bit 0) */
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x11, 0x00, 1));
+
+	/* disable RF and IF AGC loop */
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x04, 0x00, 1));
 
 	/* disable PID filter (enable_PID = 0) */
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x61, 0x60, 1));
@@ -931,6 +937,9 @@ int demod::init_demod()
 	/* Enable Zero-IF mode (en_bbin bit), DC cancellation (en_dc_est),
 	 * IQ estimation/compensation (en_iq_comp, en_iq_est) */
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0xb1, 0x1b, 1));
+
+	/* disable 4.096 MHz clock output on pin TP_CK0 */
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x0d, 0x83, 1));
 	
 	return SUCCESS;
 }
