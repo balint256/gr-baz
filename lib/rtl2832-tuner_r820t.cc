@@ -168,6 +168,8 @@ int r820t::set_gain(double gain)
 	
 	if (R828_SetRfGain(this, iGain) != FUNCTION_SUCCESS)
 		return FAILURE;
+
+	m_gain = gain;
 	
 	return SUCCESS;
 }
@@ -237,7 +239,7 @@ static R828_ErrCode
 _I2C_Write_Len(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_I2C_LEN_TYPE *I2C_Info,
 			  const char* function = NULL, int line_number = -1, const char* line = NULL)
 {
-	unsigned char DeviceAddr;
+//	unsigned char DeviceAddr;
 	
 	unsigned int i, j;
 	
@@ -300,7 +302,7 @@ static R828_ErrCode
 _I2C_Read_Len(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_I2C_LEN_TYPE *I2C_Info,
 			  const char* function = NULL, int line_number = -1, const char* line = NULL)
 {
-	uint8_t DeviceAddr;
+//	uint8_t DeviceAddr;
 	
 	unsigned int i;
 	
@@ -342,8 +344,8 @@ _I2C_Read_Len(RTL2832_NAMESPACE::TUNERS_NAMESPACE::r820t* pTuner, R828_I2C_LEN_T
 		I2C_Info->Data[i] = (UINT8)r820t_Convert(ReadingBytes[i]);
 	
 	return RT_Success;
-error_status_get_tuner_registers:
-error_status_set_tuner_register_reading_address:
+//error_status_get_tuner_registers:
+//error_status_set_tuner_register_reading_address:
 	return RT_Fail;
 }
 
