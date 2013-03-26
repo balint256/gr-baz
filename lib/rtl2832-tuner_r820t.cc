@@ -130,6 +130,8 @@ int r820t::initialise(tuner::PPARAMS params /*= NULL*/)
 
 	if (R828_RfGainMode(this, RF_MANUAL) != RT_Success)
 		return FAILURE;
+
+	parent()->set_if(R820T_IF_FREQ);
 	
 	if (m_params.message_output && m_params.verbose)
 		m_params.message_output->on_log_message_ex(rtl2832::log_sink::LOG_LEVEL_VERBOSE, LOG_PREFIX"Initialised (default bandwidth: %i Hz)\n", (uint32_t)bandwidth());

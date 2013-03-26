@@ -212,7 +212,7 @@ public:
 	r820t(demod* p);
 public:
 	inline virtual const char* name() const
-	{ return "Fitipower R820T"; }
+	{ return "Rafael Micro R820T"; }
 public:
 	int initialise(tuner::PPARAMS params = NULL);
 	int set_frequency(double freq);

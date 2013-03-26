@@ -899,7 +899,7 @@ int demod::init_demod()
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x01, 0x10, 1));
 
 	/* disable spectrum inversion and adjacent channel rejection */
-	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x15, 0x00, 1));
+	//CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x15, 0x00, 1));
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x16, 0x0000, 2));
 
 	/* set IF-frequency to 0 Hz */
@@ -916,7 +916,7 @@ int demod::init_demod()
 	for (i = 0; i < RTL2832_FIR_COEFF_COUNT; i++)
 		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x1c + i, fir_coeff[i], 1));
 
-	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x19, /*0x25*/0x05, 1));
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x19, /*0x25*/0x05, 1));	// 0x20 = AGC on
 
 	/* init FSM state-holding register */
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x93, 0xf0, 1));
@@ -932,7 +932,7 @@ int demod::init_demod()
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x61, 0x60, 1));
 
 	/* opt_adc_iq = 0, default ADC_I/ADC_Q datapath */
-	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x06, 0x80, 1));
+	//CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x06, 0x80, 1));
 
 	/* Enable Zero-IF mode (en_bbin bit), DC cancellation (en_dc_est),
 	 * IQ estimation/compensation (en_iq_comp, en_iq_est) */
@@ -940,7 +940,51 @@ int demod::init_demod()
 
 	/* disable 4.096 MHz clock output on pin TP_CK0 */
 	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x0d, 0x83, 1));
+
+	int r = set_if(0);	// Set by default (tuner can set this in 'initialise')
+	if (r != SUCCESS)
+		return r;
 	
+	return SUCCESS;
+}
+
+int demod::set_if(double frequency)
+{
+	unsigned long adjusted_frequency = (unsigned long)(((frequency * (double)(1ULL << 22)) / (double)DEFAULT_CRYSTAL_FREQUENCY) * (-1.0));
+
+	unsigned char value = (adjusted_frequency >> 16) & 0x3f;
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x19, value, 1));
+	value = (adjusted_frequency >> 8) & 0xff;
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x1a, value, 1));
+	value = adjusted_frequency & 0xff;
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x1b, value, 1));
+
+	if (frequency == 0.0)
+	{
+		/* enable Zero-IF mode */
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0xb1, 0x1b, 1));
+
+		/* enable In-phase + Quadrature ADC input */
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x08, 0xcd, 1));
+
+		/* disable spectrum inversion */
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x15, 0x00, 1));
+	}
+	else
+	{
+		/* disable Zero-IF mode */
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0xb1, 0x1a, 1));
+
+		/* only enable In-phase ADC input */
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x08, 0x4d, 1));
+
+		/* enable spectrum inversion */
+		CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(1, 0x15, 0x01, 1));
+	}
+
+	/* opt_adc_iq = 0, default ADC_I/ADC_Q datapath */
+	CHECK_LIBUSB_RESULT_RETURN(demod_write_reg(0, 0x06, 0x80, 1));
+
 	return SUCCESS;
 }
 

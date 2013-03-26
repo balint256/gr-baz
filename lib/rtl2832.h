@@ -341,6 +341,7 @@ public:
 	void destroy();
 	int reset();
 	int set_sample_rate(uint32_t samp_rate, double* real_rate = NULL);
+	int set_if(double frequency);
 	int read_samples(unsigned char* buffer, uint32_t buffer_size, int* bytes_read, int timeout = -1);
 protected:
 	int find_device();
