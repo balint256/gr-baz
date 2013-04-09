@@ -327,6 +327,8 @@ public:
 		char			tuner_name[RTL2832_TUNER_NAME_LEN];
 	} PARAMS, *PPARAMS;
 protected:
+	// True if the kernel driver was detached
+	bool tuner_was_active = false;
 	struct libusb_device_handle *m_devh;
 	PDEVICE_INFO m_current_info;
 	tuner *m_tuner, *m_dummy_tuner;
