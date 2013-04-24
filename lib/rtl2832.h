@@ -335,6 +335,7 @@ protected:
 	range_t m_sample_rate_range;
 	double m_sample_rate;
 	uint32_t m_crystal_frequency;
+	bool m_tuner_was_active;	// True if the kernel driver was detached
 public:
 	int initialise(PPARAMS params = NULL);
 	const char* name() const;

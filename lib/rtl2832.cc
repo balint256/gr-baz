@@ -304,6 +304,7 @@ demod::demod()
 	, m_crystal_frequency(DEFAULT_CRYSTAL_FREQUENCY)
 	, m_sample_rate(0)
 	, m_current_info(NULL)
+	, m_tuner_was_active(false)
 {
 	memset(&m_params, 0x00, sizeof(m_params));
 	
@@ -425,7 +426,24 @@ int demod::find_device()
 		m_crystal_frequency = DEFAULT_CRYSTAL_FREQUENCY;
 
 	int r;
-	
+
+	if (libusb_kernel_driver_active(devh, 0) == 1)
+	{
+		m_tuner_was_active = true;
+		r = CHECK_LIBUSB_NEG_RESULT(libusb_detach_kernel_driver(devh, 0));
+		if (r <= 0)
+			log("Kernel driver detached.\n");
+		else
+		{
+			log("Detaching kernel driver failed!\n");
+			destroy();
+			return r;
+		}
+	}
+        else
+		m_tuner_was_active = false;
+
+
 	r = CHECK_LIBUSB_NEG_RESULT(libusb_claim_interface(devh, 0));
 	if (r < 0)
 	{
@@ -863,6 +881,15 @@ void demod::destroy()
 	if (m_devh != NULL)
 	{
 		libusb_release_interface(m_devh, 0);
+
+		if (m_tuner_was_active)
+		{
+			if (!libusb_attach_kernel_driver(m_devh, 0))
+				log("Kernel driver reattached.\n");
+			else
+				log("Reattaching kernel driver failed!\n");
+		}
+
 		libusb_close(m_devh);
 		m_devh = NULL;
 	}
