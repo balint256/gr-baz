@@ -18,7 +18,9 @@
 #define RTL2832_API			__declspec(dllimport)
 #endif
 
-typedef unsigned int uint32_t;	// 'libusb.h' offers uint8_t & uint16_t
+// 'libusb.h' offers uint8_t & uint16_t
+typedef __int8   int8_t;
+typedef unsigned int uint32_t;
 typedef unsigned __int64 uint64_t;
 
 #else
