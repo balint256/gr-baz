@@ -49,6 +49,10 @@ GR_PYTHON_INSTALL(
 	music_doa_helper.py
 	parallel_scanner_fsm.py
 
+	missile_launcher.py
+	doa_compass_plotter.py
+	doa_compass_control.py
+
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 

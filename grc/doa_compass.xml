@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##DOA compass wx gui widget and variable
+###################################################
+ -->
+<block>
+    <name>WX DOA Compass</name>
+    <key>doa_compass</key>
+    <category>WX GUI Widgets</category>
+    <import>from gnuradio.wxgui import forms</import>
+    <import>import doa_compass_control</import>
+    <var_make>self.$(id) = $(id) = $value</var_make>
+    <make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
+#set $win = 'self._%s_compass'%$id
+$win = doa_compass_control.compass_control(
+    parent=$(parent).GetWin(),
+    ##callback=self.set_$(id),
+    direction=$direction,
+	text=$text,
+	text_visible=$text_visible,
+)
+#if not $grid_pos()
+$(parent).Add($win)
+#else
+$(parent).GridAdd($win, $(', '.join(map(str, $grid_pos()))))
+#end if</make>
+    <callback>self._$(id)_compass.set_direction($direction)</callback>
+	<callback>self._$(id)_compass.set_text($text)</callback>
+	<callback>self._$(id)_compass.set_text_visible($text_visible)</callback>
+    <param>
+        <name>Direction</name>
+        <key>direction</key>
+        <type>real</type>
+    </param>
+    <param>
+        <name>Grid Position</name>
+        <key>grid_pos</key>
+        <value></value>
+        <type>grid_pos</type>
+    </param>
+    <param>
+        <name>Notebook</name>
+        <key>notebook</key>
+        <value></value>
+        <type>notebook</type>
+    </param>
+	<param>
+		<name>Text</name>
+        <key>text</key>
+		<value>''</value>
+        <type>raw</type>
+	</param>
+	<param>
+		<name>Text Visible</name>
+        <key>text_visible</key>
+		<value>None</value>
+        <type>raw</type>
+	</param>
+    <doc>
+    </doc>
+</block>
+

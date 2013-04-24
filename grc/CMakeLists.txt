@@ -52,6 +52,9 @@ SET(baz_blocks
 	baz_tag_to_msg.xml
 	baz_any_single_sink.xml
 	baz_any_single_source.xml
+
+	missile_launcher.xml
+	doa_compass.xml
 )
 
 if (LIBUSB_FOUND)

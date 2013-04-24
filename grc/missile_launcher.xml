@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##USB Missile Launcher
+###################################################
+ -->
+<block>
+    <name>Missile Launcher</name>
+    <key>missile_launcher</key>
+    <category>Misc</category>
+    <import>from baz import missile_launcher</import>
+    <make>missile_launcher.async_missile_launcher(azimuth=$az, elevation=$el, threshold=$thresh, recal_threshold=$recal_threshold)</make>
+    <callback>set_azimuth($az)</callback>
+	<callback>set_elevation($el)</callback>
+	<callback>launch($fire, False)</callback>
+	<callback>calibrate($cal)</callback>
+    <param>
+        <name>Azimuth</name>
+        <key>az</key>
+        <value>0.0</value>
+        <type>real</type>
+    </param>
+    <param>
+        <name>Elevation</name>
+        <key>el</key>
+        <value>0.0</value>
+        <type>real</type>
+    </param>
+    <param>
+        <name>Fire</name>
+        <key>fire</key>
+        <value></value>
+        <type>raw</type>
+    </param>
+    <param>
+        <name>Movement Threshold</name>
+        <key>thresh</key>
+        <value>0.0</value>
+        <type>real</type>
+    </param>
+    <param>
+        <name>ReCal Threshold</name>
+        <key>recal_threshold</key>
+        <value>0.0</value>
+        <type>real</type>
+    </param>
+	<param>
+        <name>Calibrate</name>
+        <key>cal</key>
+        <value>False</value>
+        <type>raw</type>
+    </param>
+    <doc>USB Missile Launcher
+    </doc>
+</block>
