@@ -34,13 +34,15 @@
 #include "baz_block_status.h"
 #include "baz_non_blocker.h"
 #include "baz_acars_decoder.h"
+#include "baz_tag_to_msg.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
 #endif // UHD_FOUND
 
+#ifdef ARMADILLO_FOUND
 #include "baz_music_doa.h"
-#include "baz_tag_to_msg.h"
+#endif // ARMADILLO_FOUND
 
 #endif // GR_BAZ_WITH_CMAKE
 %}
@@ -487,6 +489,8 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef #ifdef ARMADILLO_FOUND
+
 GR_SWIG_BLOCK_MAGIC(baz,music_doa)
 
 baz_music_doa_sptr baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const /*array_response_t*/std::vector<std::vector<gr_complex> >& array_response, unsigned int resolution);
@@ -498,6 +502,8 @@ private:
 public:
 	void set_array_response(const /*array_response_t*/std::vector<std::vector<gr_complex> >& array_response);
 };
+
+#endif // ARMADILLO_FOUND
 
 ///////////////////////////////////////////////////////////////////////////////
 
