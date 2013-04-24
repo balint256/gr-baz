@@ -3,11 +3,6 @@
 
 #include "rtl2832.h"
 
-#ifdef _WIN32
-typedef char int8_t;
-#endif // _WIN32
-
-
 namespace RTL2832_NAMESPACE { namespace TUNERS_NAMESPACE {
 
 class e4k;

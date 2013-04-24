@@ -31,6 +31,17 @@ include(GrPython)
 ########################################################################
 # Setup swig generation
 ########################################################################
+
+if(ENABLE_GR_BAZ)
+    list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gruel/src/swig)
+    list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/gruel/src/swig)
+    list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gnuradio-core/src/lib/swig)
+    list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/gnuradio-core/src/lib/swig)
+    if(UHD_FOUND)
+        list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gr-uhd/swig)
+    endif()
+endif()
+
 foreach(incdir ${GNURADIO_CORE_INCLUDE_DIRS})
     list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/swig)
 endforeach(incdir)

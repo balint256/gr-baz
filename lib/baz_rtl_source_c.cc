@@ -42,18 +42,22 @@
 
 #include "rtl2832.h"
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+#define strcasecmp _stricmp
+#endif
+
 baz_rtl_source_c_sptr 
 baz_make_rtl_source_c(bool defer_creation /*= false*/, int output_size /*= 0*/)
 {
   return baz_rtl_source_c_sptr(new baz_rtl_source_c(defer_creation, output_size));
 }
 
-enum StatusFlags {	// Matches BorIP values
-  STATUS_OK					= 0x00,
-  STATUS_HARDWARE_OVERRUN	= 0x01,
-  STATUS_BUFFER_OVERRUN		= 0x04,
-  STATUS_UNDERRUN			= 0x40,
-  STATUS_TIMEOUT			= 0x80
+enum RtlStatusFlags {	// Matches BorIP values
+  RTL_STATUS_OK					= 0x00,
+  RTL_STATUS_HARDWARE_OVERRUN	= 0x01,
+  RTL_STATUS_BUFFER_OVERRUN		= 0x04,
+  RTL_STATUS_UNDERRUN			= 0x40,
+  RTL_STATUS_TIMEOUT			= 0x80
 };
 
 // COMPAT /////////////////////////////////////////////////////////////////////
@@ -209,7 +213,7 @@ baz_rtl_source_c::general_work (int noutput_items,
 	{
 	  ++m_nOverflows;
 	  log_error(_T("rO"));
-	  report_status(STATUS_HARDWARE_OVERRUN);
+	  report_status(RTL_STATUS_HARDWARE_OVERRUN);
 	}
 	
 	++m_nReadPacketCount;
@@ -251,7 +255,7 @@ retry_notify:
 	if (notified == false)	// Timeout
 	{
 	  log_error("rT");
-	  report_status(STATUS_TIMEOUT);
+	  report_status(RTL_STATUS_TIMEOUT);
 	  break;	// Running late, use up some of the buffer
 	}
 	
@@ -271,7 +275,7 @@ retry_notify:
   {
 	//log_error(_T("Reading packet after signal, but not enough items in buffer (only %lu, need at least: %lu, start now %lu) [#%lu]\n"), m_nBufferItems, m_recv_samples_per_packet, m_nBufferStart, m_nReadPacketCount);
 	log_error("rU");
-	report_status(STATUS_UNDERRUN);
+	report_status(RTL_STATUS_UNDERRUN);
 	
 	m_bBuffering = true;
 	++m_nBufferUnderrunCount;
@@ -671,7 +675,7 @@ void baz_rtl_source_c::capture_thread()
 	if (res == LIBUSB_ERROR_OVERFLOW)
 	{
 	  log_error(_T("rO"));
-	  report_status(STATUS_HARDWARE_OVERRUN);
+	  report_status(RTL_STATUS_HARDWARE_OVERRUN);
 	}
 	else if (res != 0)
 	{
@@ -731,7 +735,7 @@ void baz_rtl_source_c::capture_thread()
 	else
 	{
 	  log_error("rB");
-	  report_status(STATUS_BUFFER_OVERRUN);
+	  report_status(RTL_STATUS_BUFFER_OVERRUN);
 	  ++m_nBufferOverflowCount;
 	}
 	

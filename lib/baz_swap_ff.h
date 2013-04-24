@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -30,7 +30,7 @@
 
 #include <gr_sync_block.h>
 
-class baz_swap_ff;
+class BAZ_API baz_swap_ff;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -52,7 +52,7 @@ typedef boost::shared_ptr<baz_swap_ff> baz_swap_ff_sptr;
  * constructor is private.  baz_make_swap_ff is the public
  * interface for creating new instances.
  */
-baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
+BAZ_API baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
 
 /*!
  * \brief square2 a stream of floats.
@@ -60,13 +60,13 @@ baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_swap_ff : public gr_sync_block
+class BAZ_API baz_swap_ff : public gr_sync_block
 {
 private:
   // The friend declaration allows baz_make_swap_ff to
   // access the private constructor.
 
-  friend baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
+  friend BAZ_API baz_swap_ff_sptr baz_make_swap_ff (bool bSwap);
 
   baz_swap_ff (bool bSwap);  	// private constructor
   

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -35,6 +35,10 @@
 #include <gr_block.h>
 #include <gr_msg_queue.h>
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+#define NOMINMAX
+#endif
+
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/recursive_mutex.hpp>
@@ -47,13 +51,13 @@
 
 #include "rtl2832.h"
 
-class baz_rtl_source_c;
+class BAZ_API baz_rtl_source_c;
 typedef boost::shared_ptr<baz_rtl_source_c> baz_rtl_source_c_sptr;
 
 /*!
  * \brief Return a shared_ptr to a new instance of baz_rtl_source_c.
  */
-baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false, int output_size = 0);
+BAZ_API baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false, int output_size = 0);
 
 /*!
  * \brief capture samples from an RTL2832-based device.
@@ -61,10 +65,10 @@ baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false, int out
  *
  * \sa gr-baz: http://wiki.spench.net/wiki/gr-baz
  */
-class baz_rtl_source_c : public gr_block, public RTL2832_NAMESPACE::log_sink
+class BAZ_API baz_rtl_source_c : public gr_block, public RTL2832_NAMESPACE::log_sink
 {
 private:
-	friend baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation, int output_size);
+	friend BAZ_API baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation, int output_size);
 private:
 	baz_rtl_source_c(bool defer_creation = false, int output_size = 0);
  public:

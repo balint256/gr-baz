@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006 Free Software Foundation, Inc.
+ * Copyright 2006,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -31,12 +31,13 @@
 #define INCLUDED_BAZ_AGC_CC_H
 
 #include <gr_sync_block.h>
+
 //#include <gri_agc_cc.h>
 
-class baz_agc_cc;
+class BAZ_API baz_agc_cc;
 typedef boost::shared_ptr<baz_agc_cc> baz_agc_cc_sptr;
 
-baz_agc_cc_sptr
+BAZ_API baz_agc_cc_sptr
 baz_make_agc_cc (float rate = 1e-4, float reference = 1.0, float gain = 1.0, float max_gain = 0.0);
 /*!
  * \brief high performance Automatic Gain Control class
@@ -45,9 +46,9 @@ baz_make_agc_cc (float rate = 1e-4, float reference = 1.0, float gain = 1.0, flo
  * For Power the absolute value of the complex number is used.
  */
 
-class baz_agc_cc : public gr_sync_block//, public gri_agc_cc
+class BAZ_API baz_agc_cc : public gr_sync_block//, public gri_agc_cc
 {
-  friend baz_agc_cc_sptr baz_make_agc_cc (float rate, float reference, float gain, float max_gain);
+  friend BAZ_API baz_agc_cc_sptr baz_make_agc_cc (float rate, float reference, float gain, float max_gain);
   baz_agc_cc (float rate, float reference, float gain, float max_gain);
   
  protected:

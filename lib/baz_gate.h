@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -32,7 +32,7 @@
 //#include <gr_msg_queue.h>
 #include <uhd/types/time_spec.hpp>
 
-class baz_gate;
+class BAZ_API baz_gate;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -54,7 +54,7 @@ typedef boost::shared_ptr<baz_gate> baz_gate_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false);
+BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false);
 
 /*!
  * \brief square2 a stream of floats.
@@ -62,13 +62,13 @@ baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold =
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_gate : public gr_block
+class BAZ_API baz_gate : public gr_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_gate_sptr baz_make_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay);
+  friend BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay);
 
   baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay);  	// private constructor
 

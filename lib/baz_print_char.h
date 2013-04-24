@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -30,7 +30,7 @@
 
 #include <gr_sync_block.h>
 
-class baz_print_char;
+class BAZ_API baz_print_char;
 
 /*
  * See http://www.boost.org/libs/smart_ptr/smart_ptr.htm
@@ -44,7 +44,7 @@ typedef boost::shared_ptr<baz_print_char> baz_print_char_sptr;
  * constructor is private.  howto_make_square_ff is the public
  * interface for creating new instances.
  */
-baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL);
+BAZ_API baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL);
 
 /*!
  * \brief square a stream of floats.
@@ -52,10 +52,10 @@ baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, 
  *
  * \sa howto_square2_ff for a version that subclasses gr_sync_block.
  */
-class baz_print_char : public gr_sync_block
+class BAZ_API baz_print_char : public gr_sync_block
 {
 private:
-  friend baz_print_char_sptr baz_make_print_char (float threshold, int limit, const char* file);
+  friend BAZ_API baz_print_char_sptr baz_make_print_char (float threshold, int limit, const char* file);
   baz_print_char (float threshold, int limit, const char* file);  	// private constructor
 private:
 	float d_threshold;

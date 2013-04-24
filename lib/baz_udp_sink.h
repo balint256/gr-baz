@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2007,2008,2009,2010 Free Software Foundation, Inc.
+ * Copyright 2007,2008,2009,2010,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -49,10 +49,10 @@
 #include <gr_msg_queue.h>
 #include <gruel/thread.h>
 
-class UDP_SINK_NAME;
+class BAZ_API UDP_SINK_NAME;
 typedef boost::shared_ptr<UDP_SINK_NAME> UDP_SINK_SPTR;
 
-UDP_SINK_SPTR
+BAZ_API UDP_SINK_SPTR
 UDP_SINK_MAKER (size_t itemsize, 
 		  const char *host, unsigned short port,
 		  int payload_size=1472, bool eof=true, bool bor=false);
@@ -70,9 +70,9 @@ UDP_SINK_MAKER (size_t itemsize,
  * \param eof          Send zero-length packet on disconnect
  */
 
-class UDP_SINK_NAME : public gr_sync_block
+class BAZ_API UDP_SINK_NAME : public gr_sync_block
 {
-  friend UDP_SINK_SPTR UDP_SINK_MAKER (size_t itemsize, 
+  friend BAZ_API UDP_SINK_SPTR UDP_SINK_MAKER (size_t itemsize, 
 					    const char *host,
 					    unsigned short port,
 					    int payload_size, bool eof, bool bor);

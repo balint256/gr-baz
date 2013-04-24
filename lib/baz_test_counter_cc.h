@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -30,7 +30,7 @@
 
 #include <gr_sync_block.h>
 
-class baz_test_counter_cc;
+class BAZ_API baz_test_counter_cc;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -52,7 +52,7 @@ typedef boost::shared_ptr<baz_test_counter_cc> baz_test_counter_cc_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_test_counter_cc_sptr baz_make_test_counter_cc ();
+BAZ_API baz_test_counter_cc_sptr baz_make_test_counter_cc ();
 
 /*!
  * \brief square2 a stream of floats.
@@ -60,13 +60,13 @@ baz_test_counter_cc_sptr baz_make_test_counter_cc ();
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_test_counter_cc : public gr_sync_block
+class BAZ_API baz_test_counter_cc : public gr_sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_test_counter_cc_sptr baz_make_test_counter_cc ();
+  friend BAZ_API baz_test_counter_cc_sptr baz_make_test_counter_cc ();
 
   baz_test_counter_cc ();  	// private constructor
   

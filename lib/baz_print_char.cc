@@ -38,7 +38,7 @@
 #include <gr_io_signature.h>
 #include <stdio.h>
 
-baz_print_char_sptr baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/)
+baz_print_char_sptr BAZ_API baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/)
 {
   return baz_print_char_sptr (new baz_print_char (threshold, limit, file));
 }

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -30,7 +30,7 @@
 
 #include <gr_sync_block.h>
 
-class baz_native_callback_x;
+class BAZ_API baz_native_callback_x;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -45,7 +45,7 @@ class baz_native_callback_x;
  */
 typedef boost::shared_ptr<baz_native_callback_x> baz_native_callback_x_sptr;
 
-class baz_native_callback_target
+class BAZ_API baz_native_callback_target
 {
 public:
   virtual void callback(float f, unsigned long samples_processed)=0; // FIXME: Item size
@@ -61,7 +61,7 @@ public:
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_native_callback_x_sptr baz_make_native_callback_x (int size, baz_native_callback_target_sptr target, bool threshold_enable=false, float threshold_level=0.0);
+BAZ_API baz_native_callback_x_sptr baz_make_native_callback_x (int size, baz_native_callback_target_sptr target, bool threshold_enable=false, float threshold_level=0.0);
 
 /*!
  * \brief square2 a stream of floats.
@@ -69,7 +69,7 @@ baz_native_callback_x_sptr baz_make_native_callback_x (int size, baz_native_call
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_native_callback_x : public gr_sync_block
+class BAZ_API baz_native_callback_x : public gr_sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to

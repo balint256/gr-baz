@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006 Free Software Foundation, Inc.
+ * Copyright 2006,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -31,10 +31,10 @@
 #include <gr_block.h>
 #include <gr_endianness.h>
 
-class baz_unpacked_to_packed_bb;
+class BAZ_API baz_unpacked_to_packed_bb;
 typedef boost::shared_ptr<baz_unpacked_to_packed_bb> baz_unpacked_to_packed_bb_sptr;
 
-baz_unpacked_to_packed_bb_sptr 
+BAZ_API baz_unpacked_to_packed_bb_sptr
 baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness = GR_MSB_FIRST);
 
 /*!
@@ -60,9 +60,9 @@ baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_i
  * \sa gr_chunks_to_symbols_bf, gr_chunks_to_symbols_bc.
  * \sa gr_chunks_to_symbols_sf, gr_chunks_to_symbols_sc.
  */
-class baz_unpacked_to_packed_bb : public gr_block
+class BAZ_API baz_unpacked_to_packed_bb : public gr_block
 {
-  friend baz_unpacked_to_packed_bb_sptr
+  friend BAZ_API baz_unpacked_to_packed_bb_sptr
   baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness);
 
   baz_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness);

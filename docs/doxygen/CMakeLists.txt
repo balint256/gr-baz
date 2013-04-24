@@ -47,7 +47,7 @@ add_custom_command(
     COMMENT "Generating documentation with doxygen"
 )
 
-add_custom_target(doxygen_target ALL DEPENDS ${BUILT_DIRS})
+add_custom_target(baz_doxygen_target ALL DEPENDS ${BUILT_DIRS})
 
 install(DIRECTORY ${BUILT_DIRS} DESTINATION ${GR_PKG_DOC_DIR})
 

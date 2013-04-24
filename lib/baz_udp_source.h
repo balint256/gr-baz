@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2007,2008,2009,2010 Free Software Foundation, Inc.
+ * Copyright 2007,2008,2009,2010,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -45,13 +45,20 @@
 #endif // _TO_STR
 #define UDP_SOURCE_STRING _TO_STR(UDP_SOURCE_NAME)
 
-class UDP_SOURCE_NAME;
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+#include <cstddef>
+typedef ptrdiff_t ssize_t;
+#endif
+
+#include <stdio.h>
+
+class BAZ_API UDP_SOURCE_NAME;
 typedef boost::shared_ptr<UDP_SOURCE_NAME> UDP_SOURCE_SPTR;
 
-UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize, const char *host, 
-				      unsigned short port,
-				      int payload_size=1472,
-				      bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
+BAZ_API UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize, const char *host, 
+						unsigned short port,
+						int payload_size=1472,
+						bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
 
 /*! 
  * \brief Read stream from an UDP socket.
@@ -71,9 +78,9 @@ UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize, const char *host,
  *
 */
 
-class UDP_SOURCE_NAME : public gr_sync_block
+class BAZ_API UDP_SOURCE_NAME : public gr_sync_block
 {
-  friend UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize,
+  friend BAZ_API UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize,
 					       const char *host, 
 					       unsigned short port,
 					       int payload_size,

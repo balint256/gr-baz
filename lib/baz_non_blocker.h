@@ -31,7 +31,7 @@
 #include <gr_sync_block.h>
 //#include <gr_msg_queue.h>
 
-class baz_non_blocker;
+class BAZ_API baz_non_blocker;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -53,7 +53,7 @@ typedef boost::shared_ptr<baz_non_blocker> baz_non_blocker_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking = false);
+BAZ_API baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking = false);
 
 /*!
  * \brief square2 a stream of floats.
@@ -61,13 +61,13 @@ baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr qu
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_non_blocker : public gr_block
+class BAZ_API baz_non_blocker : public gr_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking);
+  friend BAZ_API baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking);
 
   baz_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking);  	// private constructor
 

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2007 Free Software Foundation, Inc.
+ * Copyright 2007,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -31,18 +31,18 @@
 #include <gr_sync_block.h>
 #include <boost/thread.hpp>
 
-class baz_delay;
+class BAZ_API baz_delay;
 typedef boost::shared_ptr<baz_delay> baz_delay_sptr;
 
-baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
+BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
 
 /*!
  * \brief delay the input by a certain number of samples
  * \ingroup misc_blk
  */
-class baz_delay : public gr_sync_block
+class BAZ_API baz_delay : public gr_sync_block
 {
-  friend baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
+  friend BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
 
   baz_delay (size_t itemsize, int delay);
 

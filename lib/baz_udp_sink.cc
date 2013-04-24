@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2007,2008,2009,2010 Free Software Foundation, Inc.
+ * Copyright 2007,2008,2009,2010,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -44,8 +44,11 @@
 typedef void* optval_t;
 #elif defined(HAVE_WINDOWS_H)
 // if not posix, assume winsock
+#define NOMINMAX
 #define USING_WINSOCK
-#include <winsock2.h>
+#define snprintf _snprintf
+#include <Winsock2.h>
+#include <winerror.h>
 #include <ws2tcpip.h>
 #define SHUT_RDWR 2
 typedef char* optval_t;
@@ -358,7 +361,7 @@ UDP_SINK_NAME::work (int noutput_items,
 		//assert((d_residual + (bytes_to_send - d_residual)) == d_payload_size);
 		memcpy(packet->data + d_residual, (in + std::max(0, bytes_sent - prev_residual)), (bytes_to_send - d_residual));
 		
-		r = send(d_socket, packet, (offsetof(BOR_PACKET, data) + bytes_to_send), 0);
+		r = send(d_socket, (char*)packet, (offsetof(BOR_PACKET, data) + bytes_to_send), 0);
 		if (r > 0)
 		  r -= offsetof(BOR_PACKET, data);
 		
@@ -374,7 +377,7 @@ UDP_SINK_NAME::work (int noutput_items,
 		  
 		  memcpy(d_bor_packet + d_residual, (in + std::max(0, bytes_sent - prev_residual)), (bytes_to_send - d_residual));
 		  
-		  r = send(d_socket, d_bor_packet, bytes_to_send, 0);
+		  r = send(d_socket, (char*)d_bor_packet, bytes_to_send, 0);
 		}
 		else
 		  r = send(d_socket, (in + std::max(0, bytes_sent - prev_residual)), bytes_to_send, 0);

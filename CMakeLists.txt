@@ -1,4 +1,4 @@
-# Copyright 2011 Free Software Foundation, Inc.
+# Copyright 2011,2013 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -17,7 +17,7 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8.6)
 
 INCLUDE(CheckIncludeFile)
 INCLUDE(CheckIncludeFileCXX)
@@ -41,7 +41,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 
 ########################################################################
 # Compiler specific setup
@@ -51,34 +51,57 @@ if (CMAKE_COMPILER_IS_GNUCXX AND NOT WIN32)
 	#add_definitions(-fvisibility=hidden)	# FIXME
 endif ()
 
+if(MSVC AND NOT ENABLE_GR_BAZ)
+	add_definitions(/MP)
+endif()
+
 ########################################################################
 # Find boost
 ########################################################################
-if(UNIX AND EXISTS "/usr/lib64")
-    list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
-endif(UNIX AND EXISTS "/usr/lib64")
-set(Boost_ADDITIONAL_VERSIONS
-    "1.35.0" "1.35" "1.36.0" "1.36" "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39"
-    "1.40.0" "1.40" "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"
-    "1.45.0" "1.45" "1.46.0" "1.46" "1.47.0" "1.47" "1.48.0" "1.48" "1.49.0" "1.49"
-    "1.50.0" "1.50" "1.51.0" "1.51" "1.52.0" "1.52" "1.53.0" "1.53" "1.54.0" "1.54"
-    "1.55.0" "1.55" "1.56.0" "1.56" "1.57.0" "1.57" "1.58.0" "1.58" "1.59.0" "1.59"
-    "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
-    "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
-)
-SET(BOOST_REQUIRED_COMPONENTS
-#    date_time
-#    filesystem
-#    program_options
-#    regex
-#    system
-	thread
-#    unit_test_framework
-)
-find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
+if(ENABLE_GR_BAZ)
+    include(GrBoost)
+else()
+    if(UNIX AND EXISTS "/usr/lib64")
+        list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
+    endif(UNIX AND EXISTS "/usr/lib64")
+    
+    SET(BOOST_REQUIRED_COMPONENTS
+    #    date_time
+    #    filesystem
+    #    program_options
+    #    regex
+    #    system
+        thread
+    #    unit_test_framework
+    )
 
-if(NOT Boost_FOUND)
-    message(FATAL_ERROR "Boost required to compile baz")
+	if(MSVC)
+		SET(BOOST_REQUIRED_COMPONENTS thread date_time)
+	
+		if (NOT DEFINED BOOST_ALL_DYN_LINK)
+			set(BOOST_ALL_DYN_LINK TRUE)
+		endif()
+		set(BOOST_ALL_DYN_LINK "${BOOST_ALL_DYN_LINK}" CACHE BOOL "boost enable dynamic linking")
+		if(BOOST_ALL_DYN_LINK)
+			add_definitions(-DBOOST_ALL_DYN_LINK) #setup boost auto-linking in msvc
+		else(BOOST_ALL_DYN_LINK)
+			unset(BOOST_REQUIRED_COMPONENTS) #empty components list for static link
+		endif(BOOST_ALL_DYN_LINK)
+	endif()
+	
+	find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
+	set(Boost_ADDITIONAL_VERSIONS
+        "1.35.0" "1.35" "1.36.0" "1.36" "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39"
+        "1.40.0" "1.40" "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"
+        "1.45.0" "1.45" "1.46.0" "1.46" "1.47.0" "1.47" "1.48.0" "1.48" "1.49.0" "1.49"
+        "1.50.0" "1.50" "1.51.0" "1.51" "1.52.0" "1.52" "1.53.0" "1.53" "1.54.0" "1.54"
+        "1.55.0" "1.55" "1.56.0" "1.56" "1.57.0" "1.57" "1.58.0" "1.58" "1.59.0" "1.59"
+        "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
+        "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
+    )
+    if(NOT Boost_FOUND)
+        message(FATAL_ERROR "Boost required to compile baz")
+    endif()
 endif()
 
 ########################################################################
@@ -101,15 +124,20 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 ########################################################################
 # Find gnuradio build dependencies
 ########################################################################
-find_package(Gruel)
-find_package(GnuradioCore)
+if(ENABLE_GR_BAZ)
+    set(GRUEL_LIBRARIES gruel)
+    set(GNURADIO_CORE_LIBRARIES gnuradio-core)
+else()
+    find_package(Gruel)
+    find_package(GnuradioCore)
 
-if(NOT GRUEL_FOUND)
-    message(FATAL_ERROR "Gruel required to compile baz")
-endif()
+    if(NOT GRUEL_FOUND)
+        message(FATAL_ERROR "Gruel required to compile baz")
+    endif()
 
-if(NOT GNURADIO_CORE_FOUND)
-    message(FATAL_ERROR "GnuRadio Core required to compile baz")
+    if(NOT GNURADIO_CORE_FOUND)
+        message(FATAL_ERROR "GnuRadio Core required to compile baz")
+    endif()
 endif()
 
 ########################################################################
@@ -132,8 +160,9 @@ endif ()
 # Setup the include and linker paths
 ########################################################################
 include_directories(
-    #${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/lib
+    #${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${Boost_INCLUDE_DIRS}
     ${GRUEL_INCLUDE_DIRS}
     ${GNURADIO_CORE_INCLUDE_DIRS}
@@ -153,14 +182,16 @@ set(GR_BAZ_SWIG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/swig CACHE INTERNAL "" 
 ########################################################################
 # Create uninstall target
 ########################################################################
-configure_file(
-    ${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-@ONLY)
+if(NOT ENABLE_GR_BAZ)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    @ONLY)
 
-add_custom_target(uninstall
-    ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-)
+    add_custom_target(uninstall
+        ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    )
+endif(NOT ENABLE_GR_BAZ)
 
 ########################################################################
 # gr-baz specific
@@ -181,7 +212,6 @@ endif ()
 
 configure_file("${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
 add_definitions(-DHAVE_CONFIG_H)
-include_directories("${PROJECT_BINARY_DIR}")
 
 ########################################################################
 # Add subdirectories

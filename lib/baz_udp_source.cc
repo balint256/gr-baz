@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2007,2008,2009,2010 Free Software Foundation, Inc.
+ * Copyright 2007,2008,2009,2010,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -55,7 +55,9 @@ typedef void* optval_t;
 #elif defined(HAVE_WINDOWS_H)
 // if not posix, assume winsock
 #define USING_WINSOCK
-#include <winsock2.h>
+#define NOMINMAX
+#include <Winsock2.h>
+#include <winerror.h>
 #include <ws2tcpip.h>
 #define SHUT_RDWR 2
 typedef char* optval_t;
@@ -103,7 +105,9 @@ static int is_error( int perr )
 {
   // Compare error to posix error code; return nonzero if match.
 #if defined(USING_WINSOCK)
+#ifndef ENOPROTOOPT
 #define ENOPROTOOPT 109
+#endif
   // All codes to be checked for must be defined below
   int werr = WSAGetLastError();
   switch( werr ) {
@@ -112,7 +116,7 @@ static int is_error( int perr )
   case WSAENOPROTOOPT:
     return( perr == ENOPROTOOPT );
   default:
-    fprintf(stderr,#UDP_SOURCE_NAME"/is_error: unknown error %d\n", perr );
+    fprintf(stderr, UDP_SOURCE_STRING "/is_error: unknown error %d\n", perr );
     throw std::runtime_error("internal error");
   }
   return 0;

@@ -97,17 +97,33 @@ add_library(gnuradio-baz SHARED
 	${baz_sources}
 )
 
-target_link_libraries(gnuradio-baz ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES} ${LIBUSB_LIBRARIES} ${UHD_LIBRARIES})
-set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "gnuradio_baz_EXPORTS")
+list(APPEND baz_libs ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES} ${LIBUSB_LIBRARIES} ${UHD_LIBRARIES})
+
+if(MSVC)
+	CHECK_INCLUDE_FILE_CXX(windows.h HAVE_WINDOWS_H)
+	IF(HAVE_WINDOWS_H)
+		ADD_DEFINITIONS(-DHAVE_WINDOWS_H -DUSING_WINSOCK)
+		MESSAGE(STATUS "Adding windows libs to gr baz libs...")
+		LIST(APPEND baz_libs WS2_32.lib WSock32.lib)
+	ENDIF(HAVE_WINDOWS_H)
+endif()
+
+target_link_libraries(gnuradio-baz ${baz_libs})
+#set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "gnuradio_baz_EXPORTS")
+set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "RTL2832_EXPORTS;gnuradio_baz_EXPORTS")
 
 ########################################################################
 # Install built library files
 ########################################################################
-install(TARGETS gnuradio-baz
-    LIBRARY DESTINATION lib${LIB_SUFFIX} # .so/.dylib file
-    ARCHIVE DESTINATION lib${LIB_SUFFIX} # .lib file
-    RUNTIME DESTINATION bin              # .dll file
-)
+if(ENABLE_GR_BAZ)
+    GR_LIBRARY_FOO(gnuradio-baz RUNTIME_COMPONENT "baz_runtime" DEVEL_COMPONENT "baz_devel")
+else()
+    install(TARGETS gnuradio-baz
+        LIBRARY DESTINATION lib${LIB_SUFFIX} # .so/.dylib file
+        ARCHIVE DESTINATION lib${LIB_SUFFIX} # .lib file
+        RUNTIME DESTINATION bin              # .dll file
+    )
+endif()
 
 ########################################################################
 # Build and register unit test

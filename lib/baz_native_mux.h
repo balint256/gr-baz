@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -31,7 +31,7 @@
 #include <gr_sync_block.h>
 #include <baz_native_callback.h>
 
-class baz_native_mux;
+class BAZ_API baz_native_mux;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -53,7 +53,7 @@ typedef boost::shared_ptr<baz_native_mux> baz_native_mux_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count, int trigger_count = -1);
+BAZ_API baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count, int trigger_count = -1);
 
 /*!
  * \brief square2 a stream of floats.
@@ -61,13 +61,13 @@ baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count, int tri
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_native_mux : public /*gr_sync_block*/gr_block, public baz_native_callback_target
+class BAZ_API baz_native_mux : public /*gr_sync_block*/gr_block, public baz_native_callback_target
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count, int trigger_count);
+  friend BAZ_API baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count, int trigger_count);
 
   baz_native_mux (int item_size, int input_count, int trigger_count);  	// private constructor
 

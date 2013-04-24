@@ -30,7 +30,7 @@
 
 #include <gr_sync_block.h>
 
-class baz_pow_cc;
+class BAZ_API baz_pow_cc;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -52,7 +52,7 @@ typedef boost::shared_ptr<baz_pow_cc> baz_pow_cc_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp = 0.0);
+BAZ_API baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp = 0.0);
 
 /*!
  * \brief square2 a stream of floats.
@@ -60,13 +60,13 @@ baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp = 0.0);
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class baz_pow_cc : public gr_sync_block
+class BAZ_API baz_pow_cc : public gr_sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp);
+  friend BAZ_API baz_pow_cc_sptr baz_make_pow_cc (float exponent, float div_exp);
 
   baz_pow_cc (float exponent, float div_exp = 0.0);  	// private constructor
   

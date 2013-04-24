@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006,2010 Free Software Foundation, Inc.
+ * Copyright 2006,2010,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -34,6 +34,12 @@
 //#include <gri_agc_cc.h>
 #include <stdio.h>
 #include <math.h>
+#include <boost/math/special_functions/fpclassify.hpp>
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+#include <float.h>
+#define finite _finite
+#endif
 
 baz_agc_cc_sptr
 baz_make_agc_cc (float rate, float reference, float gain, float max_gain)
@@ -95,7 +101,7 @@ int baz_agc_cc::work (int noutput_items, gr_vector_const_void_star &input_items,
     
     continue;
 ///////////////////////////////////////////////////////////////////////////////
-    if (!finite(mag2) || std::isnan(mag2) || std::isinf(mag2)) {
+    if (!finite(mag2) || boost::math::isnan(mag2) || boost::math::isinf(mag2)) {
 	  if (_gain == _max_gain) {
 fprintf(stderr, "[%05i] + %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
 		out[i] = /*in[i]*//*0*/gr_complex(0, 0);

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2004 Free Software Foundation, Inc.
+ * Copyright 2004,2013 Free Software Foundation, Inc.
  * 
  * This file is part of GNU Radio
  * 
@@ -31,7 +31,7 @@
 #include <gr_block.h>
 #include <boost/thread.hpp>
 
-class baz_puncture_bb;
+class BAZ_API baz_puncture_bb;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -53,7 +53,7 @@ typedef boost::shared_ptr<baz_puncture_bb> baz_puncture_bb_sptr;
  * constructor is private.  baz_make_puncture_bb is the public
  * interface for creating new instances.
  */
-baz_puncture_bb_sptr baz_make_puncture_bb (const std::vector<int>& matrix);
+BAZ_API baz_puncture_bb_sptr baz_make_puncture_bb (const std::vector<int>& matrix);
 
 /*!
  * \brief square a stream of floats.
@@ -61,13 +61,13 @@ baz_puncture_bb_sptr baz_make_puncture_bb (const std::vector<int>& matrix);
  *
  * \sa howto_square2_ff for a version that subclasses gr_sync_block.
  */
-class baz_puncture_bb : public gr_block
+class BAZ_API baz_puncture_bb : public gr_block
 {
 private:
   // The friend declaration allows baz_make_puncture_bb to
   // access the private constructor.
 
-  friend baz_puncture_bb_sptr baz_make_puncture_bb (const std::vector<int>& matrix);
+  friend BAZ_API baz_puncture_bb_sptr baz_make_puncture_bb (const std::vector<int>& matrix);
 
   baz_puncture_bb (const std::vector<int>& matrix);  	// private constructor
   
