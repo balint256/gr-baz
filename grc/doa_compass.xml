@@ -9,7 +9,7 @@
     <key>doa_compass</key>
     <category>WX GUI Widgets</category>
     <import>from gnuradio.wxgui import forms</import>
-    <import>import doa_compass_control</import>
+    <import>from baz import doa_compass_control</import>
     <var_make>self.$(id) = $(id) = $value</var_make>
     <make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
 #set $win = 'self._%s_compass'%$id
