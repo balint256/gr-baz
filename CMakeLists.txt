@@ -148,12 +148,27 @@ find_package(UHD)
 if (UHD_FOUND)
     include_directories(${UHD_INCLUDE_DIRS})
     link_directories(${UHD_LIBRARY_DIRS})
+	message(STATUS "UHD found - compiling UHD-aware blocks")
+else ()
+	message(STATUS "UHD NOT found! NOT compiling UHD-aware blocks")
 endif ()
 
 find_package(USB)
 
 if (LIBUSB_FOUND)
 	include_directories(${LIBUSB_INCLUDE_DIR})
+	message(STATUS "libusb found - compiling RTL2832U source block")
+else ()
+	message(STATUS "libusb NOT found! NOT compiling RTL2832U source block")
+endif ()
+
+find_package(Armadillo)
+
+if (ARMADILLO_FOUND)
+	include_directories(${ARMADILLO_INCLUDE_DIRS})
+	message(STATUS "Armadillo found - compiling MUSIC DOA estimator block")
+else ()
+	message(STAUTS "Armadillo NOT found! NOT compiling MUSIC DOA estimator block")
 endif ()
 
 ########################################################################

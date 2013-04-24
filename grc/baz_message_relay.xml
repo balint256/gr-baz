@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Message relay
+###################################################
+ -->
+<block>
+	<name>Message Relay</name>
+	<key>baz_message_relay</key>
+	<import>from baz import message_relay</import>
+	
+	<make>message_relay.message_relay(tx_msgq=$(id)_msgq_out,rx_msgq=#slurp
+#if str($eval_mode) == 'raw'
+	self.$(target).msg_out.msgq()#slurp
+#else
+	$target()#slurp
+#end if
+)</make>
+
+	<param>
+		<name>Name</name>
+		<key>name</key>
+		<value>Descriptive name</value>
+		<type>string</type>
+	</param>
+	
+	<param>
+	    <name>Evaluation mode</name>
+	    <key>eval_mode</key>
+	    <value>raw</value>
+	    <type>enum</type>
+	    <hide>#if str($eval_mode) == 'raw' then 'part' else 'none'#</hide>
+	    <option>
+		    <name>Raw</name>
+		    <key>raw</key>
+	    </option>
+	    <option>
+		    <name>String</name>
+		    <key>string</key>
+	    </option>
+	</param>
+
+	<param>
+		<name>Target</name>
+		<key>target</key>
+		<value></value>
+		<type>$eval_mode</type>
+		<!--<hide>#if str($dummy) == 'False' then 'part' else 'none'#</hide>-->
+		<hide>'part'</hide>
+	</param>
+
+	<check>len("$target()") &gt; 0</check>
+
+	<source>
+		<name>out</name>
+		<type>msg</type>
+	</source>
+</block>

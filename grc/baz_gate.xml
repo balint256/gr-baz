@@ -10,7 +10,7 @@
     <callback>set_blocking($block)</callback>
     <callback>set_threshold($threshold)</callback>
     <callback>set_trigger_length($trigger_length)</callback>
-    <callback>set_tagging($tagging)</callback>
+    <callback>set_tagging($tag)</callback>
     <callback>set_delay($delay)</callback>
     <callback>set_sample_rate($sample_rate)</callback>
     <callback>set_no_delay($no_delay)</callback>

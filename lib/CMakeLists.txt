@@ -70,6 +70,9 @@ SET(baz_sources
 	baz_native_mux.cc
 	baz_block_status.cc
 	baz_non_blocker.cc
+
+	baz_acars_decoder.cc
+	baz_tag_to_msg.cc
 )
 
 if (LIBUSB_FOUND)
@@ -93,11 +96,24 @@ else ()
 	SET(UHD_LIBRARIES "")
 endif ()
 
+if (ARMADILLO_FOUND)
+	LIST(APPEND baz_sources baz_music_doa.cc)
+else ()
+	set(ARMADILLO_LIBRARIES)
+endif ()
+
 add_library(gnuradio-baz SHARED
 	${baz_sources}
 )
 
-list(APPEND baz_libs ${Boost_LIBRARIES} ${GRUEL_LIBRARIES} ${GNURADIO_CORE_LIBRARIES} ${LIBUSB_LIBRARIES} ${UHD_LIBRARIES})
+list(APPEND baz_libs
+	${Boost_LIBRARIES}
+	${GRUEL_LIBRARIES}
+	${GNURADIO_CORE_LIBRARIES}
+	${LIBUSB_LIBRARIES}
+	${UHD_LIBRARIES}
+	${ARMADILLO_LIBRARIES}
+)
 
 if(MSVC)
 	CHECK_INCLUDE_FILE_CXX(windows.h HAVE_WINDOWS_H)
@@ -109,8 +125,7 @@ if(MSVC)
 endif()
 
 target_link_libraries(gnuradio-baz ${baz_libs})
-#set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "gnuradio_baz_EXPORTS")
-set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "RTL2832_EXPORTS;gnuradio_baz_EXPORTS")
+set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "gnuradio_baz_EXPORTS;RTL2832_EXPORTS")
 
 ########################################################################
 # Install built library files

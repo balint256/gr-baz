@@ -16,22 +16,21 @@ class queue_watcher(threading.Thread):
         self.keep_running = True
         self.start()
     def run(self):
-        while self.keep_running:
-            if self.msgq:
-                msg = self.msgq.delete_head()
-                if self.keep_running == False:
-                    break
-                if self.callback:
+        while self.msgq and self.keep_running:
+            msg = self.msgq.delete_head()
+            if self.keep_running == False:
+                break
+            if self.callback:
+                try:
+                    to_eval = "self.callback(" + ",".join(map(lambda x: "msg." + x + "()", self.msg_parts)) + ")"
                     try:
-                        to_eval = "self.callback(" + ",".join(map(lambda x: "msg." + x + "()", self.msg_parts)) + ")"
-                        try:
-                            eval(to_eval)
-                        except Exception, e:
-                            sys.stderr.write("Exception while evaluating:\n" + to_eval + "\n" + str(e) + "\n")
-                            traceback.print_exc(None, sys.stderr)
+                        eval(to_eval)
                     except Exception, e:
-                        sys.stderr.write("Exception while forming call string using parts: " + str(self.msg_parts) + "\n" + str(e) + "\n")
+                        sys.stderr.write("Exception while evaluating:\n" + to_eval + "\n" + str(e) + "\n")
                         traceback.print_exc(None, sys.stderr)
+                except Exception, e:
+                    sys.stderr.write("Exception while forming call string using parts: " + str(self.msg_parts) + "\n" + str(e) + "\n")
+                    traceback.print_exc(None, sys.stderr)
 
 class message_callback():
     def __init__(self, msgq, callback=None, msg_part='arg1', custom_parts="", dummy=False):
@@ -40,7 +39,9 @@ class message_callback():
         self._msgq = msgq
         self._watcher = None
         if dummy:
+            #print "[Message Callback] Dummy mode"
             return
+        #print "[Message Callback] Starting..."
         if msg_part in _valid_parts:
             msg_parts = [msg_part]
         else:

@@ -36,6 +36,7 @@
 
 #include <baz_gate.h>
 #include <gr_io_signature.h>
+#include <gruel/pmt.h>
 
 #include <stdio.h>
 //#include <typeinfo>
@@ -62,7 +63,7 @@ baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_leng
 {
   memset(&d_last_time, 0x00, sizeof(uhd::time_spec_t));
 
-  fprintf(stderr, "[%s] Threshold: %.1f, length: %d, item size: %d, blocking: %s, tag: %s, delay: %.6f, sample rate: %d, no delay: %s\n", name().c_str(), threshold, trigger_length, item_size, (block ? "yes" : "no"), (tag ? "yes" : "no"), delay, sample_rate, (no_delay ? "yes" : "no"));
+  fprintf(stderr, "[%s<%i>] Threshold: %.1f, length: %d, item size: %d, blocking: %s, tag: %s, delay: %.6f, sample rate: %d, no delay: %s\n", name().c_str(), unique_id(), threshold, trigger_length, item_size, (block ? "yes" : "no"), (tag ? "yes" : "no"), delay, sample_rate, (no_delay ? "yes" : "no"));
 }
 
 /*
@@ -82,36 +83,44 @@ void baz_gate::forecast(int noutput_items, gr_vector_int &ninput_items_required)
 
 void baz_gate::set_blocking(bool enable)
 {
+  fprintf(stderr, "[%s<%i>] Blocking: %s\n", name().c_str(), unique_id(), (enable ? "yes" : "no"));
+  gruel::scoped_lock guard(d_mutex);
   d_block = enable;
 }
 
 void baz_gate::set_threshold(float threshold)
 {
+  fprintf(stderr, "[%s<%i>] Threshold: %.1f\n", name().c_str(), unique_id(), threshold);
   d_threshold = threshold;
 }
 
 void baz_gate::set_trigger_length(int trigger_length)
 {
+  fprintf(stderr, "[%s<%i>] Length: %d\n", name().c_str(), unique_id(), trigger_length);
   d_trigger_length = trigger_length;
 }
 
 void baz_gate::set_tagging(bool enable)
 {
+  fprintf(stderr, "[%s<%i>] Tag: %s\n", name().c_str(), unique_id(), (enable ? "yes" : "no"));
   d_tag = enable;
 }
 
 void baz_gate::set_delay(double delay)
 {
+  fprintf(stderr, "[%s<%i>] Delay: %.6f\n", name().c_str(), unique_id(), delay);
   d_delay = delay;
 }
 
 void baz_gate::set_sample_rate(int sample_rate)
 {
+  fprintf(stderr, "[%s<%i>] Sample rate: %d\n", name().c_str(), unique_id(), sample_rate);
   d_sample_rate = sample_rate;
 }
 
 void baz_gate::set_no_delay(bool no_delay)
 {
+  fprintf(stderr, "[%s<%i>] Delay: %.6f\n", name().c_str(), unique_id(), (no_delay ? "yes" : "no"));
   d_no_delay = no_delay;
 }
 
@@ -128,6 +137,8 @@ baz_gate::general_work (int noutput_items, gr_vector_int &ninput_items,
 			gr_vector_const_void_star &input_items,
 			gr_vector_void_star &output_items)
 {
+  gruel::scoped_lock guard(d_mutex);
+  
   const char *in = (char*)input_items[0];
   const float *level = (float*)input_items[1];
   char *out = (char*)output_items[0];
@@ -188,8 +199,8 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
       if (d_trigger_count > 0)
         --d_trigger_count;
 
-      if ((d_trigger_count == 0) && (level[i] >= d_threshold)) { // 'else' to avoid double trigger and offse in incoming repeating vector
-        //fprintf(stderr, "[%s] Triggered: %.1f, current count: %d\n", name().c_str(), level[i], d_trigger_count);
+      if ((d_trigger_count == 0) && (level[i] >= d_threshold)) { // 'else' to avoid double trigger and offset in incoming repeating vector
+        fprintf(stderr, "[%s<%i>] Triggered: %.1f, current count: %d\n", name().c_str(), unique_id(), level[i], d_trigger_count);
         d_trigger_count = (d_trigger_length - 1);
 /*
         uhd::tx_metadata_t md;
@@ -199,8 +210,8 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
         md.time_spec = uhd::time_spec_t(seconds_in_future);
         add_item_tag(0, offset, key, value);
 */
-        if (d_tag) {
-          assert(d_in_burst == false);  // FIXME: This can fail if changing d_tag at runtime
+        if (d_tag && (d_in_burst == false)) {
+          //assert(d_in_burst == false);  // FIXME: This can fail if changing d_tag at runtime
 
           add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::pmt_from_bool(true));
           if (d_no_delay == false) {
@@ -220,7 +231,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
         add_item_tag(0, offset, key, value);
 */
         if (d_in_burst) {
-          //fprintf(stderr, "[%s] EOB %d + %d\n", name().c_str(), nitems_written(0), j);
+          fprintf(stderr, "[%s<%i>] EOB %d + %d\n", name().c_str(), unique_id(), nitems_written(0), j);
           add_item_tag(0, nitems_written(0)+j, EOB_KEY, pmt::pmt_from_bool(true));
           d_in_burst = false;
         }
@@ -254,7 +265,7 @@ if (d_in_burst == false) {
     }
   }
 
-  assert((d_block) || (j == noutput_items));
+  assert((d_block) || (j == noutput_items));    // Triggers if changed during work (no thread safety)
   /*if (noutput_items != ninput_items[1]) { // This is not true
     fprintf(stderr, "[%s] noutput items: %d, gate control input items: %d\n", name().c_str(), noutput_items, ninput_items[1]);
   }*/

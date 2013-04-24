@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<block>
+    <name>Any Block Single Sink</name>
+    <key>any_single_sink</key>
+    <category>Sinks</category>
+	<import>from gnuradio import gr</import>
+<!--<import>
+#if $block_import
+import $block_import
+#endif</import>-->
+    <make>$block_maker()</make>
+	<!--
+	<param>
+		<name>Import</name>
+		<key>block_import</key>
+		<type>raw</type>
+    </param>
+    -->
+    <param>
+		<name>Desc</name>
+		<key>block_desc</key>
+		<type>string</type>
+    </param>
+
+    <param>
+		<name>Maker</name>
+		<key>block_maker</key>
+		<!--<type>raw</type>-->
+		<type>string</type>
+    </param>
+
+<!-- Must come before sink/source -->
+  <check>len("$block_maker()") &gt; 0</check>
+
+  <sink>
+    <name>in</name>
+    <type></type>
+  </sink>
+
+    <doc>
+Supports any generic Python GR block - just type the raw maker code/function into 'Maker'.
+
+'Desc' is so that you can recognise what this block does when glancing at the flow graph.
+
+This block wraps a GR block with at least one sink only.
+
+Don't forget to use the Import block to import the necessary Python packages for your 'Maker' function!
+    </doc>
+</block>
+

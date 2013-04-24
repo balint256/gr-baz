@@ -14,10 +14,11 @@
 #if str($eval_mode) == 'raw'
 	callback=self.set_$target()
 #else
-  callback=$target()
+	callback=$target()
 #end if
-	, msg_part="$msg_part", custom_parts=$custom_parts, dummy=$dummy#slurp
+	, msg_part="$msg_part", custom_parts=$custom_parts,#slurp
 #end if
+	dummy=$dummy
 )
 	</make>
 

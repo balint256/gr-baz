@@ -41,6 +41,17 @@ SET(baz_blocks
 	baz_block_status.xml
 	baz_any_single.xml
 	baz_non_blocker.xml
+
+	baz_plot_sink.xml
+	baz_multi_channel_decoder.xml
+	baz_acars_decoder.xml
+	baz_acars_printer.xml
+
+	baz_music_doa.xml
+	baz_message_relay.xml
+	baz_tag_to_msg.xml
+	baz_any_single_sink.xml
+	baz_any_single_source.xml
 )
 
 if (LIBUSB_FOUND)

@@ -18,17 +18,26 @@ from gnuradio import gr, gru, uhd
 _prefs = gr.prefs()
 _default_address = _prefs.get_string('legacy_usrp', 'address', '')
 
-def pick_rx_subdevice(u):
-	return (1, 0)
-
 def determine_rx_mux_value(u, subdev_spec, subdev_spec_b=None):
 	return 0
 
 def selected_subdev(u, subdev_spec):	# Returns subdevice object
 	return u.selected_subdev(subdev_spec)
 
+def tune(u, unit, subdev, freq):
+	return u.tune(unit, subdev, freq)
+
 class tune_result:
 	pass
+
+def pick_subdev(u, candidates=[]):
+    return u.pick_subdev(candidates)
+
+def pick_tx_subdevice(u):
+	return (0, 0)
+
+def pick_rx_subdevice(u):
+	return (0, 0)
 
 class device(gr.hier_block2):
 	"""
@@ -36,7 +45,7 @@ class device(gr.hier_block2):
 	Assumes 64MHz clock in USRP 1
 	'address' as None implies check config for default
 	"""
-	def __init__(self, address=None, which=0, decim_rate=0, nchan=1, adc_freq=64e6, defer_creation=True):	# FIXME: 'which', 'nchan'
+	def __init__(self, address=None, which=0, decim_rate=0, nchan=1, adc_freq=64e6, defer_creation=True, scale=8192):	# FIXME: 'which', 'nchan'
 		"""
 		UHD USRP Source
 		"""
@@ -62,12 +71,15 @@ class device(gr.hier_block2):
 		self._which = which
 		
 		self._adc_freq = int(adc_freq)
-		self._gain_range = (0, 1)
+		self._gain_range = (0, 1, 1)
+		self._freq_range = (0, 0, 0)
 		self._tune_result = None
 		self._name = "(Legacy USRP)"
-		self._serial = ""
+		self._serial = "(Legacy)"
 		self._gain_step = 0
 		self._created = False
+		
+		self._scale = scale
 		
 		self._last_address = address
 		self._last_which = None
@@ -99,6 +111,11 @@ class device(gr.hier_block2):
 			address = self._address
 		if (address is None):	# or (isinstance(address, str) and address == "")
 			address = _default_address
+		
+		if isinstance(address, int):
+			# FIXME: Check 'which'
+			which = address
+			address = ""
 		
 		if decim_rate == 0:
 			decim_rate = self._decim_rate
@@ -156,14 +173,37 @@ class device(gr.hier_block2):
 			pass
 		
 		_gr = self._uhd_device.get_gain_range(0)
-		self._gain_range = (_gr.start(), _gr.stop())
+		self._gain_range = (_gr.start(), _gr.stop(), _gr.step())
 		self._gain_step = _gr.step()
 		
-		if self._args[1] == "sc16":
-			self.v2s = gr.vector_to_stream(gr.sizeof_short, 2)
-			self.connect(self._uhd_device, self.v2s, self)
+		external_port = self
+		self._multiplier = None
+		if self._scale != 1.0:
+			scale = self._scale
+			if self._args[0]:
+				scale = 1.0 / scale
+			#print "Scaling by", self._scale
+			self._multiplier = external_port = gr.multiply_const_vcc((scale,))
+			if self._args[0]:
+				self.connect(self, self._multiplier)
+			else:
+				self.connect(self._multiplier, self)
+		
+		_fr = self._uhd_device.get_freq_range(0)
+		self._freq_range = (_fr.start(), _fr.stop(), _fr.step())
+		
+		if self._args[0]:
+			if self._args[1] == "sc16":
+				self._s2v = gr.stream_to_vector(gr.sizeof_short, 2)
+				self.connect(external_port, self._s2v, self._uhd_device)
+			else:
+				self.connect(external_port, self._uhd_device)
 		else:
-			self.connect(self._uhd_device, self)
+			if self._args[1] == "sc16":
+				self._v2s = gr.vector_to_stream(gr.sizeof_short, 2)
+				self.connect(self._uhd_device, self._v2s, external_port)
+			else:
+				self.connect(self._uhd_device, external_port)
 		
 		self._created = True
 		
@@ -204,14 +244,23 @@ class device(gr.hier_block2):
 	def adc_freq(self):
 		return self._adc_freq
 	
+	def adc_rate(self):
+		return self.adc_freq()
+	
 	def decim_rate(self):
 		return self._decim_rate
 	
 	def set_mux(self, mux):
 		pass
 	
-	def pick_subdev(self, opts):
-		return ""	# subdev_spec
+	def pick_subdev(self, candidates=[]):
+		return ""	# subdev_spec (side, subdev)
+	
+	def pick_tx_subdevice(self):
+		return (0, 0)
+	
+	def pick_rx_subdevice(self):
+		return (0, 0)
 	
 	def determine_rx_mux_value(self, subdev_spec, subdev_spec_=None):
 		return 0	# Passed to set_mux
@@ -257,6 +306,9 @@ class device(gr.hier_block2):
 	def set_gain(self, gain):
 		self._last_gain = gain
 		return self._uhd_device.set_gain(gain, 0)
+	
+	def freq_range(self):
+		return self._freq_range
 	
 	def select_rx_antenna(self, antenna):
 		self._last_antenna = antenna

@@ -39,6 +39,16 @@ GR_PYTHON_INSTALL(
 	message_callback.py
 	borip_server.py
 	std_flusher.py
+
+	plot_sink.py
+	plot_window.py
+	multi_channel_decoder.py
+	acars_printer.py
+	message_relay.py
+
+	music_doa_helper.py
+	parallel_scanner_fsm.py
+
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 

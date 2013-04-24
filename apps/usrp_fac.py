@@ -30,7 +30,7 @@ from gnuradio.eng_option import eng_option
 from gnuradio.wxgui import stdgui2, fftsink2, waterfallsink2, scopesink2, form, slider
 from optparse import OptionParser
 
-import facsink
+from baz import facsink
 
 import wx
 import sys
@@ -108,9 +108,9 @@ class app_flow_graph(stdgui2.std_top_block):
         self.connect(self.u, self.scope)
 
 
-	# setup fac sink...  Main FFT Size determined here...
-	self.fac = facsink.fac_sink_c (panel, fac_size=32768, sample_rate=input_rate, title = "Auto Correlation")
-	self.connect(self.u, self.fac)
+        # setup fac sink...  Main FFT Size determined here...
+        self.fac = facsink.fac_sink_c (panel, fac_size=32768, sample_rate=input_rate, title = "Auto Correlation")
+        self.connect(self.u, self.fac)
 
 
         self._build_gui(vbox)
@@ -149,8 +149,8 @@ class app_flow_graph(stdgui2.std_top_block):
 
 
         vbox.Add(self.scope.win, 10, wx.EXPAND)
-	# and add fac display below scope/fft/waterfall
-	vbox.Add(self.fac.win, 10, wx.EXPAND)            
+        # and add fac display below scope/fft/waterfall
+        vbox.Add(self.fac.win, 10, wx.EXPAND)            
 
         
         # add control area at the bottom

@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<block>
+	<name>MUSIC DOA Estimator</name>
+	<key>baz_music_doa</key>
+	<category>DOA</category>
+	<import>from baz import music_doa_helper</import>
+	<make>music_doa_helper.music_doa_helper(m=$m, n=$n, nsamples=$nsamples, angular_resolution=$angular_resolution, frequency=$freq, array_spacing=$spacing, antenna_array=$antenna_array, output_spectrum=$output_spectrum)</make>
+	<callback>set_frequency($freq)</callback>
+
+	<param>
+		<name>Num antennas</name>
+		<key>m</key>
+		<value>4</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Num signals</name>
+		<key>n</key>
+		<value>1</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Num samples</name>
+		<key>nsamples</key>
+		<value>512</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Angular resolution</name>
+		<key>angular_resolution</key>
+		<value>360</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Frequency</name>
+		<key>freq</key>
+		<value>1</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Spacing</name>
+		<key>spacing</key>
+		<value>1</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Array</name>
+		<key>antenna_array</key>
+		<value>[[0,0],[1,0],[2,0],[3,0]]</value>
+		<type>raw</type>
+	</param>
+
+	<param>
+		<name>Output Spectrum</name>
+		<key>output_spectrum</key>
+		<value>False</value>
+		<type>enum</type>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
+	<sink>
+		<name>in</name>
+		<type>complex</type>
+		<vlen>$nsamples</vlen>
+	</sink>
+
+	<source>
+		<name>ang</name>
+		<type>float</type>
+		<vlen>$n</vlen>
+	</source>
+
+	<source>
+		<name>lvl</name>
+		<type>float</type>
+		<vlen>$n</vlen>
+	</source>
+
+	<source>
+		<name>spectrum</name>
+		<type>float</type>
+		<vlen>$angular_resolution</vlen>
+		<optional>1</optional>
+	</source>
+
+	<doc>MUSIC DOA Estimator
+
+	Parameters:
+	  n: number of expected sinusoids, n&lt;m
+	  m: dimension of the correlation matrix. Governs the quality of the estimate.
+	  nsamples: considered samples per estimate
+
+	MUSIC (Multiple Signal Classification) is a subspace oriented parametric spectrum estimator.
+
+	It works primarily by correlating a series of samples in a correlation matrix,
+	decomposing it into orthogonal eigenvectors, building a noise subspace from the
+	eigenvectors belonging to the (m-n) smallest eigenvalues, and finding the sinusoid
+	frequencies, for which the projection length into this subspace equals zero.
+
+	For this method to work, it is necessary that n&lt;m.
+</doc>
+</block>
+

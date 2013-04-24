@@ -31,6 +31,7 @@
 #include <gr_sync_block.h>
 //#include <gr_msg_queue.h>
 #include <uhd/types/time_spec.hpp>
+#include <gruel/thread.h>
 
 class BAZ_API baz_gate;
 
@@ -85,6 +86,7 @@ private:
   bool d_in_burst;
   int d_output_index;
   bool d_no_delay;
+  gruel::mutex d_mutex;
 
 public:
   ~baz_gate ();	// public destructor

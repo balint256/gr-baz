@@ -41,16 +41,16 @@ class fac_sink_base(gr.hier_block2, common.wxgui_hb):
                  fac_rate=default_fac_rate,
                  average=False, avg_alpha=None, title='', peak_hold=False):
 
-	self._item_size = gr.sizeof_gr_complex
-	if input_is_real:
-	    self._item_size = gr.sizeof_float
+        self._item_size = gr.sizeof_gr_complex
+        if input_is_real:
+            self._item_size = gr.sizeof_float
 
-	gr.hier_block2.__init__(
-			self,
-			"Fast AutoCorrelation",
-			gr.io_signature(1, 1, self._item_size),
-			gr.io_signature(0, 0, 0),
-		)
+        gr.hier_block2.__init__(
+                self,
+                "Fast AutoCorrelation",
+                gr.io_signature(1, 1, self._item_size),
+                gr.io_signature(0, 0, 0),
+            )
 
         # initialize common attributes
         self.baseband_freq = baseband_freq
@@ -122,14 +122,14 @@ class fac_sink_f(fac_sink_base):
         self.one_in_n = gr.keep_one_in_n(gr.sizeof_float * self.fac_size,
                                          max(1, int(self.sample_rate/self.fac_size/self.fac_rate)))
 
-	# windowing removed... 
+        # windowing removed... 
 
         fac = gr.fft_vfc(self.fac_size, True, ())
             
         c2mag = gr.complex_to_mag(self.fac_size)
         self.avg = gr.single_pole_iir_filter_ff(1.0, self.fac_size)
 
-	fac_fac   = gr.fft_vfc(self.fac_size, True, ())
+        fac_fac   = gr.fft_vfc(self.fac_size, True, ())
         fac_c2mag = gr.complex_to_mag(fac_size)
 
         # FIXME  We need to add 3dB to all bins but the DC bin
@@ -144,7 +144,7 @@ class fac_sink_f(fac_sink_base):
         self.win = fac_window(self, parent, size=size)
         self.set_average(self.average)
 
-	self.wxgui_connect(self, s2p)
+        self.wxgui_connect(self, s2p)
 
 
 class fac_sink_c(fac_sink_base):
@@ -165,13 +165,13 @@ class fac_sink_c(fac_sink_base):
         self.one_in_n = gr.keep_one_in_n(gr.sizeof_gr_complex * self.fac_size,
                                          max(1, int(self.sample_rate/self.fac_size/self.fac_rate)))
 
-	# windowing removed ...
+        # windowing removed ...
      
         fac = gr.fft_vcc(self.fac_size, True, ())
         c2mag = gr.complex_to_mag(fac_size)
 
         # Things go off into the weeds if we try for an inverse FFT so a forward FFT will have to do...
-	fac_fac   = gr.fft_vfc(self.fac_size, True, ())
+        fac_fac   = gr.fft_vfc(self.fac_size, True, ())
         fac_c2mag = gr.complex_to_mag(fac_size)
 
         self.avg = gr.single_pole_iir_filter_ff(1.0, fac_size)
@@ -187,7 +187,7 @@ class fac_sink_c(fac_sink_base):
         self.win = fac_window(self, parent, size=size)
         self.set_average(self.average)
 
-	self.wxgui_connect(self, s2p)
+        self.wxgui_connect(self, s2p)
 
 
 # ------------------------------------------------------------------------
@@ -258,6 +258,12 @@ class fac_window (plot.PlotCanvas):
         self.Bind(wx.EVT_RIGHT_UP, self.on_right_click)
 
         self.input_watcher = input_watcher(facsink.msgq, facsink.fac_size, self)
+        
+        #mouse wheel event
+        def on_mouse_wheel(event):
+            if event.GetWheelRotation() < 0: self.on_incr_ref_level(event)
+            else: self.on_decr_ref_level(event)
+        self.Bind(wx.EVT_MOUSEWHEEL, on_mouse_wheel)
 
     def on_close_window (self, event):
         print "fac_window:on_close_window"

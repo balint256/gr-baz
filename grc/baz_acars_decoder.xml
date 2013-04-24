@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##ACARS Decoder
+###################################################
+ -->
+<block>
+	<name>ACARS Decoder</name>
+	<key>baz_acars_decoder</key>
+	<category>ACARS</category>
+	<import>import baz</import>
+
+	<make>baz.acars_decoder($(id)_msgq_out)
+self.$(id).set_preamble_threshold($preamble_threshold)
+self.$(id).set_frequency($frequency)
+self.$(id).set_station_name($station_name)
+</make>
+
+	<callback>set_preamble_threshold($preamble_threshold)</callback>
+	<callback>set_frequency($frequency)</callback>
+	<callback>set_station_name($station_name)</callback>
+
+	<param>
+		<name>Preamble Threshold</name>
+		<key>preamble_threshold</key>
+		<value>-1</value>
+		<type>int</type>
+		<hide>#if $preamble_threshold() &lt; 0 then 'part' else 'none'#</hide>
+	</param>
+
+	<param>
+		<name>Frequency</name>
+		<key>frequency</key>
+		<value>0.0</value>
+		<type>real</type>
+		<hide>#if $frequency() &lt;= 0 then 'part' else 'none'#</hide>
+	</param>
+
+	<param>
+		<name>Station Name</name>
+		<key>station_name</key>
+		<value></value>
+		<type>string</type>
+		<hide>#if len($station_name()) == 0 then 'part' else 'none'#</hide>
+	</param>
+
+	<sink>
+		<name>in</name>
+		<type>float</type>
+	</sink>
+
+	<sink>
+		<name>lvl</name>
+		<type>float</type>
+		<optional>1</optional>
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>msg</type>
+	</source>
+
+	<doc>ACARS decoder
+
+Premable threshold: max # of tolerable incorrect bits in correlator (-1: default)</doc>
+</block>
+

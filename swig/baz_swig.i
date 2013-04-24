@@ -33,10 +33,14 @@
 #include "baz_native_mux.h"
 #include "baz_block_status.h"
 #include "baz_non_blocker.h"
+#include "baz_acars_decoder.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
 #endif // UHD_FOUND
+
+#include "baz_music_doa.h"
+#include "baz_tag_to_msg.h"
 
 #endif // GR_BAZ_WITH_CMAKE
 %}
@@ -481,4 +485,54 @@ public:
 
 #endif // UHD_FOUND
 
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,music_doa)
+
+baz_music_doa_sptr baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const /*array_response_t*/std::vector<std::vector<gr_complex> >& array_response, unsigned int resolution);
+
+class baz_music_doa : public gr_sync_block
+{
+private:
+	baz_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const array_response_t& array_response, unsigned int resolution);
+public:
+	void set_array_response(const /*array_response_t*/std::vector<std::vector<gr_complex> >& array_response);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,acars_decoder)
+
+baz_acars_decoder_sptr baz_make_acars_decoder(gr_msg_queue_sptr msgq);
+
+class baz_acars_decoder : public gr_sync_block
+{
+private:
+	baz_acars_decoder(gr_msg_queue_sptr msgq);
+public:
+	void set_preamble_threshold(int threshold);
+	void set_frequency(float frequency);
+	void set_station_name(const char* station_name);
+public:
+	int preamble_threshold() const;
+	float frequency() const;
+	const char* station_name() const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,tag_to_msg)
+
+baz_tag_to_msg_sptr baz_make_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append = NULL/*, int initial_buffer_size = -1*/);
+
+class baz_tag_to_msg : public gr_sync_block
+{
+private:
+	baz_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append/*, int initial_buffer_size*/);
+public:
+	void set_msgq(gr_msg_queue_sptr msgq);
+	void set_appended_string(const char* append);
+};
+
 #endif // GR_BAZ_WITH_CMAKE
+

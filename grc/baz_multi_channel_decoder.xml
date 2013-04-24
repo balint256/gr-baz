@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Multi-channel decoder
+###################################################
+ -->
+<block>
+	<name>Multi-channel decoder</name>
+	<key>multi_channel_decoder</key>
+	<category>Misc</category>
+	
+	<!--<import>from gnuradio import gr</import>-->
+	<import>from baz import multi_channel_decoder</import>
+	
+	<make>multi_channel_decoder.multi_channel_decoder(
+		msgq=$(id)_msgq_out,
+		baseband_freq=$baseband_freq,
+		frequencies=$freq_list,
+		decoder=$decoder,
+		#decoder_args=$decoder_args,
+		params=$params,
+		$decoder_args())</make>
+	
+	<callback>set_baseband_freq($baseband_freq)</callback>
+	<callback>set_frequencies($freq_list)</callback>
+	<callback>update_parameters($params)</callback>
+	
+	<param>
+		<name>Baseband Freq</name>
+		<key>baseband_freq</key>
+		<value>0</value>
+		<type>real</type>
+	</param>
+	
+	<param>
+		<name>Frequency List</name>
+		<key>freq_list</key>
+		<value>[0]</value>
+		<type>raw</type>
+		<!--<hide>#if $() == 0.0 then 'part' else 'none'#</hide>-->
+	</param>
+	
+	<param>
+		<name>Decoder</name>
+		<key>decoder</key>
+		<!--<type>string</type>-->
+		<type>raw</type>
+	</param>
+	
+	<param>
+		<name>Decoder Args</name>
+		<key>decoder_args</key>
+		<!--<type>raw</type>-->
+		<type>string</type>
+	</param>
+	
+	<param>
+		<name>Parameters</name>
+		<key>params</key>
+		<value>None</value>
+		<type>raw</type>
+		<hide>part</hide>
+	</param>
+	
+	<!-- Must come before sink/source -->
+	<check>len("$decoder()") &gt; 0</check>
+  
+	<sink>
+		<name>in</name>
+		<type>complex</type>
+		<!--<nports>1</nports>-->
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>msg</type>
+	</source>
+
+	<doc>Creates as many decoders as channels.</doc>
+</block>

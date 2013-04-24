@@ -13,19 +13,34 @@ if [ -z "$MODULE" ]; then
 fi
 
 # Variables
-BASE_PATH="$HOME/install/$MODULE"
+BASE_PATH="$MODULE"
 
-if [ -d "$BASE_PATH" ]; then
-	echo "Entering $BASE_PATH"
-else
-	echo "$BASE_PATH is not a valid directory"
-	return
+if ! [ -d "$BASE_PATH" ]; then
+	BASE_PATH="$HOME/install/$MODULE"
+	if ! [ -d "$BASE_PATH" ]; then
+		echo "$BASE_PATH is not a valid directory"
+		return
+	fi
 fi
 
+echo "Entering $BASE_PATH"
+
 # Sub-environment
-PATH=$BASE_PATH/bin:$PATH
-LD_LIBRARY_PATH=$BASE_PATH/lib64:$BASE_PATH/lib:$LD_LIBRARY_PATH
-PYTHONPATH=$BASE_PATH/lib/python$PYTHON_VER/site-packages/gnuradio:$BASE_PATH/lib/python$PYTHON_VER/site-packages:$PYTHON_PATH
+export PATH=$BASE_PATH/bin:$PATH
+export LD_LIBRARY_PATH=$BASE_PATH/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$BASE_PATH/lib:$LD_LIBRARY_PATH
+
+export PYTHONPATH=$BASE_PATH/lib/python$PYTHON_VER/site-packages:$PYTHONPATH
+export PYTHONPATH=$BASE_PATH/lib/python$PYTHON_VER/dist-packages:$PYTHONPATH
+# sitecustomize.py should be used to add any further directories via sys.path (e.g. a local 'gnuradio')
+
+export PKG_CONFIG_PATH=$BASE_PATH/lib/pkgconfig:$PKG_CONFIG_PATH
+
+if [ -e $BASE_PATH/subenv.init ]; then
+	echo "Executing initialisation script..."
+	. $BASE_PATH/subenv.init
+fi
+
 # 'export' is necessary
 export SUBENV="$MODULE"
 
@@ -33,4 +48,3 @@ export SUBENV="$MODULE"
 bash -i
 
 echo "Exiting $BASE_PATH"
-

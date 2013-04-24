@@ -140,6 +140,17 @@ class TuneResult():
         self.actual_dsp_freq = actual_dsp_freq
     def __str__(self):
         return str(self.target_rf_freq) + ": " + str(self.actual_rf_freq) + " + " + str(self.target_dsp_freq) + " (" + str(self.actual_dsp_freq) + ")"
+    def duck_copy(self, src):
+        try:
+            elems = filter(lambda x: (x[0] != "_") and hasattr(self, x), dir(src))
+            map(lambda x: setattr(self, x, getattr(src, x)), elems)
+            #for v in elems:
+            #    print v
+            #    setattr(self, v, getattr(src, v))
+            return len(elems) > 0
+        except Exception, e:
+            print "~~> Failed to duck copy tune result:", src
+            traceback.print_exc()
 
 class GainRange():
     def __init__(self, start=0.0, stop=1.0, step=1.0):
@@ -479,11 +490,23 @@ class GnuRadioDevice(Device, NetworkTransport):
                             self._last_tune_result.actual_rf_freq = res[1]
                             self._last_tune_result.target_dsp_freq = res[2]
                             self._last_tune_result.actual_dsp_freq = res[3]
-                        except:
-                            pass
+                            if self.options.debug:
+                                print "##> Stored tune result:", self._last_tune_result
+                        except Exception, e:
+                            if self.options.debug:
+                                print "##> Error while storing tune result:", e
                         tuned = self._last_tune_result.actual_rf_freq + self._last_tune_result.actual_dsp_freq
                     else:
-                        tuned = float(res)
+                        temp_tune_result = TuneResult(freq, tuned)
+                        if temp_tune_result.duck_copy(res):
+                            if self.options.debug:
+                                print "##> Duck copied tune result"
+                            self._last_tune_result = temp_tune_result
+                        else:
+                            if self.options.debug:
+                                print "##> Casting tune result to float"
+                            tuned = float(res)
+                            self._last_tune_result = None   # Will be created in call to Device
                 except Exception, e:
                     if self.options.verbose:
                         print "##> Unknown exception while using response from frequency set:", str(res), "-", str(e)

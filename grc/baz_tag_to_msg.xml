@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Tag to Message
+###################################################
+ -->
+<block>
+	<name>Tag to Message</name>
+	<key>baz_tag_to_msg</key>
+	<category>Message Tools</category>
+	<import>import baz</import>
+
+	<make>baz.tag_to_msg($type.size, $(id)_msgq_out, $append)</make><!--, initial_buffer_size-->
+	
+	<callback>set_appended_string($append)</callback>
+	
+	<param>
+		<name>Type</name>
+		<key>type</key>
+		<type>enum</type>
+		<option>
+			<name>Complex</name>
+			<key>complex</key>
+			<opt>size:gr.sizeof_gr_complex</opt>
+		</option>
+		<option>
+			<name>Float</name>
+			<key>float</key>
+			<opt>size:gr.sizeof_float</opt>
+		</option>
+		<option>
+			<name>Int</name>
+			<key>int</key>
+			<opt>size:gr.sizeof_int</opt>
+		</option>
+		<option>
+			<name>Short</name>
+			<key>short</key>
+			<opt>size:gr.sizeof_short</opt>
+		</option>
+		<option>
+			<name>Byte</name>
+			<key>byte</key>
+			<opt>size:gr.sizeof_char</opt>
+		</option>
+	</param>
+	
+	<param>
+		<name>Append String</name>
+		<key>append</key>
+		<value></value>
+		<type>string</type>
+		<hide>#if len($append()) == 0 then 'part' else 'none'#</hide>
+	</param>
+<!--
+	<param>
+		<name>Initial Buffer Size</name>
+		<key>initial_buffer_size</key>
+		<value>-1</value>
+		<type>int</type>
+		<hide>#if $initial_buffer_size() &lt; 0 then 'part' else 'none'#</hide>
+	</param>
+-->
+	<sink>
+		<name>in</name>
+		<type>$type</type>
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>msg</type>
+	</source>
+<!--
+	<doc>Tag to Message
+
+Initial Buffer Size: # of bytes to initially allocate in message buffer (-1: default)</doc>-->
+</block>

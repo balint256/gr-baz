@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##ACARS Printer
+###################################################
+ -->
+<block>
+	<name>ACARS Printer</name>
+	<key>baz_acars_printer</key>
+	<category>ACARS</category>
+	<import>from baz import acars_printer</import>
+
+	<make>acars_printer.queue_watcher_thread($(id)_msgq_in)</make>
+
+	<!--<callback></callback>-->
+
+	<!--<param>
+		<name>Reset</name>
+		<key>reset</key>
+		<value>0</value>
+		<type>raw</type>
+		<hide>part</hide>
+	</param>-->
+
+	<sink>
+		<name>in</name>
+		<type>msg</type>
+	</sink>
+
+	<doc>ACARS printer</doc>
+</block>
+
