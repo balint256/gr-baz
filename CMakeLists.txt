@@ -70,7 +70,7 @@ else()
     #    filesystem
     #    program_options
     #    regex
-    #    system
+        system
         thread
     #    unit_test_framework
     )

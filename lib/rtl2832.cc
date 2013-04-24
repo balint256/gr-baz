@@ -440,9 +440,8 @@ int demod::find_device()
 			return r;
 		}
 	}
-        else
+	else
 		m_tuner_was_active = false;
-
 
 	r = CHECK_LIBUSB_NEG_RESULT(libusb_claim_interface(devh, 0));
 	if (r < 0)
