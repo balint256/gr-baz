@@ -104,6 +104,7 @@ class BAZ_API UDP_SINK_NAME : public gr_sync_block
    * \param payload_size UDP payload size by default set to 
    *                     1472 = (1500 MTU - (8 byte UDP header) - (20 byte IP header))
    * \param eof          Send zero-length packet on disconnect
+   * \param bor          Enable BorIP encapsulation
    */
   UDP_SINK_NAME (size_t itemsize, 
 	       const char *host, unsigned short port,

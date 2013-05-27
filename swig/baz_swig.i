@@ -35,6 +35,8 @@
 #include "baz_non_blocker.h"
 #include "baz_acars_decoder.h"
 #include "baz_tag_to_msg.h"
+#include "baz_time_keeper.h"
+#include "baz_burster.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -436,7 +438,7 @@ private:
 
 GR_SWIG_BLOCK_MAGIC(baz,block_status)
 
-baz_block_status_sptr baz_make_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed);
+baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue = gr_msg_queue_sptr());
 
 class baz_block_status : public gr_sync_block
 {
@@ -540,5 +542,136 @@ public:
 	void set_appended_string(const char* append);
 };
 
-#endif // GR_BAZ_WITH_CMAKE
+///////////////////////////////////////////////////////////////////////////////
 
+GR_SWIG_BLOCK_MAGIC(baz,time_keeper)
+
+baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rate);
+
+class baz_time_keeper : public gr_sync_block
+{
+private:
+	baz_time_keeper (int item_size, int sample_rate);  	// private constructor
+public:
+	double time(bool relative = false);
+	void ignore_next(bool ignore = true);
+	int update_count(void);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+namespace std {
+%template(map_string_string) map<string, string>;
+%template(vector_string) vector<string>;
+}
+
+%pythoncode %{
+def _baz_burster_config_xform_types(k, v):
+	if k in ['trigger_tags', 'length_tags']:
+		return vector_string(v)
+	if k in ['eob_tags']:
+		return map_string_string(v)
+	return v
+%}
+
+// Method 1: no rename (__init__ is preserved)
+/*
+%pythoncode %{
+def burster_config(*args, **kwds):
+	val = baz_burster_config()
+	for k in kwds.keys():
+		if hasattr(val, k):
+			print "Setting", k, "to", kwds[k]
+			setattr(val, k, kwds[k])
+	return val
+%}
+*/
+
+// Method 2: (no good)
+//%rename(burster_config) baz_burster_config;	// introduces new function with no args (return _baz_swig.new_burster_config()), wipes out __init__ so can't use this
+/* __init__ contains (without %rename):
+this = _baz_swig.new_baz_burster_config()
+try: self.this.append(this)
+except: self.this = this
+*/
+//%ignore baz_burster_config;	// doesn't produce re-named function
+
+%include "baz_burster_config.h"
+
+// Method 2a: (requires %rename above)
+/*
+%pythoncode %{
+burster_config_old = burster_config
+class burster_config_new(object):
+	def __init__(self, *args, **kwds):
+		self.this = this = _baz_swig.new_burster_config()
+		for k in kwds.keys():
+			if hasattr(this, k):
+				#print "Setting", k, "to", kwds[k]
+				setattr(this, k, kwds[k])
+	def __getattr__(self, attr):
+		return getattr(self.this, attr)
+	def __setattr__(self, attr, val):
+		if attr == 'this':
+			object.__setattr__(self, attr, val)
+		else:
+			setattr(self.this, attr, val)
+burster_config = burster_config_new
+%}
+*/
+
+// Method 2b: (requires %rename above)
+/*
+%pythoncode %{
+burster_config_old = burster_config
+def burster_config_new(*args, **kwds):
+	val = _baz_swig.new_burster_config()
+	for k in kwds.keys():
+		if hasattr(val, k):
+			#print "Setting", k, "to", kwds[k]
+			setattr(val, k, kwds[k])
+	return val
+burster_config = burster_config_new
+%}
+*/
+
+// Method 3:
+
+%pythoncode %{
+class burster_config(baz_burster_config):
+	def __init__(self, *args, **kwds):
+		baz_burster_config.__init__(self)
+		for k in kwds.keys():
+			if hasattr(self, k):
+				setattr(self, k, _baz_burster_config_xform_types(k, kwds[k]))
+%}
+
+// Method 4: __init__ injection & new variable for renamed class
+/*
+%pythoncode %{
+_burster_config_init_old = baz_burster_config.__init__
+
+def _baz_burster_config_init(self, *args, **kwds):
+	_burster_config_init_old(self)
+	for k in kwds.keys():
+		if hasattr(self, k):
+			setattr(self, k, kwds[k])
+
+baz_burster_config.__init__ = _baz_burster_config_init
+burster_config = baz_burster_config
+%}
+*/
+
+GR_SWIG_BLOCK_MAGIC(baz,burster)
+
+baz_burster_sptr baz_make_burster (const baz_burster_config& config);
+
+class baz_burster : public gr_sync_block
+{
+private:
+	baz_burster (const baz_burster_config& config);  	// private constructor
+public:
+	//
+};
+
+#endif // GR_BAZ_WITH_CMAKE

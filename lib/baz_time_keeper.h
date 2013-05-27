@@ -25,13 +25,14 @@
  * Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
  */
 
-#ifndef INCLUDED_BAZ_BLOCK_STATUS_H
-#define INCLUDED_BAZ_BLOCK_STATUS_H
+#ifndef INCLUDED_BAZ_TIME_KEEPER_H
+#define INCLUDED_BAZ_TIME_KEEPER_H
 
 #include <gr_sync_block.h>
-#include <gr_msg_queue.h>
+//#include <gr_msg_queue.h>
+#include <gruel/thread.h>
 
-class BAZ_API baz_block_status;
+class BAZ_API baz_time_keeper;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
@@ -44,16 +45,16 @@ class BAZ_API baz_block_status;
  *
  * As a convention, the _sptr suffix indicates a boost::shared_ptr
  */
-typedef boost::shared_ptr<baz_block_status> baz_block_status_sptr;
+typedef boost::shared_ptr<baz_time_keeper> baz_time_keeper_sptr;
 
 /*!
- * \brief Return a shared_ptr to a new instance of baz_block_status.
+ * \brief Return a shared_ptr to a new instance of baz_time_keeper.
  *
- * To avoid accidental use of raw pointers, baz_block_status's
+ * To avoid accidental use of raw pointers, baz_time_keeper's
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue = gr_msg_queue_sptr());
+BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rate);
 
 /*!
  * \brief square2 a stream of floats.
@@ -61,32 +62,34 @@ BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long wor
  *
  * This uses the preferred technique: subclassing gr_sync_block.
  */
-class BAZ_API baz_block_status : public gr_sync_block
+class BAZ_API baz_time_keeper : public gr_sync_block
 {
 private:
-  // The friend declaration allows howto_make_square2_ff to
-  // access the private constructor.
+	// The friend declaration allows baz_time_keeper to
+	// access the private constructor.
 
-  friend BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue);
+	friend BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rate);
 
-  baz_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed);  	// private constructor
+	baz_time_keeper (int item_size, int sample_rate);  	// private constructor
 
-  int d_size;
-  gr_msg_queue_sptr d_queue;
-  unsigned long d_work_iterations;
-  unsigned long d_samples_processed;
+	int d_item_size;
+	uint64_t d_last_time_seconds, d_first_time_seconds;
+	double d_last_time_fractional_seconds, d_first_time_fractional_seconds;
+	uint64_t d_time_offset;
+	int d_sample_rate;
+	bool d_seen_time;
+	int d_update_count;
+	bool d_ignore_next;
+	gruel::mutex d_mutex;
 
- public:
-  ~baz_block_status ();	// public destructor
+public:
+	~baz_time_keeper ();	// public destructor
 
-  void set_size(int size);
+	double time(bool relative = false);
+	void ignore_next(bool ignore = true);
+	int update_count(void);
 
-  inline int size() const
-  { return d_size; }
-
-  int work (int noutput_items,
-	    gr_vector_const_void_star &input_items,
-	    gr_vector_void_star &output_items);
+	int work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
 };
 
-#endif /* INCLUDED_BAZ_BLOCK_STATUS_H */
+#endif /* INCLUDED_BAZ_TIME_KEEPER_H */

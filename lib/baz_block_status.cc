@@ -44,7 +44,7 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_block_status_sptr
-baz_make_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed)
+baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue)
 {
   return baz_block_status_sptr (new baz_block_status (size, queue, work_iterations, samples_processed));
 }
@@ -60,7 +60,7 @@ baz_make_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_ite
  */
 static const int MIN_IN = 1;	// mininum number of input streams
 static const int MAX_IN = 1;	// maximum number of input streams
-static const int MIN_OUT = 1;	// minimum number of output streams
+static const int MIN_OUT = 0;	// minimum number of output streams
 static const int MAX_OUT = 1;	// maximum number of output streams
 
 /*
@@ -93,19 +93,25 @@ baz_block_status::work (int noutput_items,
 			gr_vector_void_star &output_items)
 {
   const char *in = (const char*) input_items[0];
-  char* out = (char*)output_items[0];
+  char* out = NULL;
+  if (output_items.size() > 0)
+    out = (char*)output_items[0];
 
   for (int i = 0; i < noutput_items; i++) {
-    memcpy(out + (i * d_size), in + (i * d_size), d_size);
+    if (out != NULL)
+      memcpy(out + (i * d_size), in + (i * d_size), d_size);
 
     if (d_samples_processed > 0)
     {
       --d_samples_processed;
       if (d_samples_processed == 0)
       {
-        fprintf(stderr, "[%s] Status change: samples processed\n", name().c_str()/*, d_work_iterations, d_samples_processed*/);
-        gr_message_sptr msg = gr_make_message(0, d_work_iterations, d_samples_processed);
-        d_queue->insert_tail(msg);
+fprintf(stderr, "[%s] Status change: samples processed\n", name().c_str()/*, d_work_iterations, d_samples_processed*/);
+        if (d_queue)
+        {
+          gr_message_sptr msg = gr_make_message(0, d_work_iterations, d_samples_processed);
+          d_queue->insert_tail(msg);
+        }
       }
     }
   }
@@ -115,9 +121,12 @@ baz_block_status::work (int noutput_items,
     --d_work_iterations;
     if (d_work_iterations == 0)
     {
-      fprintf(stderr, "[%s] Status change: work iterations\n", name().c_str()/*, d_work_iterations, d_samples_processed*/);
-      gr_message_sptr msg = gr_make_message(0, d_work_iterations, d_samples_processed);
-      d_queue->insert_tail(msg);
+fprintf(stderr, "[%s] Status change: work iterations\n", name().c_str()/*, d_work_iterations, d_samples_processed*/);
+      if (d_queue)
+      {
+        gr_message_sptr msg = gr_make_message(0, d_work_iterations, d_samples_processed);
+        d_queue->insert_tail(msg);
+      }
     }
   }
 

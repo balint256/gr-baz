@@ -116,6 +116,8 @@ class BAZ_API UDP_SOURCE_NAME : public gr_sync_block
    * \param eof          Interpret zero-length packet as EOF (default: true)
    * \param wait         Wait for data if not immediately available
    *                     (default: true)
+   * \param bor          Enable BorIP encapsulation
+   * \param verbose      Output BorIP packet debug messages (helpful to judge packet loss)
    */
   UDP_SOURCE_NAME(size_t itemsize, const char *host, unsigned short port,
 		int payload_size, bool eof, bool wait, bool bor, bool verbose);

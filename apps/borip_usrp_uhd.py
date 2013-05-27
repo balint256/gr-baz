@@ -40,9 +40,9 @@ class borip_usrp_uhd(gr.top_block):
 				channels=range(1),
 			),
 		)
-		self.source.set_samp_rate(0)
-		self.source.set_center_freq(0, 0)
-		self.source.set_gain(0, 0)
+		#self.source.set_samp_rate(0)
+		#self.source.set_center_freq(0, 0)
+		#self.source.set_gain(0, 0)
 		self.sink = baz.udp_sink(gr.sizeof_short*2, "", 28888, 1472, False, True)
 
 		##################################################

@@ -34,6 +34,9 @@ SET(baz_blocks
 	gr_mpsk_receiver_debug_cc.xml
 	baz_auto_fec.xml
 	op25.xml
+	op25_fsk4.xml
+	op25_decoder.xml
+	op25_traffic_pane.xml
 	baz_message_callback.xml
 	baz_borip_sink.xml
 	baz_udp_source.xml
@@ -52,9 +55,12 @@ SET(baz_blocks
 	baz_tag_to_msg.xml
 	baz_any_single_sink.xml
 	baz_any_single_source.xml
+	baz_time_panel.xml
+	baz_burster.xml
 
 	missile_launcher.xml
 	doa_compass.xml
+	baudline.xml
 )
 
 if (LIBUSB_FOUND)

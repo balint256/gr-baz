@@ -70,7 +70,7 @@ else()
     #    filesystem
     #    program_options
     #    regex
-        system
+        system	# For OS X (why?)
         thread
     #    unit_test_framework
     )

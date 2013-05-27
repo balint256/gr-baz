@@ -10,7 +10,11 @@
 	<category>Misc</category>
 	<import>import baz</import>
 
-	<make>baz.block_status($(type.size), $(id)_msgq_out, $work_iterations, $samples_processed)</make>
+	<make>baz.block_status($(type.size), $work_iterations, $samples_processed, #slurp
+#if str($output_messages()) == 'True'
+		$(id)_msgq_out,#slurp
+#end if
+)</make>
 
 	<!--<callback></callback>-->
 
@@ -60,6 +64,21 @@
 		<value>0</value>
 		<type>int</type>
 	</param>
+	
+	<param>
+		<name>Output Messages</name>
+		<key>output_messages</key>
+		<value>True</value>
+		<type>enum</type>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
 
   <!-- ############################################################## -->
 
@@ -71,12 +90,13 @@
 	<source>
 		<name>out</name>
 		<type>$type</type>
+		<optional>1</optional>
 	</source>
 
 	<source>
 		<name>status</name>
-    <type>msg</type>
-		<!--<optional>1</optional>-->
+		<type>msg</type>
+		<optional>1</optional>
 	</source>
 
 	<doc></doc>

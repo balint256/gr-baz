@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##OP25 Traffic Pane
+###################################################
+ -->
+<block>
+	<name>OP25 Traffic Pane</name>
+	<key>op25_traffic_pane</key>
+	<category>Instrumentation/WX</category>
+	<import>from baz import op25_traffic_pane</import>
+	<make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
+op25_traffic_pane.TrafficPane(parent=$(parent).GetWin(), msgq=$(id)_msgq_in)
+#if not $grid_pos()
+$(parent).Add(self.$(id))
+#else
+$(parent).GridAdd(self.$(id), $(', '.join(map(str, $grid_pos()))))
+#end if</make>
+	<callback>clear();$reset;</callback>
+	
+	<param>
+		<name>Reset</name>
+		<key>reset</key>
+		<value>0</value>
+		<type>raw</type>
+		<hide>part</hide>
+	</param>
+	
+	<!--<param>
+		<name>Window Size</name>
+		<key>win_size</key>
+		<value></value>
+		<type>int_vector</type>
+		<hide>#if $win_size() then 'none' else 'part'#</hide>
+	</param>-->
+
+	<param>
+		<name>Grid Position</name>
+		<key>grid_pos</key>
+		<value></value>
+		<type>grid_pos</type>
+	</param>
+
+	<param>
+		<name>Notebook</name>
+		<key>notebook</key>
+		<value></value>
+		<type>notebook</type>
+	</param>
+
+	<!--<check>not $win_size or len($win_size) == 2</check>-->
+	
+	<sink>
+		<name>in</name>
+		<type>msg</type>
+	</sink>
+	<doc>Any change in Reset parameter will trigger clearing of panel data.</doc>
+</block>

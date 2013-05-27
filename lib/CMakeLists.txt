@@ -34,6 +34,8 @@ SET(baz_headers
 	baz_native_mux.h
 	baz_block_status.h
 	baz_non_blocker.h
+	baz_time_keeper.h
+	baz_burster.h
 )
 
 if (LIBUSB_FOUND)
@@ -73,6 +75,8 @@ SET(baz_sources
 
 	baz_acars_decoder.cc
 	baz_tag_to_msg.cc
+	baz_time_keeper.cc
+	baz_burster.cc
 )
 
 if (LIBUSB_FOUND)

@@ -12,13 +12,13 @@
 	<make>message_callback.message_callback(msgq=$(id)_msgq_in,#slurp
 #if $dummy() == False
 #if str($eval_mode) == 'raw'
-	callback=self.set_$target()
+	callback=self.set_$target()#slurp
 #else
-	callback=$target()
+	callback=$target()#slurp
 #end if
 	, msg_part="$msg_part", custom_parts=$custom_parts,#slurp
 #end if
-	dummy=$dummy
+	dummy=$dummy#slurp
 )
 	</make>
 

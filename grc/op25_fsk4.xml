@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <block>
-	<name>OP25 Decoder (Combined)</name>
-	<key>op25_decoder</key>
-	<category>Modulators</category>
+	<name>OP25 FSK4 Demodulator</name>
+	<key>op25_fsk4</key>
+	<category>Synchronizers</category>
 	<import>from baz import op25</import>
-	<make>op25.op25_decoder(channel_rate=$channel_rate, output_dibits=$dibits_out, key=$key,#slurp
+	<make>op25.op25_fsk4(channel_rate=$channel_rate, #slurp
 #if $tune_out()
 auto_tune_msgq=$(id)_msgq_out,#slurp
 #end if
@@ -18,29 +18,6 @@ auto_tune_msgq=$(id)_msgq_out,#slurp
 	<type>real</type>
 	</param>
 
-	<param>
-	<name>Key (hex)</name>
-	<key>key</key>
-	<type>string</type>
-	<hide>#if len($key()) == 0 then 'part' else 'none'#</hide>
-	</param>
-	
-	<param>
-		<name>Output dibits</name>
-		<key>dibits_out</key>
-		<value>False</value>
-		<type>bool</type>
-		<hide>part</hide>
-		<option>
-			<name>Yes</name>
-			<key>True</key>
-		</option>
-		<option>
-			<name>No</name>
-			<key>False</key>
-		</option>
-	</param>
-	
 	<param>
 		<name>Output auto tune</name>
 		<key>tune_out</key>
@@ -65,14 +42,8 @@ auto_tune_msgq=$(id)_msgq_out,#slurp
 	</sink>
 	
 	<source>
-		<name>audio</name>
-		<type>float</type>
-	</source>
-	
-	<source>
 		<name>dibits</name>
 		<type>float</type>
-		<optional>1</optional>
 	</source>
 	
 	<source>
@@ -81,9 +52,9 @@ auto_tune_msgq=$(id)_msgq_out,#slurp
 		<optional>1</optional>
 	</source>
 	
-	<doc>OP25 Decoder
+	<doc>OP25 C4FM (FSK4)
 
 Input real floating-point baseband data.
-Outputs decoded audio at 8000 Hz, 16-bit.
+Outputs synchronised dibits at channel rate.
 	</doc>
 </block>

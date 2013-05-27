@@ -33,7 +33,8 @@ class compass_control(pubsub.pubsub, wx.Panel):
         vbox = wx.BoxSizer(wx.VERTICAL)
         self.plotter = compass_plotter(self)
         self.plotter.SetSize(wx.Size(*PLOTTER_SIZE))
-        vbox.Add(self.plotter, 1, wx.EXPAND | wx.SHAPED) #keep aspect ratio
+        self.plotter.SetSizeHints(*PLOTTER_SIZE)
+        vbox.Add(self.plotter, 1, wx.EXPAND) # | wx.SHAPED #keep aspect ratio
         #build the control box
         #beam_box = forms.static_box_sizer(
             #parent=self,

@@ -11,7 +11,7 @@
 	<import>from baz import borip_server</import>
 	
 	<!-- *$vlen, $ipaddr, $port, $psize, $eof, $borip -->
-	<make>borip_server.server(size=$type.size, mul=$mul, server=True, parent=self, verbose=$verbose)
+	<make>borip_server.server(size=($type.size*$type.vlen), mul=$mul, server=True, parent=self, verbose=$verbose)
 #if $status_in()
 self.$(id).set_status_msgq($(id)_msgq_in)
 #end if
@@ -24,7 +24,9 @@ self.$(id).set_status_msgq($(id)_msgq_in)
 		<option>
 			<name>Complex</name>
 			<key>complex</key>
+			<opt>type:complex</opt>
 			<opt>size:gr.sizeof_gr_complex</opt>
+			<opt>vlen:1</opt>
 		</option>
 		<!--<option>
 			<name>Float</name>
@@ -37,9 +39,18 @@ self.$(id).set_status_msgq($(id)_msgq_in)
 			<opt>size:gr.sizeof_int</opt>
 		</option>-->
 		<option>
+			<name>Short (complex)</name>
+			<key>complex_short</key>
+			<opt>type:short</opt>
+			<opt>size:gr.sizeof_short</opt>
+			<opt>vlen:2</opt>
+		</option>
+		<option>
 			<name>Interleaved Short</name>
 			<key>short</key>
+			<opt>type:short</opt>
 			<opt>size:gr.sizeof_short</opt>
+			<opt>vlen:1</opt>
 		</option>
 		<!--<option>
 			<name>Byte</name>
@@ -136,15 +147,18 @@ self.$(id).set_status_msgq($(id)_msgq_in)
 		<value>1</value>
 		<type>int</type>
 	</param>
+	
 	<check>$vlen &gt; 0</check>-->
+	
 	<sink>
 		<name>in</name>
-		<type>$type</type>
-		<!--<vlen>$vlen</vlen>-->
+		<type>$type.type</type>
+		<vlen>$type.vlen</vlen>
 	</sink>
 	<sink>
 		<name>status</name>
 		<type>msg</type>
 		<optional>1</optional>
 	</sink>
+
 </block>

@@ -26,6 +26,7 @@ class server(gr.hier_block2):   # Stand-alone block
             gr.io_signature(0, 0, 0))
         
         src = self
+        udp_type_size = gr.sizeof_short
         if size == gr.sizeof_gr_complex:
             if mul != 1:
                 if verbose:
@@ -37,10 +38,12 @@ class server(gr.hier_block2):   # Stand-alone block
             self.c2is = gr.complex_to_interleaved_short()
             self.connect(src, self.c2is)
             src = self.c2is
-        elif size != gr.sizeof_short:
+        elif (size == (2 * gr.sizeof_short)):   # Short * 2 (vlen = 2)
+            udp_type_size = gr.sizeof_short * 2
+        elif not (size == gr.sizeof_short):     # not IShort
             raise Exception, "Invalid input size (must be gr_complex or interleaved short)"
         
-        self.sink = baz.udp_sink(gr.sizeof_short, None, 28888, 1024, False, True)
+        self.sink = baz.udp_sink(udp_type_size, None, 28888, 1024, False, True)
         
         self.connect(src, self.sink)
         

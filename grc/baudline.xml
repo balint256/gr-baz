@@ -1,0 +1,239 @@
+<?xml version="1.0"?>
+<block>
+	<name>Baudline Sink</name>
+	<key>baudline_sink</key>
+	<category>Graphical Sinks</category>
+	<import>from baz import baudline</import>
+	<import>from gnuradio import gr</import>
+	<make>baudline.baudline_sink(
+		fmt='$type.fmt',
+		item_size=$type.item_size,
+		is_complex=$type.complex,
+		channels=$type.channels,
+		sample_rate=$samp_rate,
+		baseband_freq=$baseband_freq,
+		decimation=$decim,
+		scale=$scale,
+		overlap=$overlap,
+		slide_size=$slide_size,
+		fft_size=$fft_size,
+		x_slip=$x_slip,
+		jump_step=$jump_step,
+		mode='$mode.mode',
+		buffered=$mode.buf,
+		kill_on_del=$kill_on_del,
+		memory=$memory,
+		peak_hold=$peak_hold,
+		**$extra)</make>
+
+	<param>
+		<name>Type</name>
+		<key>type</key>
+		<value>complex</value>
+		<type>enum</type>
+		<option>
+			<name>Float (complex)</name>
+			<key>complex</key>
+			<opt>type:complex</opt>
+			<opt>fmt:le32f</opt>
+			<opt>item_size:8</opt>
+			<opt>complex:True</opt>
+			<opt>channels:2</opt>
+			<opt>vlen:1</opt>
+		</option>
+		<option>
+			<name>Float (real)</name>
+			<key>float</key>
+			<opt>type:float</opt>
+			<opt>fmt:le32f</opt>
+			<opt>item_size:4</opt>
+			<opt>complex:False</opt>
+			<opt>channels:1</opt>
+			<opt>vlen:1</opt>
+		</option>
+		<option>
+			<name>Short (complex)</name>
+			<key>complex_short</key>
+			<opt>type:short</opt>
+			<opt>fmt:le16</opt>
+			<opt>item_size:4</opt>
+			<opt>complex:True</opt>
+			<opt>channels:2</opt>
+			<opt>vlen:2</opt>
+		</option>
+		<option>
+			<name>IShort (complex)</name>
+			<key>ishort</key>
+			<opt>type:short</opt>
+			<opt>fmt:le16</opt>
+			<opt>item_size:2</opt>
+			<opt>complex:True</opt>
+			<opt>channels:2</opt>
+			<opt>vlen:1</opt>
+		</option>
+		<option>
+			<name>Short (real)</name>
+			<key>short</key>
+			<opt>type:short</opt>
+			<opt>fmt:le16</opt>
+			<opt>item_size:2</opt>
+			<opt>complex:False</opt>
+			<opt>channels:1</opt>
+			<opt>vlen:1</opt>
+		</option>
+	</param>
+
+	<param>
+		<name>Sample Rate</name>
+		<key>samp_rate</key>
+		<value>samp_rate</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Baseband Freq</name>
+		<key>baseband_freq</key>
+		<value>0</value>
+		<type>real</type>
+		<hide>#if $baseband_freq() != 0 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>Peak Hold</name>
+		<key>peak_hold</key>
+		<value>False</value>
+		<type>enum</type>
+		<hide>#if str($peak_hold()) == 'True' then 'none' else 'part'#</hide>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
+			<key>False</key>
+		</option>
+	</param>
+	
+	<param>
+		<name>Overlap</name>
+		<key>overlap</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $overlap() != 0 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>Slide Size</name>
+		<key>slide_size</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $slide_size() != 0 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>FFT Size</name>
+		<key>fft_size</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $fft_size() != 0 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>FPS Jump Step</name>
+		<key>jump_step</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $jump_step() != 0 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>X Slip</name>
+		<key>x_slip</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $x_slip() != 0 then 'none' else 'part'#</hide>
+	</param>
+
+	<param>
+		<name>Decimation</name>
+		<key>decim</key>
+		<value>1</value>
+		<type>int</type>
+		<hide>#if $decim() &gt; 1 then 'none' else 'part'#</hide>
+	</param>
+
+	<param>
+		<name>Scale</name>
+		<key>scale</key>
+		<value>1.0</value>
+		<type>real</type>
+		<hide>#if $scale() != 1.0 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>Mode</name>
+		<key>mode</key>
+		<value>pipe</value>
+		<type>enum</type>
+		<option>
+			<name>Pipe</name>
+			<key>pipe</key>
+			<opt>mode:pipe</opt>
+			<opt>buf:True</opt>
+		</option>
+		<option>
+			<name>FIFO (buffered)</name>
+			<key>fifo-buf</key>
+			<opt>mode:fifo</opt>
+			<opt>buf:True</opt>
+		</option>
+		<option>
+			<name>FIFO (unbuffered)</name>
+			<key>fifo-unbuf</key>
+			<opt>mode:fifo</opt>
+			<opt>buf:False</opt>
+		</option>
+	</param>
+	
+	<param>
+		<name>Kill on Close</name>
+		<key>kill_on_del</key>
+		<value>True</value>
+		<type>enum</type>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+	
+	<param>
+		<name>Memory (MB)</name>
+		<key>memory</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $memory() &gt; 1 then 'none' else 'part'#</hide>
+	</param>
+	
+	<param>
+		<name>Extra</name>
+		<key>extra</key>
+		<value>{}</value>
+		<type>raw</type>
+		<hide>#if len($extra()) &gt; 0 then 'none' else 'part'#</hide>
+	</param>
+    
+	<!--<check>not $win_size or len($win_size) == 2</check>-->
+	<check>$decim() &gt; 0</check>
+    
+	<sink>
+		<name>in</name>
+		<type>$type.type</type>
+		<vlen>$type.vlen</vlen>
+	</sink>
+
+	<doc></doc>
+</block>
