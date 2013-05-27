@@ -22,27 +22,26 @@ Information, documentation & samples: http://wiki.spench.net/wiki/gr-baz
 # Boston, MA 02110-1301, USA.
 # 
 
-This directory (and the resulting tarball) contains a build tree with
-examples, Makefiles, etc that demonstrate how to write signal
-processing blocks for the GNU Radio system.  This directory is
-intentionally distributed separately from the unified tarball of the
-rest of GNU Radio in order to avoid problems for people who have begun
-to write blocks with a modified copy of gr-howto-write-a-block.
+To build:
 
-This package requires that gnuradio-core is already installed.  It
-also depends on some GNU Radio prerequisites, such as Boost and
-cppunit.
+git clone git://github.com/balint256/gr-baz.git
+OR
+git clone https://github.com/balint256/gr-baz.git
+OR
+svn co http://svn.spench.net/main/gr-baz
 
-To build the examples from the tarball use the normal recipe:
+cd gr-baz
+mkdir build
+(OR put your build directory elsewhere, e.g. ~/build/gr-baz)
 
-  $ ./configure
-  $ make
-  $ make check
+cd build
+(OR where your build directory is)
 
-If you're building from git, you'll need to use this sequence, since
-git doesn't contain configure or the generated Makefiles.
+cmake ..
+OR
+cmake-gui ..
+(OR replace '..' with where you checked out the source)
 
-  $ ./bootstrap
-  $ ./configure
-  $ make
-  $ make check
+make
+sudo make install
+sudo ldconfig
