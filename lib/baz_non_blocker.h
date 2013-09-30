@@ -28,14 +28,14 @@
 #ifndef INCLUDED_BAZ_NON_BLOCKER_H
 #define INCLUDED_BAZ_NON_BLOCKER_H
 
-#include <gr_sync_block.h>
-//#include <gr_msg_queue.h>
+#include <gnuradio/sync_block.h>
+//#include <gnuradio/msg_queue.h>
 
 class BAZ_API baz_non_blocker;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -53,26 +53,26 @@ typedef boost::shared_ptr<baz_non_blocker> baz_non_blocker_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking = false);
+BAZ_API baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr::msg_queue::sptr queue, */bool blocking = false);
 
 /*!
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_non_blocker : public gr_block
+class BAZ_API baz_non_blocker : public gr::block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend BAZ_API baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking);
+  friend BAZ_API baz_non_blocker_sptr baz_make_non_blocker (int item_size, /*gr::msg_queue::sptr queue, */bool blocking);
 
-  baz_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking);  	// private constructor
+  baz_non_blocker (int item_size, /*gr::msg_queue::sptr queue, */bool blocking);  	// private constructor
 
   int d_item_size;
-  //gr_msg_queue_sptr d_queue;
+  //gr::msg_queue::sptr d_queue;
   bool d_blocking, d_blocking_forecasted;
 
 public:

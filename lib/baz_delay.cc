@@ -30,7 +30,7 @@
 #endif
 
 #include <baz_delay.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <string.h>
 #include <math.h>
 
@@ -43,9 +43,9 @@ baz_make_delay (size_t itemsize, int delay)
 }
 
 baz_delay::baz_delay (size_t itemsize, int delay)
-  : gr_sync_block ("variable_delay",
-		   gr_make_io_signature (1, -1, itemsize),
-		   gr_make_io_signature (1, -1, itemsize))
+  : gr::sync_block ("variable_delay",
+		   gr::io_signature::make (1, -1, itemsize),
+		   gr::io_signature::make (1, -1, itemsize))
   , d_itemsize(itemsize)
   , d_delay(delay)
   , d_buffer(NULL)

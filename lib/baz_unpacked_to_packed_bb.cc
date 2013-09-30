@@ -30,24 +30,24 @@
 #endif
 
 #include <baz_unpacked_to_packed_bb.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <assert.h>
 
 //static const unsigned int BITS_PER_TYPE = sizeof(unsigned char) * 8;
 
 baz_unpacked_to_packed_bb_sptr 
-baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness /*= GR_MSB_FIRST*/)
+baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr::endianness_t*/int endianness /*= gr::GR_MSB_FIRST*/)
 {
   return baz_unpacked_to_packed_bb_sptr(new baz_unpacked_to_packed_bb (bits_per_chunk,bits_into_output,endianness));
 }
 
 // FIXME: MSB, but skip 8-bits_into_output
 baz_unpacked_to_packed_bb::baz_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, 
-						    /*gr_endianness_t */int endianness)
-  : gr_block ("unpacked_to_packed_bb",
-	      gr_make_io_signature (1, -1, sizeof (unsigned char)),
-	      gr_make_io_signature (1, -1, sizeof (unsigned char))),
-    d_bits_per_chunk(bits_per_chunk),d_endianness((gr_endianness_t)endianness),d_index(0),d_bits_into_output(bits_into_output)
+						    /*gr::endianness_t */int endianness)
+  : gr::block ("unpacked_to_packed_bb",
+	      gr::io_signature::make (1, -1, sizeof (unsigned char)),
+	      gr::io_signature::make (1, -1, sizeof (unsigned char))),
+    d_bits_per_chunk(bits_per_chunk),d_endianness((gr::endianness_t)endianness),d_index(0),d_bits_into_output(bits_into_output)
 {
   assert (bits_per_chunk <= bits_into_output);
   assert (bits_per_chunk > 0);
@@ -93,7 +93,7 @@ int baz_unpacked_to_packed_bb::general_work (int noutput_items, gr_vector_int &n
   
     switch (d_endianness)
 	{
-	  case GR_MSB_FIRST:
+	  case gr::GR_MSB_FIRST:
 		for(int i=0; i < noutput_items;i++)
 		{
 		  unsigned char tmp=0;
@@ -105,7 +105,7 @@ int baz_unpacked_to_packed_bb::general_work (int noutput_items, gr_vector_int &n
 		}
 		break;
   
-	  case GR_LSB_FIRST:
+	  case gr::GR_LSB_FIRST:
 		for(int i=0;i < noutput_items;i++)
 		{
 		  unsigned long tmp=0;

@@ -28,14 +28,14 @@
 #ifndef INCLUDED_BAZ_NATIVE_MUX_H
 #define INCLUDED_BAZ_NATIVE_MUX_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 #include <baz_native_callback.h>
 
 class BAZ_API baz_native_mux;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -59,9 +59,9 @@ BAZ_API baz_native_mux_sptr baz_make_native_mux (int item_size, int input_count,
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_native_mux : public /*gr_sync_block*/gr_block, public baz_native_callback_target
+class BAZ_API baz_native_mux : public /*gr::sync_block*/gr::block, public baz_native_callback_target
 {
 private:
   // The friend declaration allows howto_make_square2_ff to

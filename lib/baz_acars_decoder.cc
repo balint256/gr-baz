@@ -35,8 +35,8 @@
 #endif
 
 #include <baz_acars_decoder.h>
-#include <gr_io_signature.h>
-#include <gr_count_bits.h>
+#include <gnuradio/io_signature.h>
+#include <gnuradio/blocks/count_bits.h>
 
 #include <stdio.h>
 #include <iostream>
@@ -49,7 +49,7 @@ using namespace std;
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_acars_decoder_sptr 
-baz_make_acars_decoder (gr_msg_queue_sptr msgq)
+baz_make_acars_decoder (gr::msg_queue::sptr msgq)
 {
 	return baz_acars_decoder_sptr (new baz_acars_decoder (msgq));
 }
@@ -57,7 +57,7 @@ baz_make_acars_decoder (gr_msg_queue_sptr msgq)
 /*
  * Specify constraints on number of input and output streams.
  * This info is used to construct the input and output signatures
- * (2nd & 3rd args to gr_block's constructor).  The input and
+ * (2nd & 3rd args to gr::block's constructor).  The input and
  * output signatures are used by the runtime system to
  * check that a valid number and type of inputs and outputs
  * are connected to this block.  In this case, we accept
@@ -77,10 +77,10 @@ static const unsigned long PREAMBLE = 0x3FFE5C5C;	// Air interface encoded! (0: 
 /*
  * The private constructor
  */
-baz_acars_decoder::baz_acars_decoder (gr_msg_queue_sptr msgq)
-	: gr_sync_block ("acars_decoder",
-		gr_make_io_signature (MIN_IN, MAX_IN, sizeof(float)),
-		gr_make_io_signature (MIN_OUT, MAX_OUT, 0))
+baz_acars_decoder::baz_acars_decoder (gr::msg_queue::sptr msgq)
+	: gr::sync_block ("acars_decoder",
+		gr::io_signature::make (MIN_IN, MAX_IN, sizeof(float)),
+		gr::io_signature::make (MIN_OUT, MAX_OUT, 0))
 	, d_state(STATE_SEARCHING)
 	, d_preamble_state(0)
 	, d_preamble_threshold(3)
@@ -146,7 +146,7 @@ int baz_acars_decoder::work (int noutput_items, gr_vector_const_void_star &input
 				d_preamble_state |= bit;
 				
 				unsigned long wrong_bits = PREAMBLE ^ d_preamble_state;	// Works without mask because exactly 32 bits
-				int wrong_bit_count = gr_count_bits32(wrong_bits);
+				int wrong_bit_count = gr::blocks::count_bits32(wrong_bits);
 				if (wrong_bit_count <= d_preamble_threshold)
 				{
 if (wrong_bit_count > 0) fprintf(stderr, "ACARS: %i wrong (threshold %i)\n", wrong_bit_count, d_preamble_threshold);
@@ -207,7 +207,7 @@ if (ones > 0) fprintf(stderr, "ACARS: %i ones of %i (%i continuous zeroes), ave:
 				++d_bit_counter;
 				if (d_bit_counter == 8)
 				{
-					int ones = gr_count_bits8(d_current_byte);
+					int ones = gr::blocks::count_bits8(d_current_byte);
 					if ((ones % 2) == 0)
 					{
 						d_current_packet.byte_error[d_byte_counter] = 0x01;
@@ -263,7 +263,7 @@ if ((d_flags & FLAG_DEL) == FLAG_NONE) fprintf(stderr, "ACARS: Missing DEL!\n");
 							int data_index = 0;
 							int station_name_length = (d_station_name.size() + 1);
 							int message_data_length = sizeof(d_current_packet) + station_name_length;
-							gr_message_sptr msg = gr_make_message(d_current_packet.flags, d_frequency, d_current_packet.reference_level, message_data_length);
+							gr::message::sptr msg = gr::message::make(d_current_packet.flags, d_frequency, d_current_packet.reference_level, message_data_length);
 							
 							memcpy(msg->msg() + data_index, &d_current_packet, sizeof(d_current_packet));
 							data_index += sizeof(d_current_packet);

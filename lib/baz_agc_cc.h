@@ -30,7 +30,7 @@
 #ifndef INCLUDED_BAZ_AGC_CC_H
 #define INCLUDED_BAZ_AGC_CC_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 
 //#include <gri_agc_cc.h>
 
@@ -46,7 +46,7 @@ baz_make_agc_cc (float rate = 1e-4, float reference = 1.0, float gain = 1.0, flo
  * For Power the absolute value of the complex number is used.
  */
 
-class BAZ_API baz_agc_cc : public gr_sync_block//, public gri_agc_cc
+class BAZ_API baz_agc_cc : public gr::sync_block//, public gri_agc_cc
 {
   friend BAZ_API baz_agc_cc_sptr baz_make_agc_cc (float rate, float reference, float gain, float max_gain);
   baz_agc_cc (float rate, float reference, float gain, float max_gain);

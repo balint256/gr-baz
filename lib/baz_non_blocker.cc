@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_non_blocker.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 #include <stdio.h>
 //#include <typeinfo>
@@ -45,7 +45,7 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_non_blocker_sptr
-baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking /*= false*/)
+baz_make_non_blocker (int item_size, /*gr::msg_queue::sptr queue, */bool blocking /*= false*/)
 {
   return baz_non_blocker_sptr (new baz_non_blocker (item_size, /*queue, */blocking));
 }
@@ -53,10 +53,10 @@ baz_make_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking 
 /*
  * The private constructor
  */
-baz_non_blocker::baz_non_blocker (int item_size, /*gr_msg_queue_sptr queue, */bool blocking)
-  : gr_block ("non_blocker",
-		   gr_make_io_signature (1, 1, item_size),
-		   gr_make_io_signature (1, 1, item_size))
+baz_non_blocker::baz_non_blocker (int item_size, /*gr::msg_queue::sptr queue, */bool blocking)
+  : gr::block ("non_blocker",
+		   gr::io_signature::make (1, 1, item_size),
+		   gr::io_signature::make (1, 1, item_size))
   , d_item_size(item_size), /*d_queue(queue), */d_blocking(blocking)
   , d_blocking_forecasted(blocking)
 {
@@ -89,7 +89,7 @@ void baz_non_blocker::forecast(int noutput_items, gr_vector_int &ninput_items_re
   d_blocking_forecasted = d_blocking;
   ninput_items_required[0] = 0; // This is the trick: never want any samples
 /*  if (d_blocking_forecasted)
-    gr_block::forecast(noutput_items, ninput_items_required);
+    gr::block::forecast(noutput_items, ninput_items_required);
   else {
     fprintf(stderr, "[%s] Not requiring any input items for %d output items\n", name().c_str(), noutput_items);
     ninput_items_required[0] = 0;

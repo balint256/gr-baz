@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_depuncture_ff.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdio.h>
 
 /*
@@ -51,7 +51,7 @@ baz_make_depuncture_ff (const std::vector<int>& matrix)
 /*
  * Specify constraints on number of input and output streams.
  * This info is used to construct the input and output signatures
- * (2nd & 3rd args to gr_block's constructor).  The input and
+ * (2nd & 3rd args to gr::block's constructor).  The input and
  * output signatures are used by the runtime system to
  * check that a valid number and type of inputs and outputs
  * are connected to this block.  In this case, we accept
@@ -66,9 +66,9 @@ static const int MAX_OUT = 1;	// maximum number of output streams
  * The private constructor
  */
 baz_depuncture_ff::baz_depuncture_ff (const std::vector<int> matrix)
-  : gr_block ("depuncture_ff",
-	      gr_make_io_signature (MIN_IN, MAX_IN, sizeof (float)),
-	      gr_make_io_signature (MIN_OUT, MAX_OUT, sizeof (float)))
+  : gr::block ("depuncture_ff",
+	      gr::io_signature::make (MIN_IN, MAX_IN, sizeof (float)),
+	      gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float)))
   , m_iLength(0)
   , m_pMatrix(NULL)
   , m_iIndex(0)
@@ -87,7 +87,7 @@ baz_depuncture_ff::~baz_depuncture_ff ()
 void baz_depuncture_ff::forecast(int noutput_items, gr_vector_int &ninput_items_required)
 {
   //ninput_items_required[0] = (int)ceil((double)noutput_items * relative_rate());
-  gr_block::forecast(noutput_items, ninput_items_required);
+  gr::block::forecast(noutput_items, ninput_items_required);
 }
 
 void baz_depuncture_ff::set_matrix(const std::vector<int>& matrix)

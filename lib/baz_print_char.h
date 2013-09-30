@@ -28,7 +28,7 @@
 #ifndef INCLUDED_BAZ_PRINT_CHAR_H
 #define INCLUDED_BAZ_PRINT_CHAR_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 
 class BAZ_API baz_print_char;
 
@@ -50,9 +50,9 @@ BAZ_API baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limi
  * \brief square a stream of floats.
  * \ingroup block
  *
- * \sa howto_square2_ff for a version that subclasses gr_sync_block.
+ * \sa howto_square2_ff for a version that subclasses gr::sync_block.
  */
-class BAZ_API baz_print_char : public gr_sync_block
+class BAZ_API baz_print_char : public gr::sync_block
 {
 private:
   friend BAZ_API baz_print_char_sptr baz_make_print_char (float threshold, int limit, const char* file);

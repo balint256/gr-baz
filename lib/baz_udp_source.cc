@@ -26,9 +26,9 @@
 #ifdef IN_GR_BAZ
 #include <baz_udp_source.h>
 #else
-#include <gr_udp_source.h>
+#include <gnuradio/udp_source.h>
 #endif // IN_GR_BAZ
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdexcept>
 #include <errno.h>
 #include <stdio.h>
@@ -142,9 +142,9 @@ static void report_error( const char *msg1, const char *msg2 )
 UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host, 
 			     unsigned short port, int payload_size,
 			     bool eof, bool wait, bool bor, bool verbose)
-  : gr_sync_block ("udp_source",
-		   gr_make_io_signature(0, 0, 0),
-		   gr_make_io_signature(1, 1, itemsize)),
+  : gr::sync_block ("udp_source",
+		   gr::io_signature::make(0, 0, 0),
+		   gr::io_signature::make(1, 1, itemsize)),
     d_itemsize(itemsize), d_payload_size(payload_size),
     d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0),
 	d_bor(bor), d_bor_counter(0), d_bor_first(false),

@@ -28,15 +28,15 @@
 #ifndef INCLUDED_BAZ_TIME_KEEPER_H
 #define INCLUDED_BAZ_TIME_KEEPER_H
 
-#include <gr_sync_block.h>
-//#include <gr_msg_queue.h>
-#include <gruel/thread.h>
+#include <gnuradio/sync_block.h>
+//#include <gnuradio/msg_queue.h>
+#include <gnuradio/thread/thread.h>
 
 class BAZ_API baz_time_keeper;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -60,9 +60,9 @@ BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rat
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_time_keeper : public gr_sync_block
+class BAZ_API baz_time_keeper : public gr::sync_block
 {
 private:
 	// The friend declaration allows baz_time_keeper to
@@ -80,7 +80,7 @@ private:
 	bool d_seen_time;
 	int d_update_count;
 	bool d_ignore_next;
-	gruel::mutex d_mutex;
+	gr::thread::mutex d_mutex;
 
 public:
 	~baz_time_keeper ();	// public destructor

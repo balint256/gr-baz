@@ -21,10 +21,10 @@
 #ifndef INCLUDED_BAZ_MUSIC_DOA_H
 #define INCLUDED_BAZ_MUSIC_DOA_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 #include <vector>
 #include <armadillo>
-#include <gruel/thread.h>
+#include <gnuradio/thread/thread.h>
 
 class baz_music_doa;
 typedef boost::shared_ptr<baz_music_doa> baz_music_doa_sptr;
@@ -35,7 +35,7 @@ typedef std::pair<double,double> doa_t;
 
 baz_music_doa_sptr baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const array_response_t& array_response, unsigned int resolution);
 
-class baz_music_doa : public gr_sync_block
+class baz_music_doa : public gr::sync_block
 {
 private:
 	friend baz_music_doa_sptr baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const array_response_t& array_response, unsigned int resolution);
@@ -53,7 +53,7 @@ private:
 	unsigned int d_nsamples;
 	array_response_t d_array_response;
 	unsigned int d_resolution;
-	gruel::mutex  d_mutex;
+	gr::thread::mutex  d_mutex;
 
 public:
 	void set_array_response(const array_response_t& array_response);

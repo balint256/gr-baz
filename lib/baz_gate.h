@@ -28,16 +28,16 @@
 #ifndef INCLUDED_BAZ_GATE_H
 #define INCLUDED_BAZ_GATE_H
 
-#include <gr_sync_block.h>
-//#include <gr_msg_queue.h>
+#include <gnuradio/sync_block.h>
+//#include <gnuradio/msg_queue.h>
 #include <uhd/types/time_spec.hpp>
-#include <gruel/thread.h>
+#include <gnuradio/thread/thread.h>
 
 class BAZ_API baz_gate;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -61,9 +61,9 @@ BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block = true, float thr
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_gate : public gr_block
+class BAZ_API baz_gate : public gr::block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
@@ -86,7 +86,7 @@ private:
   bool d_in_burst;
   int d_output_index;
   bool d_no_delay;
-  gruel::mutex d_mutex;
+  gr::thread::mutex d_mutex;
 
 public:
   ~baz_gate ();	// public destructor

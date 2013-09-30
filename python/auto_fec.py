@@ -18,7 +18,7 @@ import threading, math, time
 import wx
 import numpy
 
-from gnuradio import gr
+from gnuradio import gr, blocks
 from grc_gnuradio import blks2 as grc_blks2
 import baz
 
@@ -452,7 +452,7 @@ class auto_fec(gr.hier_block2):
 		self.gr_single_pole_iir_filter_xx_0 = gr.single_pole_iir_filter_ff(ber_smoothing, 1)
 		self.connect((self.gr_multiply_const_vxx_1, 0), (self.gr_single_pole_iir_filter_xx_0, 0))
 		
-		self.gr_keep_one_in_n_0 = gr.keep_one_in_n(gr.sizeof_float, ber_sample_decimation)
+		self.gr_keep_one_in_n_0 = blocks.keep_one_in_n(gr.sizeof_float, ber_sample_decimation)
 		self.connect((self.gr_single_pole_iir_filter_xx_0, 0), (self.gr_keep_one_in_n_0, 0))
 		
 		self.const_source_x_0 = gr.sig_source_f(0, gr.GR_CONST_WAVE, 0, 0, 0)	# Last param is const value

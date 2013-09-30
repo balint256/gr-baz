@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_native_callback.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 #include <stdio.h>
 
@@ -52,7 +52,7 @@ baz_make_native_callback_x (int size, baz_native_callback_target_sptr target, bo
 /*
  * Specify constraints on number of input and output streams.
  * This info is used to construct the input and output signatures
- * (2nd & 3rd args to gr_block's constructor).  The input and
+ * (2nd & 3rd args to gr::block's constructor).  The input and
  * output signatures are used by the runtime system to
  * check that a valid number and type of inputs and outputs
  * are connected to this block.  In this case, we accept
@@ -67,9 +67,9 @@ static const int MAX_OUT = 0;	// maximum number of output streams
  * The private constructor
  */
 baz_native_callback_x::baz_native_callback_x (int size, baz_native_callback_target_sptr target, bool threshold_enable, float threshold_level)
-  : gr_sync_block ("native_callback_x",
-		   gr_make_io_signature (MIN_IN, MAX_IN, size),
-		   gr_make_io_signature (MIN_OUT, MAX_OUT, 0))
+  : gr::sync_block ("native_callback_x",
+		   gr::io_signature::make (MIN_IN, MAX_IN, size),
+		   gr::io_signature::make (MIN_OUT, MAX_OUT, 0))
   , d_size(size), d_target(target), d_threshold_enable(threshold_enable), d_threshold_level(threshold_level)
   , d_triggered(false), d_samples_processed(0)
 {

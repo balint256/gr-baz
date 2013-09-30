@@ -26,9 +26,9 @@
 #ifdef IN_GR_BAZ
 #include <baz_udp_sink.h>
 #else
-#include <gr_udp_sink.h>
+#include <gnuradio/udp_sink.h>
 #endif // IN_GR_BAZ
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdexcept>
 #include <errno.h>
 #include <stdio.h>
@@ -54,7 +54,7 @@ typedef void* optval_t;
 typedef char* optval_t;
 #endif
 
-#include <gruel/thread.h>
+#include <gnuradio/thread/thread.h>
 
 #define SNK_VERBOSE 0
 
@@ -136,9 +136,9 @@ static void report_error( const char *msg1, const char *msg2 )
 UDP_SINK_NAME::UDP_SINK_NAME (size_t itemsize, 
 			  const char *host, unsigned short port,
 			  int payload_size, bool eof, bool bor)
-  : gr_sync_block ("udp_sink",
-		   gr_make_io_signature (1, 1, itemsize),
-		   gr_make_io_signature (0, 0, 0)),
+  : gr::sync_block ("udp_sink",
+		   gr::io_signature::make (1, 1, itemsize),
+		   gr::io_signature::make (0, 0, 0)),
     d_itemsize (itemsize), d_payload_size(0), d_eof(eof),
     d_socket(-1), d_connected(false), d_bor(false),
 	d_bor_counter(0), d_bor_first(false), d_bor_packet(NULL), d_residual(0), d_offset(0),
@@ -161,7 +161,7 @@ UDP_SINK_NAME::UDP_SINK_NAME (size_t itemsize,
   connect(host, port);
 }
 
-void UDP_SINK_NAME::set_status_msgq(gr_msg_queue_sptr queue)	// Only call this once before beginning run! (otherwise locking required)
+void UDP_SINK_NAME::set_status_msgq(gr::msg_queue::sptr queue)	// Only call this once before beginning run! (otherwise locking required)
 {
   d_status_queue = queue;
 }
@@ -245,7 +245,7 @@ UDP_SINK_MAKER (size_t itemsize,
 
 void UDP_SINK_NAME::set_borip(bool enable)
 {
-  gruel::scoped_lock guard(d_mutex);
+  gr::thread::scoped_lock guard(d_mutex);
   
   if (d_bor == enable)
 	return;
@@ -273,7 +273,7 @@ void UDP_SINK_NAME::set_payload_size(int payload_size)
   if (payload_size <= 0)
 	return;
   
-  gruel::scoped_lock guard(d_mutex);
+  gr::thread::scoped_lock guard(d_mutex);
   
   d_payload_size = payload_size;
   
@@ -317,7 +317,7 @@ UDP_SINK_NAME::work (int noutput_items,
   printf("Entered udp_sink\n");
 #endif
   
-  gruel::scoped_lock guard(d_mutex);  // protect d_socket
+  gr::thread::scoped_lock guard(d_mutex);  // protect d_socket
   
   while (bytes_sent < total_size) {
     bytes_to_send = std::min(/*(ssize_t)*/d_payload_size, (total_size - bytes_sent));
@@ -352,7 +352,7 @@ UDP_SINK_NAME::work (int noutput_items,
 		packet->header.flags = (d_bor_first ? BF_STREAM_START : 0);
 		if (d_status_queue) {
 		  while (d_status_queue->empty_p() == false) {
-			gr_message_sptr msg = d_status_queue->delete_head();
+			gr::message::sptr msg = d_status_queue->delete_head();
 			fprintf(stderr, "[UDP Sink \"%s (%ld)\"] Received status: 0x%02lx\n", name().c_str(), unique_id(), msg->type());
 			packet->header.flags |= msg->type();
 		  }
@@ -473,7 +473,7 @@ void UDP_SINK_NAME::disconnect()
   printf("gr_udp_sink disconnecting\n");
   #endif
 
-  gruel::scoped_lock guard(d_mutex);  // protect d_socket from work()
+  gr::thread::scoped_lock guard(d_mutex);  // protect d_socket from work()
 
   // Send a few zero-length packets to signal receiver we are done
   if(d_eof) {

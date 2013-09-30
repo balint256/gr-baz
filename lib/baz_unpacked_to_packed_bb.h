@@ -28,14 +28,14 @@
 #ifndef INCLUDED_BAZ_UNPACKED_TO_PACKED_BB_H
 #define INCLUDED_BAZ_UNPACKED_TO_PACKED_BB_H
 
-#include <gr_block.h>
-#include <gr_endianness.h>
+#include <gnuradio/block.h>
+#include <gnuradio/endianness.h>
 
 class BAZ_API baz_unpacked_to_packed_bb;
 typedef boost::shared_ptr<baz_unpacked_to_packed_bb> baz_unpacked_to_packed_bb_sptr;
 
 BAZ_API baz_unpacked_to_packed_bb_sptr
-baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness = GR_MSB_FIRST);
+baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr::endianness_t*/int endianness = gr::GR_MSB_FIRST);
 
 /*!
  * \brief Convert a stream of unpacked bytes or shorts into a stream of packed bytes or shorts.
@@ -60,15 +60,15 @@ baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_i
  * \sa gr_chunks_to_symbols_bf, gr_chunks_to_symbols_bc.
  * \sa gr_chunks_to_symbols_sf, gr_chunks_to_symbols_sc.
  */
-class BAZ_API baz_unpacked_to_packed_bb : public gr_block
+class BAZ_API baz_unpacked_to_packed_bb : public gr::block
 {
   friend BAZ_API baz_unpacked_to_packed_bb_sptr
-  baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness);
+  baz_make_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr::endianness_t*/int endianness);
 
-  baz_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr_endianness_t*/int endianness);
+  baz_unpacked_to_packed_bb (unsigned int bits_per_chunk, unsigned int bits_into_output, /*gr::endianness_t*/int endianness);
 
   unsigned int    d_bits_per_chunk, d_bits_into_output;
-  gr_endianness_t d_endianness;
+  gr::endianness_t d_endianness;
   unsigned int    d_index;
 
  public:

@@ -28,14 +28,14 @@
 #ifndef INCLUDED_BAZ_DEPUNCTURE_FF_H
 #define INCLUDED_BAZ_DEPUNCTURE_FF_H
 
-#include <gr_block.h>
+#include <gnuradio/block.h>
 #include <boost/thread.hpp>
 
 class BAZ_API baz_depuncture_ff;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -59,9 +59,9 @@ BAZ_API baz_depuncture_ff_sptr baz_make_depuncture_ff (const std::vector<int>& m
  * \brief square a stream of floats.
  * \ingroup block
  *
- * \sa howto_square2_ff for a version that subclasses gr_sync_block.
+ * \sa howto_square2_ff for a version that subclasses gr::sync_block.
  */
-class BAZ_API baz_depuncture_ff : public gr_block
+class BAZ_API baz_depuncture_ff : public gr::block
 {
 private:
   // The friend declaration allows baz_make_depuncture_ff to

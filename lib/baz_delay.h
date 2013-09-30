@@ -28,7 +28,7 @@
 #ifndef INCLUDED_BAZ_DELAY_H
 #define INCLUDED_BAZ_DELAY_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 #include <boost/thread.hpp>
 
 class BAZ_API baz_delay;
@@ -40,7 +40,7 @@ BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
  * \brief delay the input by a certain number of samples
  * \ingroup misc_blk
  */
-class BAZ_API baz_delay : public gr_sync_block
+class BAZ_API baz_delay : public gr::sync_block
 {
   friend BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
 

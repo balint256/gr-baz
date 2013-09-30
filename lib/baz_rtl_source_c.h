@@ -32,8 +32,8 @@
 #include "config.h"
 #endif
 
-#include <gr_block.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/block.h>
+#include <gnuradio/msg_queue.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #define NOMINMAX
@@ -65,7 +65,7 @@ BAZ_API baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation = false,
  *
  * \sa gr-baz: http://wiki.spench.net/wiki/gr-baz
  */
-class BAZ_API baz_rtl_source_c : public gr_block, public RTL2832_NAMESPACE::log_sink
+class BAZ_API baz_rtl_source_c : public gr::block, public RTL2832_NAMESPACE::log_sink
 {
 private:
 	friend BAZ_API baz_rtl_source_c_sptr baz_make_rtl_source_c(bool defer_creation, int output_size);
@@ -102,7 +102,7 @@ private:
 	bool m_verbose;
 	bool m_relative_gain;
 	int m_output_size;
-	gr_msg_queue_sptr m_status_queue;
+	gr::msg_queue::sptr m_status_queue;
 private:
 	enum log_level
 	{
@@ -128,7 +128,7 @@ private:
 public:
 	void set_defaults();
 	bool set_output_format(int size);
-	void set_status_msgq(gr_msg_queue_sptr queue);
+	void set_status_msgq(gr::msg_queue::sptr queue);
 	bool create(bool reset_defaults = false);
 	void destroy();
 public:	// SWIG demod params set only
@@ -232,7 +232,7 @@ public:	// SWIG get: tuner ranges/values
 	{ return m_demod.active_tuner()->gain_modes(); }
 	inline std::pair<bool,int> calc_appropriate_gain_mode()/* const*/
 	{ int i; bool b = m_demod.active_tuner()->calc_appropriate_gain_mode(i); return std::make_pair(b,i); }
-public:	// gr_block overrides
+public:	// gr::block overrides
 	bool start();
 	bool stop();
 public:
