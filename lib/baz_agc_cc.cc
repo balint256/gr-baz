@@ -30,7 +30,7 @@
 #endif
 
 #include <baz_agc_cc.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 //#include <gri_agc_cc.h>
 #include <stdio.h>
 #include <math.h>
@@ -48,9 +48,9 @@ baz_make_agc_cc (float rate, float reference, float gain, float max_gain)
 }
 
 baz_agc_cc::baz_agc_cc (float rate, float reference, float gain, float max_gain)
-  : gr_sync_block ("gr_agc_cc",
-		   gr_make_io_signature (1, 1, sizeof (gr_complex)),
-		   gr_make_io_signature2 (1, 3, sizeof (gr_complex), sizeof(float)))
+  : gr::sync_block ("gr_agc_cc",
+		   gr::io_signature::make (1, 1, sizeof (gr_complex)),
+		   gr::io_signature::make2 (1, 3, sizeof (gr_complex), sizeof(float)))
   , _rate(rate)
   , _reference(reference)
   , _gain(gain)

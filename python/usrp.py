@@ -13,7 +13,7 @@ from __future__ import with_statement
 import time, os, sys, threading, thread
 from string import split, join
 
-from gnuradio import gr, gru, uhd
+from gnuradio import gr, gru, uhd, blocks
 
 _prefs = gr.prefs()
 _default_address = _prefs.get_string('legacy_usrp', 'address', '')
@@ -194,7 +194,7 @@ class device(gr.hier_block2):
 		
 		if self._args[0]:
 			if self._args[1] == "sc16":
-				self._s2v = gr.stream_to_vector(gr.sizeof_short, 2)
+				self._s2v = blocks.stream_to_vector(gr.sizeof_short, 2)
 				self.connect(external_port, self._s2v, self._uhd_device)
 			else:
 				self.connect(external_port, self._uhd_device)

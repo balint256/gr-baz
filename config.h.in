@@ -1,6 +1,6 @@
 /* For GXX visibility */
 
-#include <gruel/attributes.h>
+#include <gnuradio/attributes.h>
 
 #ifdef gnuradio_baz_EXPORTS
 #  define BAZ_API __GR_ATTR_EXPORT

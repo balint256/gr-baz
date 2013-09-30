@@ -40,7 +40,7 @@ typedef struct baz_burster_config_t
 	bool use_host_time;		// false: derive time from stream, true: use wall time
 	bool read_time_tag;		// false: derive time only from stream, true: derive time from time tag AND sample count
 	bool output_messages;	// output bursts as messages
-	gr_msg_queue_sptr msgq;	// message destination
+	gr::msg_queue::sptr msgq;	// message destination
 	bool output_stream;		// output bursts on output stream
 	bool trigger_on_tags;	// false: ignore tags, true: process tags
 	bool use_tag_lengths;	// false: ignore lengths in tag, true: override burst_length with length in tag

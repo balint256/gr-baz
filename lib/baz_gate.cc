@@ -35,8 +35,8 @@
 #endif
 
 #include <baz_gate.h>
-#include <gr_io_signature.h>
-#include <gruel/pmt.h>
+#include <gnuradio/io_signature.h>
+#include <pmt/pmt.h>
 
 #include <stdio.h>
 //#include <typeinfo>
@@ -55,9 +55,9 @@ baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, 
  * The private constructor
  */
 baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay)
-  : gr_block ("gate",
-		   gr_make_io_signature3 (2, 3, item_size, sizeof(/*char*/float), item_size),
-		   gr_make_io_signature (1, 1, item_size))
+  : gr::block ("gate",
+		   gr::io_signature::make33 (2, 3, item_size, sizeof(/*char*/float), item_size),
+		   gr::io_signature::make (1, 1, item_size))
   , d_item_size(item_size), d_threshold(threshold), d_trigger_length(trigger_length), d_block(block), d_tag(tag), d_delay(delay), d_sample_rate(sample_rate), d_no_delay(no_delay)
   , d_trigger_count(0), d_time_offset(-1), d_in_burst(false), d_output_index(0)
 {
@@ -84,7 +84,7 @@ void baz_gate::forecast(int noutput_items, gr_vector_int &ninput_items_required)
 void baz_gate::set_blocking(bool enable)
 {
   fprintf(stderr, "[%s<%i>] Blocking: %s\n", name().c_str(), unique_id(), (enable ? "yes" : "no"));
-  gruel::scoped_lock guard(d_mutex);
+  gr::thread::scoped_lock guard(d_mutex);
   d_block = enable;
 }
 
@@ -124,10 +124,10 @@ void baz_gate::set_no_delay(bool no_delay)
   d_no_delay = no_delay;
 }
 
-static const pmt::pmt_t SOB_KEY = pmt::pmt_string_to_symbol("tx_sob");
-static const pmt::pmt_t EOB_KEY = pmt::pmt_string_to_symbol("tx_eob");
-static const pmt::pmt_t TX_TIME_KEY = pmt::pmt_string_to_symbol("tx_time");
-static const pmt::pmt_t RX_TIME_KEY = pmt::pmt_string_to_symbol("rx_time");
+static const pmt::pmt_t SOB_KEY = pmt::string_to_symbol("tx_sob");
+static const pmt::pmt_t EOB_KEY = pmt::string_to_symbol("tx_eob");
+static const pmt::pmt_t TX_TIME_KEY = pmt::string_to_symbol("tx_time");
+static const pmt::pmt_t RX_TIME_KEY = pmt::string_to_symbol("rx_time");
 
 static bool _first = true;
 static gr_complex _first_c = gr_complex(-1,-1);
@@ -137,7 +137,7 @@ baz_gate::general_work (int noutput_items, gr_vector_int &ninput_items,
 			gr_vector_const_void_star &input_items,
 			gr_vector_void_star &output_items)
 {
-  gruel::scoped_lock guard(d_mutex);
+  gr::thread::scoped_lock guard(d_mutex);
   
   const char *in = (char*)input_items[0];
   const float *level = (float*)input_items[1];
@@ -150,13 +150,13 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 
   int tag_channel = ((ninput_items.size() >= 3) ? 2 : 1);
   const uint64_t nread = nitems_read(tag_channel); //number of items read on port 0
-  std::vector<gr_tag_t> tags;
+  std::vector<gr::tag_t> tags;
 
   int tag_index_offset = 0;
   uint64_t next_tag_offset = -1;
   get_tags_in_range(tags, tag_channel, nread, nread+ninput_items[tag_channel], RX_TIME_KEY);
   for (int i = 0; i < tags.size(); ++i) {
-//    fprintf(stderr, "[%s] Tag #%d %s\n", name().c_str(), i, pmt::pmt_write_string(tags[i].key).c_str());
+//    fprintf(stderr, "[%s] Tag #%d %s\n", name().c_str(), i, pmt::write_string(tags[i].key).c_str());
   }
   if (tags.size() > 0) {
     next_tag_offset = tags[0].offset;
@@ -169,7 +169,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
   for (int i = 0; i < noutput_items; i++) {
 
     if (next_tag_offset == (nitems_read(tag_channel) + i)) {
-      gr_tag_t tag = tags[tag_index_offset++];
+      gr::tag_t tag = tags[tag_index_offset++];
 
       uint64_t _next = -1;
       if (tag_index_offset < tags.size())
@@ -177,9 +177,9 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 
       d_time_offset = 0;
       d_last_time = uhd::time_spec_t(
-          pmt::pmt_to_uint64(pmt::pmt_tuple_ref(tag.value, 0)),
-          pmt::pmt_to_double(pmt::pmt_tuple_ref(tag.value, 1)));
-//      fprintf(stderr, "[%s] Processing tag #%d %s (next offset: %d) time: %f\n", name().c_str(), next_tag_offset, pmt::pmt_write_string(tag.key).c_str(), _next, d_last_time.get_real_secs());
+          pmt::to_uint64(pmt::tuple_ref(tag.value, 0)),
+          pmt::to_double(pmt::tuple_ref(tag.value, 1)));
+//      fprintf(stderr, "[%s] Processing tag #%d %s (next offset: %d) time: %f\n", name().c_str(), next_tag_offset, pmt::write_string(tag.key).c_str(), _next, d_last_time.get_real_secs());
 
       next_tag_offset = _next;
     }

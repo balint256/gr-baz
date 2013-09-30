@@ -27,8 +27,8 @@
 #define INCLUDED_GR_UDP_SINK_H
 #endif // IN_GR_BAZ
 
-#include <gr_sync_block.h>
-#include <gruel/thread.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/thread/thread.h>
 
 #ifdef IN_GR_BAZ
 #define UDP_SINK_NAME   baz_udp_sink
@@ -45,9 +45,9 @@
 #endif // _TO_STR
 #define UDP_SINK_STRING _TO_STR(UDP_SINK_NAME)
 
-#include <gr_sync_block.h>
-#include <gr_msg_queue.h>
-#include <gruel/thread.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/msg_queue.h>
+#include <gnuradio/thread/thread.h>
 
 class BAZ_API UDP_SINK_NAME;
 typedef boost::shared_ptr<UDP_SINK_NAME> UDP_SINK_SPTR;
@@ -70,7 +70,7 @@ UDP_SINK_MAKER (size_t itemsize,
  * \param eof          Send zero-length packet on disconnect
  */
 
-class BAZ_API UDP_SINK_NAME : public gr_sync_block
+class BAZ_API UDP_SINK_NAME : public gr::sync_block
 {
   friend BAZ_API UDP_SINK_SPTR UDP_SINK_MAKER (size_t itemsize, 
 					    const char *host,
@@ -83,7 +83,7 @@ class BAZ_API UDP_SINK_NAME : public gr_sync_block
   bool          d_eof;             // send zero-length packet on disconnect
   int           d_socket;          // handle to socket
   bool          d_connected;       // are we connected?
-  gruel::mutex  d_mutex;           // protects d_socket and d_connected
+  gr::thread::mutex  d_mutex;           // protects d_socket and d_connected
   bool          d_bor;
   unsigned short d_bor_counter;
   bool          d_bor_first;
@@ -91,7 +91,7 @@ class BAZ_API UDP_SINK_NAME : public gr_sync_block
   int           d_residual;
   int           d_offset;
   int           d_data_length;
-  gr_msg_queue_sptr d_status_queue;
+  gr::msg_queue::sptr d_status_queue;
 
  protected:
   /*!
@@ -139,7 +139,7 @@ class BAZ_API UDP_SINK_NAME : public gr_sync_block
   
   void set_borip(bool enable);
   void set_payload_size(int payload_size);
-  void set_status_msgq(gr_msg_queue_sptr queue);
+  void set_status_msgq(gr::msg_queue::sptr queue);
 
   int work (int noutput_items,
 	    gr_vector_const_void_star &input_items,

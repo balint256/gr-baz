@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_rtl_source_c.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdio.h>
 
 #include <iostream>	// cerr
@@ -81,9 +81,9 @@ static float _char_to_float_lut[256] = { -1.000000f, -0.992188f, -0.984375f, -0.
 ///////////////////////////////////////////////////////////////////////////////
 
 baz_rtl_source_c::baz_rtl_source_c (bool defer_creation /*= false*/, int output_size /*= 0*/)
-  : gr_block ("baz_rtl_source",
-	      gr_make_io_signature (0, 0, 0),
-	      gr_make_io_signature (1, 1, ((output_size > 0) ? output_size : sizeof(gr_complex))))
+  : gr::block ("baz_rtl_source",
+	      gr::io_signature::make (0, 0, 0),
+	      gr::io_signature::make (1, 1, ((output_size > 0) ? output_size : sizeof(gr_complex))))
 	, m_nSamplesReceived(0)
 	, m_nOverflows(0)
 	, m_bRunning(false)
@@ -135,7 +135,7 @@ void baz_rtl_source_c::report_status(int status)
   if (!m_status_queue)
 	return;
   
-  gr_message_sptr msg = gr_make_message(status);
+  gr::message::sptr msg = gr::message::make(status);
   m_status_queue->/*handle*/insert_tail(msg);
 }
 
@@ -399,7 +399,7 @@ bool baz_rtl_source_c::set_output_format(int size)
   return true;
 }
 
-void baz_rtl_source_c::set_status_msgq(gr_msg_queue_sptr queue)	// Only call this once before beginning capture! (otherwise locking required)
+void baz_rtl_source_c::set_status_msgq(gr::msg_queue::sptr queue)	// Only call this once before beginning capture! (otherwise locking required)
 {
   //boost::recursive_mutex::scoped_lock lock(d_mutex);
   

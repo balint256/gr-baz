@@ -35,9 +35,9 @@
 #include <vector>
 #include <map>
 
-#include <gr_sync_block.h>
-#include <gr_msg_queue.h>
-#include <gruel/pmt.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/msg_queue.h>
+#include <pmt/pmt.h>
 
 #include "baz_burster_config.h"
 
@@ -45,7 +45,7 @@ class BAZ_API baz_burster;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -69,9 +69,9 @@ BAZ_API baz_burster_sptr baz_make_burster (const baz_burster_config& config);
  * \brief burster a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_burster : public gr_block
+class BAZ_API baz_burster : public gr::block
 {
 private:
 	friend BAZ_API baz_burster_sptr baz_make_burster (const baz_burster_config& config);
@@ -173,9 +173,9 @@ private:
 	boost::system_time d_system_time;
 	boost::system_time d_last_burst_system_time;
 	//uint64_t d_samples_since_last_time_tag;
-	//gr_message_sptr d_current_msg;
-	gr_message_sptr d_pending_msg;
-	std::vector<gr_tag_t> d_incoming_time_tags;
+	//gr::message::sptr d_current_msg;
+	gr::message::sptr d_pending_msg;
+	std::vector<gr::tag_t> d_incoming_time_tags;
 public:
 	~baz_burster ();	// public destructor
 

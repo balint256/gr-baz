@@ -28,15 +28,15 @@
 #ifndef INCLUDED_BAZ_TAG_TO_MSG_H
 #define INCLUDED_BAZ_TAG_TO_MSG_H
 
-#include <gr_sync_block.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/msg_queue.h>
 #include <string>
 
 class baz_tag_to_msg;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -54,25 +54,25 @@ typedef boost::shared_ptr<baz_tag_to_msg> baz_tag_to_msg_sptr;
  * constructor is private.  baz_make_tag_to_msg is the public
  * interface for creating new instances.
  */
-baz_tag_to_msg_sptr baz_make_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append = NULL/*, int initial_buffer_size = -1*/);
+baz_tag_to_msg_sptr baz_make_tag_to_msg (int item_size, gr::msg_queue::sptr msgq, const char* append = NULL/*, int initial_buffer_size = -1*/);
 
 /*!
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class baz_tag_to_msg : public gr_sync_block
+class baz_tag_to_msg : public gr::sync_block
 {
 private:
 	// The friend declaration allows baz_make_tag_to_msg to access the private constructor.
 
-	friend baz_tag_to_msg_sptr baz_make_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append/*, int initial_buffer_size*/);
+	friend baz_tag_to_msg_sptr baz_make_tag_to_msg (int item_size, gr::msg_queue::sptr msgq, const char* append/*, int initial_buffer_size*/);
 
-	baz_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append/*, int initial_buffer_size*/);  	// private constructor
+	baz_tag_to_msg (int item_size, gr::msg_queue::sptr msgq, const char* append/*, int initial_buffer_size*/);  	// private constructor
 
 	int d_item_size;
-	gr_msg_queue_sptr d_msgq;
+	gr::msg_queue::sptr d_msgq;
 	//char* d_buffer;
 	//int d_buffer_size;
 	std::string d_appended;
@@ -80,7 +80,7 @@ private:
  public:
 	~baz_tag_to_msg ();	// public destructor
 
-	void set_msgq(gr_msg_queue_sptr msgq);
+	void set_msgq(gr::msg_queue::sptr msgq);
 	void set_appended_string(const char* append);
 
 	int work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);

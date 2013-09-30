@@ -28,14 +28,14 @@
 #ifndef INCLUDED_BAZ_BLOCK_STATUS_H
 #define INCLUDED_BAZ_BLOCK_STATUS_H
 
-#include <gr_sync_block.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/msg_queue.h>
 
 class BAZ_API baz_block_status;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -53,26 +53,26 @@ typedef boost::shared_ptr<baz_block_status> baz_block_status_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue = gr_msg_queue_sptr());
+BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr::msg_queue::sptr queue = gr::msg_queue::sptr());
 
 /*!
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_block_status : public gr_sync_block
+class BAZ_API baz_block_status : public gr::sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue);
+  friend BAZ_API baz_block_status_sptr baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr::msg_queue::sptr queue);
 
-  baz_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed);  	// private constructor
+  baz_block_status (int size, gr::msg_queue::sptr queue, unsigned long work_iterations, unsigned long samples_processed);  	// private constructor
 
   int d_size;
-  gr_msg_queue_sptr d_queue;
+  gr::msg_queue::sptr d_queue;
   unsigned long d_work_iterations;
   unsigned long d_samples_processed;
 

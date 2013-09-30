@@ -35,8 +35,8 @@
 #endif
 
 #include <baz_time_keeper.h>
-#include <gr_io_signature.h>
-#include <gruel/pmt.h>
+#include <gnuradio/io_signature.h>
+#include <pmt/pmt.h>
 
 #include <stdio.h>
 
@@ -54,9 +54,9 @@ baz_make_time_keeper (int item_size, int sample_rate)
  * The private constructor
  */
 baz_time_keeper::baz_time_keeper (int item_size, int sample_rate)
-	: gr_sync_block ("baz_time_keeper",
-		gr_make_io_signature (1, 1, item_size),
-		gr_make_io_signature (0, 0, 0))
+	: gr::sync_block ("baz_time_keeper",
+		gr::io_signature::make (1, 1, item_size),
+		gr::io_signature::make (0, 0, 0))
 	, d_item_size(item_size), d_sample_rate(sample_rate)
 	, d_last_time_seconds(0), d_first_time_seconds(0), d_last_time_fractional_seconds(0), d_first_time_fractional_seconds(0)
 	, d_time_offset(-1), d_seen_time(false), d_update_count(0), d_ignore_next(true)	// Ignore first update
@@ -73,11 +73,11 @@ baz_time_keeper::~baz_time_keeper ()
 {
 }
 
-static const pmt::pmt_t RX_TIME_KEY = pmt::pmt_string_to_symbol("rx_time");
+static const pmt::pmt_t RX_TIME_KEY = pmt::string_to_symbol("rx_time");
 
 double baz_time_keeper::time(bool relative /*= false*/)
 {
-	gruel::scoped_lock guard(d_mutex);
+	gr::thread::scoped_lock guard(d_mutex);
 	
 	double d = ((double)d_last_time_seconds + d_last_time_fractional_seconds) + ((double)d_time_offset / (double)d_sample_rate);
 	if (relative)
@@ -88,7 +88,7 @@ double baz_time_keeper::time(bool relative /*= false*/)
 
 void baz_time_keeper::ignore_next(bool ignore /*= true*/)
 {
-	gruel::scoped_lock guard(d_mutex);
+	gr::thread::scoped_lock guard(d_mutex);
 	
 	d_ignore_next = ignore;
 	
@@ -97,14 +97,14 @@ void baz_time_keeper::ignore_next(bool ignore /*= true*/)
 
 int baz_time_keeper::update_count(void)
 {
-	gruel::scoped_lock guard(d_mutex);
+	gr::thread::scoped_lock guard(d_mutex);
 	
 	return d_update_count;
 }
 
 int baz_time_keeper::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
-	gruel::scoped_lock guard(d_mutex);
+	gr::thread::scoped_lock guard(d_mutex);
 	
 	//fprintf(stderr, "[%s] Work %d\n", name().c_str(), noutput_items);
 	
@@ -112,7 +112,7 @@ int baz_time_keeper::work (int noutput_items, gr_vector_const_void_star &input_i
 	
 	const int tag_channel = 0;
 	const uint64_t nread = nitems_read(tag_channel); //number of items read on port 0
-	std::vector<gr_tag_t> tags;
+	std::vector<gr::tag_t> tags;
 	
 	get_tags_in_range(tags, tag_channel, nread, (nread + noutput_items), RX_TIME_KEY);
 	
@@ -128,15 +128,15 @@ int baz_time_keeper::work (int noutput_items, gr_vector_const_void_star &input_i
 	
 	int offset = 0;
 	for (int i = /*0*/(tags.size() - 1); i < tags.size(); ++i) {
-		const gr_tag_t& tag = tags[i];
+		const gr::tag_t& tag = tags[i];
 		
-		//fprintf(stderr, "[%s<%i>] Tag #%d %s\n", name().c_str(), unique_id(), i, pmt::pmt_write_string(tag.key).c_str());
+		//fprintf(stderr, "[%s<%i>] Tag #%d %s\n", name().c_str(), unique_id(), i, pmt::write_string(tag.key).c_str());
 		
 		d_time_offset = 0;
 		offset = tags[i].offset - nread;
 		
-		d_last_time_seconds = pmt::pmt_to_uint64(pmt::pmt_tuple_ref(tag.value, 0));
-		d_last_time_fractional_seconds = pmt::pmt_to_double(pmt::pmt_tuple_ref(tag.value, 1));
+		d_last_time_seconds = pmt::to_uint64(pmt::tuple_ref(tag.value, 0));
+		d_last_time_fractional_seconds = pmt::to_double(pmt::tuple_ref(tag.value, 1));
 		
 		if (d_seen_time == false) {
 			d_first_time_seconds = d_last_time_seconds;

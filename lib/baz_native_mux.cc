@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_native_mux.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 #include <stdio.h>
 //#include <typeinfo>
@@ -54,9 +54,9 @@ baz_make_native_mux (int item_size, int input_count, int trigger_count)
  * The private constructor
  */
 baz_native_mux::baz_native_mux (int item_size, int input_count, int trigger_count)
-  : /*gr_sync_block*/gr_block ("native_mux",
-		   gr_make_io_signature (input_count, input_count, item_size),
-		   gr_make_io_signature (1, 1, item_size))
+  : /*gr::sync_block*/gr::block ("native_mux",
+		   gr::io_signature::make (input_count, input_count, item_size),
+		   gr::io_signature::make (1, 1, item_size))
   , d_item_size(item_size), d_input_count(input_count), d_trigger_count(trigger_count)
   , d_selected_input(0), d_trigger_countdown(0), d_value_index(0)
   , d_last_noutput_items(0)

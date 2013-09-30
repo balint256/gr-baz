@@ -24,7 +24,7 @@
 
 #include <baz_music_doa.h>
 
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 baz_music_doa_sptr
 baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const array_response_t& array_response, unsigned int resolution)
@@ -33,9 +33,9 @@ baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const 
 }
 
 baz_music_doa::baz_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const array_response_t& array_response, unsigned int resolution)
-	: gr_sync_block("music_doa",
-		gr_make_io_signature(1, 1, nsamples * sizeof(gr_complex)),
-		gr_make_io_signature3(1, 3, n * sizeof(float), n * sizeof(float), resolution * sizeof(float))),
+	: gr::sync_block("music_doa",
+		gr::io_signature::make3(1, 1, nsamples * sizeof(gr_complex)),
+		gr::io_signature::make33(1, 3, n * sizeof(float), n * sizeof(float), resolution * sizeof(float))),
 	d_m(m),
 	d_n(n),
 	d_nsamples(nsamples),
@@ -64,7 +64,7 @@ void baz_music_doa::set_array_response(const array_response_t& array_response)
 	
 	fprintf(stderr, "[%s<%i>] Updating array response\n", name().c_str(), unique_id());
 	
-	gruel::scoped_lock guard(d_mutex);
+	gr::thread::scoped_lock guard(d_mutex);
 	
 	d_array_response = array_response;
 }
@@ -98,7 +98,7 @@ int baz_music_doa::work(int noutput_items, gr_vector_const_void_star &input_item
 	if (output_items.size() > 2)
 		out_spectrum = static_cast<float*>(output_items[2]);
 	
-	{ gruel::scoped_lock guard(d_mutex);
+	{ gr::thread::scoped_lock guard(d_mutex);
 	
 	for (unsigned int step = 0; step < d_resolution; step++)
 	{

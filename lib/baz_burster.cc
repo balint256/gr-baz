@@ -32,7 +32,7 @@
 #include <stdio.h>
 
 #include <baz_burster.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 baz_burster_sptr baz_make_burster (const baz_burster_config& config)
 {
@@ -45,9 +45,9 @@ static const int MIN_OUT = 0;	// minimum number of output streams
 static const int MAX_OUT = 1;	// maximum number of output streams
 
 baz_burster::baz_burster (const baz_burster_config& config)
-  : gr_block ("baz_burster",
-		gr_make_io_signature (MIN_IN,  MAX_IN,  config.item_size),
-		gr_make_io_signature (MIN_OUT, MAX_OUT, config.item_size/* * config.vlen*/))	// FIXME: Another config variable with vlen to support implicit vector output
+  : gr::block ("baz_burster",
+		gr::io_signature::make (MIN_IN,  MAX_IN,  config.item_size),
+		gr::io_signature::make (MIN_OUT, MAX_OUT, config.item_size/* * config.vlen*/))	// FIXME: Another config variable with vlen to support implicit vector output
 	, d_config(config)
 	//, d_last_burst_sample_time(-1)
 	//, d_last_burst_time(-1)
@@ -96,7 +96,7 @@ baz_burster::~baz_burster ()
 +	bool use_host_time;		// false: derive time from stream, true: use wall time
 +	bool read_time_tag;		// false: derive time only from stream, true: derive time from time tag AND sample count
 +	bool output_messages;	// output bursts as messages
-+	gr_msg_queue_sptr msgq;	// message destination
++	gr::msg_queue::sptr msgq;	// message destination
 +	bool output_stream;		// output bursts on output stream
 +	bool trigger_on_tags;	// false: ignore tags, true: process tags
 	bool use_tag_lengths;	// false: ignore lengths in tag, true: override burst_length with length in tag
@@ -104,13 +104,13 @@ baz_burster::~baz_burster ()
 	std::vector<std::string> length_tags;		// <length> -> contains 'int' with length in samples
 	std::map<std::string,std::string> eob_tags;	// <sob,eob>
 */
-static const pmt::pmt_t RX_TIME_KEY = pmt::pmt_string_to_symbol("rx_time");
+static const pmt::pmt_t RX_TIME_KEY = pmt::string_to_symbol("rx_time");
 
 void baz_burster::forecast(int noutput_items, gr_vector_int &ninput_items_required)
 {
 	//ninput_items_required[0] = noutput_items;
 	
-	gr_block::forecast(noutput_items, ninput_items_required);
+	gr::block::forecast(noutput_items, ninput_items_required);
 }
 
 int baz_burster::general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
@@ -173,14 +173,14 @@ int baz_burster::general_work (int noutput_items, gr_vector_int &ninput_items, g
 		{
 			if ((next_time_tag_index > -1) && (input_sample_index == next_time_tag_offset))
 			{
-				const gr_tag_t& tag = d_incoming_time_tags[next_time_tag_index];
+				const gr::tag_t& tag = d_incoming_time_tags[next_time_tag_index];
 				
-				//d_last_time_seconds = pmt::pmt_to_uint64(pmt::pmt_tuple_ref(tag.value, 0));
-				//d_last_time_fractional_seconds = pmt::pmt_to_double(pmt::pmt_tuple_ref(tag.value, 1));
+				//d_last_time_seconds = pmt::to_uint64(pmt::tuple_ref(tag.value, 0));
+				//d_last_time_fractional_seconds = pmt::to_double(pmt::tuple_ref(tag.value, 1));
 				//d_samples_since_last_time_tag = 0;
 				
-				d_stream_time.seconds = pmt::pmt_to_uint64(pmt::pmt_tuple_ref(tag.value, 0));
-				d_stream_time.fractional_seconds = pmt::pmt_to_double(pmt::pmt_tuple_ref(tag.value, 1));
+				d_stream_time.seconds = pmt::to_uint64(pmt::tuple_ref(tag.value, 0));
+				d_stream_time.fractional_seconds = pmt::to_double(pmt::tuple_ref(tag.value, 1));
 				d_stream_time.sample_offset = 0;
 fprintf(stderr, "[%s<%i>] updated time\n", name().c_str(), unique_id());
 				//time_tag_sample_offset = tag.offset - read_before_this_work;
@@ -328,7 +328,7 @@ fprintf(stderr, "."); fflush(stderr);
 						int msg_data_length = msg_samples_data_length + 0;	// FIXME: Add additional info
 						int flags = 0;
 						
-						gr_message_sptr msg = gr_make_message(flags, 0, 0, msg_data_length);	// long type, double arg1, double arg2, size_t length
+						gr::message::sptr msg = gr::message::make(flags, 0, 0, msg_data_length);	// long type, double arg1, double arg2, size_t length
 						
 						int offset = 0;
 						
