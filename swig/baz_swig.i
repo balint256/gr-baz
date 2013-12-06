@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 
-%include "swig/gnuradio.i"			// the common stuff
+%include "gnuradio.i"			// the common stuff
 %include "pycontainer.swg"
 
 //#ifdef HAVE_CONFIG_H

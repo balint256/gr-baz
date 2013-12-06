@@ -8,7 +8,8 @@
 from gnuradio import eng_notation
 from gnuradio import gr
 from gnuradio.eng_option import eng_option
-from gnuradio.gr import firdes
+from gnuradio import filter 
+from gnuradio.filter import firdes
 from optparse import OptionParser
 import baz
 
