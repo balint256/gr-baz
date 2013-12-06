@@ -56,7 +56,7 @@ baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, 
  */
 baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay)
   : gr::block ("gate",
-		   gr::io_signature::make33 (2, 3, item_size, sizeof(/*char*/float), item_size),
+		   gr::io_signature::make3 (2, 3, item_size, sizeof(/*char*/float), item_size),
 		   gr::io_signature::make (1, 1, item_size))
   , d_item_size(item_size), d_threshold(threshold), d_trigger_length(trigger_length), d_block(block), d_tag(tag), d_delay(delay), d_sample_rate(sample_rate), d_no_delay(no_delay)
   , d_trigger_count(0), d_time_offset(-1), d_in_burst(false), d_output_index(0)
@@ -213,10 +213,10 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
         if (d_tag && (d_in_burst == false)) {
           //assert(d_in_burst == false);  // FIXME: This can fail if changing d_tag at runtime
 
-          add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::pmt_from_bool(true));
+          add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::from_bool(true));
           if (d_no_delay == false) {
             uhd::time_spec_t next = (d_last_time + uhd::time_spec_t(0, d_time_offset, d_sample_rate)) + uhd::time_spec_t(d_delay);
-            add_item_tag(0, nitems_written(0)+j, TX_TIME_KEY, pmt::pmt_make_tuple(pmt::pmt_from_uint64(next.get_full_secs()), pmt::pmt_from_double(next.get_frac_secs())));
+            add_item_tag(0, nitems_written(0)+j, TX_TIME_KEY, pmt::make_tuple(pmt::from_uint64(next.get_full_secs()), pmt::from_double(next.get_frac_secs())));
           }
 
           d_in_burst = true;
@@ -232,7 +232,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 */
         if (d_in_burst) {
           fprintf(stderr, "[%s<%i>] EOB %d + %d\n", name().c_str(), unique_id(), nitems_written(0), j);
-          add_item_tag(0, nitems_written(0)+j, EOB_KEY, pmt::pmt_from_bool(true));
+          add_item_tag(0, nitems_written(0)+j, EOB_KEY, pmt::from_bool(true));
           d_in_burst = false;
         }
       }

@@ -34,8 +34,8 @@ baz_make_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const 
 
 baz_music_doa::baz_music_doa(unsigned int m, unsigned int n, unsigned int nsamples, const array_response_t& array_response, unsigned int resolution)
 	: gr::sync_block("music_doa",
-		gr::io_signature::make3(1, 1, nsamples * sizeof(gr_complex)),
-		gr::io_signature::make33(1, 3, n * sizeof(float), n * sizeof(float), resolution * sizeof(float))),
+		gr::io_signature::make(1, 1, nsamples * sizeof(gr_complex)),
+		gr::io_signature::make3(1, 3, n * sizeof(float), n * sizeof(float), resolution * sizeof(float))),
 	d_m(m),
 	d_n(n),
 	d_nsamples(nsamples),

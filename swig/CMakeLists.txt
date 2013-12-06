@@ -32,8 +32,7 @@ include(GrPython)
 # Setup swig generation
 ########################################################################
 
-list(APPEND GR_SWIG_INCLUDE_DIRS /Users/mrene/Documents/Sources/gnuradio/gnuradio-runtime/swig)
-list(APPEND GR_SWIG_INCLUDE_DIRS /Users/mrene/Documents/Sources/gnuradio/build/gnuradio-runtime/swig/)
+list(APPEND GR_SWIG_INCLUDE_DIRS /usr/local/include/gnuradio/swig)
 if(ENABLE_GR_BAZ)
     list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/gruel/src/swig)
     list(APPEND GR_SWIG_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/gruel/src/swig)
