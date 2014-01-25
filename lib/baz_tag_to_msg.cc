@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_tag_to_msg.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdio.h>
 
 /*
@@ -43,7 +43,7 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_tag_to_msg_sptr 
-baz_make_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append /*= NULL*//*, int initial_buffer_size *//*= 64*/)
+baz_make_tag_to_msg (int item_size, gr::msg_queue::sptr msgq, const char* append /*= NULL*//*, int initial_buffer_size *//*= 64*/)
 {
 	return baz_tag_to_msg_sptr (new baz_tag_to_msg (item_size, msgq, append/*, initial_buffer_size*/));
 }
@@ -51,7 +51,7 @@ baz_make_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append /
 /*
  * Specify constraints on number of input and output streams.
  * This info is used to construct the input and output signatures
- * (2nd & 3rd args to gr_block's constructor).  The input and
+ * (2nd & 3rd args to gr::block's constructor).  The input and
  * output signatures are used by the runtime system to
  * check that a valid number and type of inputs and outputs
  * are connected to this block.  In this case, we accept
@@ -65,10 +65,10 @@ static const int MAX_OUT = 0;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_tag_to_msg::baz_tag_to_msg (int item_size, gr_msg_queue_sptr msgq, const char* append/*, int initial_buffer_size*/)
-	: gr_sync_block ("tag_to_msg",
-		gr_make_io_signature (MIN_IN, MAX_IN, item_size),
-		gr_make_io_signature (MIN_OUT, MAX_OUT, 0))
+baz_tag_to_msg::baz_tag_to_msg (int item_size, gr::msg_queue::sptr msgq, const char* append/*, int initial_buffer_size*/)
+	: gr::sync_block ("tag_to_msg",
+		gr::io_signature::make (MIN_IN, MAX_IN, item_size),
+		gr::io_signature::make (MIN_OUT, MAX_OUT, 0))
 	, d_msgq(msgq)
 	//, d_buffer(NULL)
 	//, d_buffer_size(initial_buffer_size)
@@ -88,7 +88,7 @@ baz_tag_to_msg::~baz_tag_to_msg ()
 {
 }
 
-void baz_tag_to_msg::set_msgq(gr_msg_queue_sptr msgq)
+void baz_tag_to_msg::set_msgq(gr::msg_queue::sptr msgq)
 {
 	d_msgq = msgq;
 }
@@ -108,7 +108,7 @@ int baz_tag_to_msg::work (int noutput_items,
 	//for (int i = 0; i < noutput_items; i++) {
 	//}
 	
-	std::vector<gr_tag_t> tags;
+	std::vector<gr::tag_t> tags;
 	const uint64_t nread = nitems_read(0);
 	get_tags_in_range(tags, 0, nread, nread+noutput_items);
 	if (tags.size() > 0)
@@ -117,10 +117,10 @@ int baz_tag_to_msg::work (int noutput_items,
 //		fprintf(stderr, "[%s] Tags: %d\n", name().c_str(), tags.size());
 		
 		for (int i = 0; i < tags.size(); ++i) {
-			const gr_tag_t& tag = tags[i];
-			id_str = pmt::pmt_write_string(tag.srcid);
-			key_str = pmt::pmt_write_string(tag.key);
-			value_str = pmt::pmt_write_string(tag.value);
+			const gr::tag_t& tag = tags[i];
+			id_str = pmt::write_string(tag.srcid);
+			key_str = pmt::write_string(tag.key);
+			value_str = pmt::write_string(tag.value);
 			
 			//if (key_str == "squelch")
 			//fprintf(stderr, "[%s] Tag #%d %s %s %s %s\n", name().c_str(), i, id_str.c_str(), key_str.c_str(), value_str.c_str(), d_appended.c_str());
@@ -139,7 +139,7 @@ int baz_tag_to_msg::work (int noutput_items,
 				assert(d_buffer != NULL);
 			}*/
 
-			gr_message_sptr msg = gr_make_message(0, 0.0, 0.0, message_data_length);
+			gr::message::sptr msg = gr::message::make(0, 0.0, 0.0, message_data_length);
 			int data_index = 0;
 			
 			memcpy(msg->msg() + data_index, &tag.offset, sizeof(uint64_t));

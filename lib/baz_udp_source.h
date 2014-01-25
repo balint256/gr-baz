@@ -27,8 +27,8 @@
 #define INCLUDED_GR_UDP_SOURCE_H
 #endif // IN_GR_BAZ
 
-#include <gr_sync_block.h>
-#include <gruel/thread.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/thread/thread.h>
 
 #ifdef IN_GR_BAZ
 #define UDP_SOURCE_NAME   baz_udp_source
@@ -78,7 +78,7 @@ BAZ_API UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize, const char *host,
  *
 */
 
-class BAZ_API UDP_SOURCE_NAME : public gr_sync_block
+class BAZ_API UDP_SOURCE_NAME : public gr::sync_block
 {
   friend BAZ_API UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize,
 					       const char *host, 

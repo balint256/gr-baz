@@ -125,17 +125,12 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 # Find gnuradio build dependencies
 ########################################################################
 if(ENABLE_GR_BAZ)
-    set(GRUEL_LIBRARIES gruel)
-    set(GNURADIO_CORE_LIBRARIES gnuradio-core)
+    set(GNURADIO_RUNTIME_LIBRARIES gnuradio-runtime)
 else()
-    find_package(Gruel)
-    find_package(GnuradioCore)
+    find_package(GnuradioRuntime)
+    find_package(Gnuradio)
 
-    if(NOT GRUEL_FOUND)
-        message(FATAL_ERROR "Gruel required to compile baz")
-    endif()
-
-    if(NOT GNURADIO_CORE_FOUND)
+    if(NOT GNURADIO_RUNTIME_FOUND)
         message(FATAL_ERROR "GnuRadio Core required to compile baz")
     endif()
 endif()
@@ -179,13 +174,13 @@ include_directories(
     ${PROJECT_BINARY_DIR}
 	${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${Boost_INCLUDE_DIRS}
-    ${GRUEL_INCLUDE_DIRS}
-    ${GNURADIO_CORE_INCLUDE_DIRS}
+    # ${GRUEL_INCLUDE_DIRS}
+    ${GNURADIO_RUNTIME_INCLUDE_DIRS}
 )
 
 link_directories(
     ${Boost_LIBRARY_DIRS}
-    ${GRUEL_LIBRARY_DIRS}
+    # ${GRUEL_LIBRARY_DIRS}
     ${GNURADIO_CORE_LIBRARY_DIRS}
 )
 

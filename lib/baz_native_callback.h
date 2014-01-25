@@ -28,13 +28,13 @@
 #ifndef INCLUDED_BAZ_NATIVE_CALLBACK_X_H
 #define INCLUDED_BAZ_NATIVE_CALLBACK_X_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 
 class BAZ_API baz_native_callback_x;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -52,7 +52,7 @@ public:
 };
 
 //typedef boost::shared_ptr<baz_native_callback_target> baz_native_callback_target_sptr;
-#define baz_native_callback_target_sptr gr_basic_block_sptr
+#define baz_native_callback_target_sptr gr::basic_block_sptr
 
 /*!
  * \brief Return a shared_ptr to a new instance of baz_native_callback_x.
@@ -67,9 +67,9 @@ BAZ_API baz_native_callback_x_sptr baz_make_native_callback_x (int size, baz_nat
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_native_callback_x : public gr_sync_block
+class BAZ_API baz_native_callback_x : public gr::sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to

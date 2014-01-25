@@ -28,13 +28,13 @@
 #ifndef INCLUDED_BAZ_TEST_COUNTER_CC_H
 #define INCLUDED_BAZ_TEST_COUNTER_CC_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 
 class BAZ_API baz_test_counter_cc;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -58,9 +58,9 @@ BAZ_API baz_test_counter_cc_sptr baz_make_test_counter_cc ();
  * \brief square2 a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_test_counter_cc : public gr_sync_block
+class BAZ_API baz_test_counter_cc : public gr::sync_block
 {
 private:
   // The friend declaration allows howto_make_square2_ff to

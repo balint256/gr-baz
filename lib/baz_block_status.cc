@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_block_status.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 #include <stdio.h>
 
@@ -44,7 +44,7 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_block_status_sptr
-baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr_msg_queue_sptr queue)
+baz_make_block_status (int size, unsigned long work_iterations, unsigned long samples_processed, gr::msg_queue::sptr queue)
 {
   return baz_block_status_sptr (new baz_block_status (size, queue, work_iterations, samples_processed));
 }
@@ -52,7 +52,7 @@ baz_make_block_status (int size, unsigned long work_iterations, unsigned long sa
 /*
  * Specify constraints on number of input and output streams.
  * This info is used to construct the input and output signatures
- * (2nd & 3rd args to gr_block's constructor).  The input and
+ * (2nd & 3rd args to gr::block's constructor).  The input and
  * output signatures are used by the runtime system to
  * check that a valid number and type of inputs and outputs
  * are connected to this block.  In this case, we accept
@@ -66,10 +66,10 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_block_status::baz_block_status (int size, gr_msg_queue_sptr queue, unsigned long work_iterations, unsigned long samples_processed)
-  : gr_sync_block ("block_status",
-		   gr_make_io_signature (MIN_IN, MAX_IN, size),
-		   gr_make_io_signature (MIN_OUT, MAX_OUT, size))
+baz_block_status::baz_block_status (int size, gr::msg_queue::sptr queue, unsigned long work_iterations, unsigned long samples_processed)
+  : gr::sync_block ("block_status",
+		   gr::io_signature::make (MIN_IN, MAX_IN, size),
+		   gr::io_signature::make (MIN_OUT, MAX_OUT, size))
   , d_size(size), d_queue(queue), d_work_iterations(work_iterations), d_samples_processed(samples_processed)
 {
   fprintf(stderr, "[%s] Size: %d, work iterations: %d, samples processed: %d\n", name().c_str(), size, work_iterations, samples_processed);
@@ -109,7 +109,7 @@ baz_block_status::work (int noutput_items,
 fprintf(stderr, "[%s] Status change: samples processed\n", name().c_str()/*, d_work_iterations, d_samples_processed*/);
         if (d_queue)
         {
-          gr_message_sptr msg = gr_make_message(0, d_work_iterations, d_samples_processed);
+          gr::message::sptr msg = gr::message::make(0, d_work_iterations, d_samples_processed);
           d_queue->insert_tail(msg);
         }
       }
@@ -124,7 +124,7 @@ fprintf(stderr, "[%s] Status change: samples processed\n", name().c_str()/*, d_w
 fprintf(stderr, "[%s] Status change: work iterations\n", name().c_str()/*, d_work_iterations, d_samples_processed*/);
       if (d_queue)
       {
-        gr_message_sptr msg = gr_make_message(0, d_work_iterations, d_samples_processed);
+        gr::message::sptr msg = gr::message::make(0, d_work_iterations, d_samples_processed);
         d_queue->insert_tail(msg);
       }
     }

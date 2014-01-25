@@ -28,15 +28,15 @@
 #ifndef INCLUDED_BAZ_ACARS_H
 #define INCLUDED_BAZ_ACARS_H
 
-#include <gr_sync_block.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/msg_queue.h>
 #include <string>
 
 class baz_acars_decoder;
 
 /*
  * We use boost::shared_ptr's instead of raw pointers for all access
- * to gr_blocks (and many other data structures).  The shared_ptr gets
+ * to gr::blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
  * C++ / Python system.
@@ -54,22 +54,22 @@ typedef boost::shared_ptr<baz_acars_decoder> baz_acars_decoder_sptr;
  * constructor is private.  baz_acars_decoder is the public
  * interface for creating new instances.
  */
-baz_acars_decoder_sptr baz_make_acars_decoder (gr_msg_queue_sptr msgq);
+baz_acars_decoder_sptr baz_make_acars_decoder (gr::msg_queue::sptr msgq);
 
 /*!
  * \brief acars a stream of floats.
  * \ingroup block
  *
- * This uses the preferred technique: subclassing gr_sync_block.
+ * This uses the preferred technique: subclassing gr::sync_block.
  */
-class baz_acars_decoder : public gr_sync_block
+class baz_acars_decoder : public gr::sync_block
 {
 private:
 	// The friend declaration allows baz_acars_decoder to
 	// access the private constructor.
-	friend baz_acars_decoder_sptr baz_make_acars_decoder (gr_msg_queue_sptr msgq);
+	friend baz_acars_decoder_sptr baz_make_acars_decoder (gr::msg_queue::sptr msgq);
 
-	baz_acars_decoder (gr_msg_queue_sptr msgq);  	// private constructor
+	baz_acars_decoder (gr::msg_queue::sptr msgq);  	// private constructor
 
 	enum state_t
 	{
@@ -116,7 +116,7 @@ private:
 	unsigned char d_current_byte;
 	int d_byte_counter;
 	unsigned char d_flags;
-	gr_msg_queue_sptr d_msgq;
+	gr::msg_queue::sptr d_msgq;
 	unsigned char d_prev_bit;
 	float d_frequency;
 	std::string d_station_name;

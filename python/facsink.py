@@ -23,7 +23,7 @@
 # Originally created by Frank of radiorausch (http://sites.google.com/site/radiorausch/USRPFastAutocorrelation.html)
 # Upgraded for blks2 compatibility by Balint Seeber (http://wiki.spench.net/wiki/Fast_Auto-correlation)
 
-from gnuradio import gr, gru, window
+from gnuradio import gr, gru, window, blocks, fft, filter
 from gnuradio.wxgui import stdgui2, common
 import wx
 import gnuradio.wxgui.plot as plot
@@ -118,22 +118,22 @@ class fac_sink_f(fac_sink_base):
                                average=average, avg_alpha=avg_alpha, title=title,
                                peak_hold=peak_hold)
                                
-        s2p = gr.stream_to_vector(gr.sizeof_float, self.fac_size)
-        self.one_in_n = gr.keep_one_in_n(gr.sizeof_float * self.fac_size,
+        s2p = blocks.stream_to_vector(gr.sizeof_float, self.fac_size)
+        self.one_in_n = blocks.keep_one_in_n(gr.sizeof_float * self.fac_size,
                                          max(1, int(self.sample_rate/self.fac_size/self.fac_rate)))
 
         # windowing removed... 
 
         fac = gr.fft_vfc(self.fac_size, True, ())
             
-        c2mag = gr.complex_to_mag(self.fac_size)
-        self.avg = gr.single_pole_iir_filter_ff(1.0, self.fac_size)
+        c2mag = blocks.complex_to_mag(self.fac_size)
+        self.avg = filter.single_pole_iir_filter_ff_make(1.0, self.fac_size)
 
-        fac_fac   = gr.fft_vfc(self.fac_size, True, ())
-        fac_c2mag = gr.complex_to_mag(fac_size)
+        fac_fac   = fft.fft_vfc(self.fac_size, True, ())
+        fac_c2mag = blocks.complex_to_mag_make(fac_size)
 
         # FIXME  We need to add 3dB to all bins but the DC bin
-        log = gr.nlog10_ff(20, self.fac_size,
+        log = blocks.nlog10_ff_make(20, self.fac_size,
                            -20*math.log10(self.fac_size) )
         sink = gr.message_sink(gr.sizeof_float * self.fac_size, self.msgq, True)
 
@@ -161,24 +161,24 @@ class fac_sink_c(fac_sink_base):
                                average=average, avg_alpha=avg_alpha, title=title,
                                peak_hold=peak_hold)
 
-        s2p = gr.stream_to_vector(gr.sizeof_gr_complex, self.fac_size)
-        self.one_in_n = gr.keep_one_in_n(gr.sizeof_gr_complex * self.fac_size,
+        s2p = blocks.stream_to_vector(gr.sizeof_gr_complex, self.fac_size)
+        self.one_in_n = blocks.keep_one_in_n(gr.sizeof_gr_complex * self.fac_size,
                                          max(1, int(self.sample_rate/self.fac_size/self.fac_rate)))
 
         # windowing removed ...
      
-        fac = gr.fft_vcc(self.fac_size, True, ())
-        c2mag = gr.complex_to_mag(fac_size)
+        fac =  fft.fft_vcc(self.fac_size, True, ())
+        c2mag = blocks.complex_to_mag_make(fac_size)
 
         # Things go off into the weeds if we try for an inverse FFT so a forward FFT will have to do...
-        fac_fac   = gr.fft_vfc(self.fac_size, True, ())
-        fac_c2mag = gr.complex_to_mag(fac_size)
+        fac_fac   = fft.fft_vfc(self.fac_size, True, ())
+        fac_c2mag = blocks.complex_to_mag_make(fac_size)
 
-        self.avg = gr.single_pole_iir_filter_ff(1.0, fac_size)
+        self.avg = filter.single_pole_iir_filter_ff_make(1.0, fac_size)
 
-        log = gr.nlog10_ff(20, self.fac_size, 
+        log = blocks.nlog10_ff_make(20, self.fac_size, 
                            -20*math.log10(self.fac_size)  ) #  - 20*math.log10(norm) ) # - self.avg[0] )
-        sink = gr.message_sink(gr.sizeof_float * fac_size, self.msgq, True)
+        sink = blocks.message_sink_make(gr.sizeof_float * fac_size, self.msgq, True)
 
         self.connect(s2p, self.one_in_n, fac, c2mag,  fac_fac, fac_c2mag, self.avg, log, sink)
 

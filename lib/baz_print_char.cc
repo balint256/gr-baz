@@ -35,7 +35,7 @@
 #endif
 
 #include <baz_print_char.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdio.h>
 
 baz_print_char_sptr BAZ_API baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/)
@@ -52,9 +52,9 @@ typedef unsigned char BYTE;
 typedef BYTE *LPBYTE;
 
 baz_print_char::baz_print_char (float threshold, int limit, const char* file)
-  : gr_sync_block ("print_char",
-	      gr_make_io_signature2 (MIN_IN, MAX_IN, sizeof (BYTE), sizeof(float)),
-	      gr_make_io_signature (MIN_OUT, MAX_OUT, 0/*sizeof (float)*/))
+  : gr::sync_block ("print_char",
+	      gr::io_signature::make2 (MIN_IN, MAX_IN, sizeof (BYTE), sizeof(float)),
+	      gr::io_signature::make (MIN_OUT, MAX_OUT, 0/*sizeof (float)*/))
   , d_threshold(threshold)
   , d_limit(limit)
   , d_length(0)
