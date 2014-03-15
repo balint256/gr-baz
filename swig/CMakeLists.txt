@@ -32,7 +32,7 @@ include(GrPython)
 # Setup swig generation
 ########################################################################
 
-if(ENABLE_GR_BAZ)
+#if(ENABLE_GR_BAZ)
 
 foreach(incdir ${GNURADIO_RUNTIME_INCLUDE_DIRS})
     list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/gnuradio/swig)
@@ -61,4 +61,4 @@ install(
     DESTINATION ${GR_INCLUDE_DIR}/baz/swig
 )
 
-endif()
+#endif()
