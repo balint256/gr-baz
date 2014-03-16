@@ -23,7 +23,9 @@
 # Originally created by Frank of radiorausch (http://sites.google.com/site/radiorausch/USRPFastAutocorrelation.html)
 # Upgraded for blks2 compatibility by Balint Seeber (http://wiki.spench.net/wiki/Fast_Auto-correlation)
 
-from gnuradio import gr, gru, window, blocks, fft, filter
+#from gnuradio import gr, gru, window, blocks, fft, filter
+from gnuradio import gr, gru, blocks, fft, filter   # +kai for gnuradio 3.7
+
 from gnuradio.wxgui import stdgui2, common
 import wx
 import gnuradio.wxgui.plot as plot
@@ -124,8 +126,9 @@ class fac_sink_f(fac_sink_base):
 
         # windowing removed... 
 
-        fac = gr.fft_vfc(self.fac_size, True, ())
-            
+        #fac = gr.fft_vfc(self.fac_size, True, ())
+        fac = fft.fft_vfc(self.fac_size, True, ())
+
         c2mag = blocks.complex_to_mag(self.fac_size)
         self.avg = filter.single_pole_iir_filter_ff_make(1.0, self.fac_size)
 
@@ -135,7 +138,7 @@ class fac_sink_f(fac_sink_base):
         # FIXME  We need to add 3dB to all bins but the DC bin
         log = blocks.nlog10_ff_make(20, self.fac_size,
                            -20*math.log10(self.fac_size) )
-        sink = gr.message_sink(gr.sizeof_float * self.fac_size, self.msgq, True)
+        sink = blocks.message_sink(gr.sizeof_float * self.fac_size, self.msgq, True)
 
         self.connect(s2p, self.one_in_n, fac, c2mag,  fac_fac, fac_c2mag, self.avg, log, sink)
 

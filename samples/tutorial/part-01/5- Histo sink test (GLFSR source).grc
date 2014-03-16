@@ -80,7 +80,7 @@
     </param>
   </block>
   <block>
-    <key>gr_unpacked_to_packed_xx</key>
+    <key>blocks_unpacked_to_packed_xx</key>
     <param>
       <key>id</key>
       <value>gr_unpacked_to_packed_xx_0</value>
@@ -115,7 +115,7 @@
     </param>
   </block>
   <block>
-    <key>const_source_x</key>
+    <key>analog_const_source_x</key>
     <param>
       <key>id</key>
       <value>const_source_x_0</value>
@@ -165,7 +165,7 @@
     </param>
   </block>
   <block>
-    <key>gr_char_to_float</key>
+    <key>blocks_char_to_float</key>
     <param>
       <key>id</key>
       <value>gr_char_to_float_0</value>
@@ -184,7 +184,7 @@
     </param>
   </block>
   <block>
-    <key>gr_uchar_to_float</key>
+    <key>blocks_uchar_to_float</key>
     <param>
       <key>id</key>
       <value>gr_uchar_to_float_0</value>
@@ -203,7 +203,7 @@
     </param>
   </block>
   <block>
-    <key>gr_multiply_const_vxx</key>
+    <key>blocks_multiply_const_vxx</key>
     <param>
       <key>id</key>
       <value>gr_multiply_const_vxx_0</value>
@@ -234,7 +234,7 @@
     </param>
   </block>
   <block>
-    <key>gr_throttle</key>
+    <key>blocks_throttle</key>
     <param>
       <key>id</key>
       <value>gr_throttle_0</value>
@@ -375,7 +375,7 @@
     </param>
   </block>
   <block>
-    <key>gr_glfsr_source_x</key>
+    <key>digital_glfsr_source_x</key>
     <param>
       <key>id</key>
       <value>gr_glfsr_source_x_0</value>

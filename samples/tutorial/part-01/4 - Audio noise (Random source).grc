@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='ASCII'?>
 <flow_graph>
-  <timestamp>Fri Jun  1 18:31:48 2012</timestamp>
+  <timestamp>Sun Mar 16 10:26:32 2014</timestamp>
   <block>
     <key>options</key>
     <param>
@@ -42,6 +42,10 @@
     <param>
       <key>run</key>
       <value>True</value>
+    </param>
+    <param>
+      <key>max_nouts</key>
+      <value>0</value>
     </param>
     <param>
       <key>realtime_scheduling</key>
@@ -114,43 +118,12 @@
       <value></value>
     </param>
     <param>
-      <key>_coordinate</key>
-      <value>(546, 406)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>audio_sink</key>
-    <param>
-      <key>id</key>
-      <value>audio_sink_0</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>48000</value>
-    </param>
-    <param>
-      <key>device_name</key>
+      <key>affinity</key>
       <value></value>
     </param>
     <param>
-      <key>ok_to_block</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>num_inputs</key>
-      <value>1</value>
-    </param>
-    <param>
       <key>_coordinate</key>
-      <value>(546, 88)</value>
+      <value>(581, 536)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -216,8 +189,59 @@
       <value></value>
     </param>
     <param>
+      <key>trig_mode</key>
+      <value>wxgui.TRIG_MODE_AUTO</value>
+    </param>
+    <param>
+      <key>y_axis_label</key>
+      <value>Counts</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
-      <value>(546, 177)</value>
+      <value>(562, 201)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>audio_sink</key>
+    <param>
+      <key>id</key>
+      <value>audio_sink_0</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>48000</value>
+    </param>
+    <param>
+      <key>device_name</key>
+      <value></value>
+    </param>
+    <param>
+      <key>ok_to_block</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>num_inputs</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(608, 152)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -256,7 +280,7 @@
     </param>
     <param>
       <key>fac_rate</key>
-      <value>facsink.default_fac_rate</value>
+      <value>20</value>
     </param>
     <param>
       <key>y_per_div</key>
@@ -291,8 +315,12 @@
       <value></value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
-      <value>(546, 262)</value>
+      <value>(548, 306)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -300,7 +328,7 @@
     </param>
   </block>
   <block>
-    <key>gr_short_to_float</key>
+    <key>blocks_short_to_float</key>
     <param>
       <key>id</key>
       <value>gr_short_to_float_0</value>
@@ -308,6 +336,26 @@
     <param>
       <key>_enabled</key>
       <value>False</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>scale</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -319,7 +367,7 @@
     </param>
   </block>
   <block>
-    <key>random_source_x</key>
+    <key>analog_random_source_x</key>
     <param>
       <key>id</key>
       <value>random_source_x_0</value>
@@ -349,6 +397,18 @@
       <value>True</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(158, 64)</value>
     </param>
@@ -358,7 +418,7 @@
     </param>
   </block>
   <block>
-    <key>gr_noise_source_x</key>
+    <key>analog_noise_source_x</key>
     <param>
       <key>id</key>
       <value>gr_noise_source_x_0</value>
@@ -373,7 +433,7 @@
     </param>
     <param>
       <key>noise_type</key>
-      <value>gr.GR_GAUSSIAN</value>
+      <value>analog.GR_GAUSSIAN</value>
     </param>
     <param>
       <key>amp</key>
@@ -382,6 +442,18 @@
     <param>
       <key>seed</key>
       <value>42</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -435,14 +507,14 @@
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>random_source_x_0</source_block_id>
-    <sink_block_id>gr_short_to_float_0</sink_block_id>
+    <source_block_id>gr_noise_source_x_0</source_block_id>
+    <sink_block_id>audio_sink_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_noise_source_x_0</source_block_id>
-    <sink_block_id>audio_sink_0</sink_block_id>
+    <source_block_id>random_source_x_0</source_block_id>
+    <sink_block_id>gr_short_to_float_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
