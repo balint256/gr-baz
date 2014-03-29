@@ -491,7 +491,7 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef #ifdef ARMADILLO_FOUND
+#ifdef ARMADILLO_FOUND
 
 GR_SWIG_BLOCK_MAGIC(baz,music_doa)
 
