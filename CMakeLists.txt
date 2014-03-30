@@ -110,7 +110,7 @@ endif()
 include(GrPlatform) #define LIB_SUFFIX
 set(GR_RUNTIME_DIR      bin)
 set(GR_LIBRARY_DIR      lib${LIB_SUFFIX})
-set(GR_INCLUDE_DIR      include)
+set(GR_INCLUDE_DIR      include)	# In future make this include/baz
 set(GR_DATA_DIR         share)
 set(GR_PKG_DATA_DIR     ${GR_DATA_DIR}/${CMAKE_PROJECT_NAME})
 set(GR_DOC_DIR          ${GR_DATA_DIR}/doc)
@@ -127,7 +127,8 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 if(ENABLE_GR_BAZ)
     set(GNURADIO_RUNTIME_LIBRARIES gnuradio-runtime)
 else()
-    find_package(GnuradioRuntime)
+	set(GR_REQUIRED_COMPONENTS RUNTIME)	# Decide what is needed
+    #find_package(GnuradioRuntime)	# No longer required
     find_package(Gnuradio)
 
     if(NOT GNURADIO_RUNTIME_FOUND)
