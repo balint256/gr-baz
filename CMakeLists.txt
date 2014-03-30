@@ -127,7 +127,7 @@ set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
 if(ENABLE_GR_BAZ)
     set(GNURADIO_RUNTIME_LIBRARIES gnuradio-runtime)
 else()
-	set(GR_REQUIRED_COMPONENTS RUNTIME)	# Decide what is needed
+	set(GR_REQUIRED_COMPONENTS RUNTIME BLOCKS)	# Decide what is needed
     #find_package(GnuradioRuntime)	# No longer required
     find_package(Gnuradio)
 
