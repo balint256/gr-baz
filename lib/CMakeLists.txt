@@ -36,6 +36,8 @@ SET(baz_headers
 	baz_non_blocker.h
 	baz_time_keeper.h
 	baz_burster.h
+	baz_radar_detector.h
+	baz_fastrak_decoder.h
 )
 
 if (LIBUSB_FOUND)
@@ -77,6 +79,8 @@ SET(baz_sources
 	baz_tag_to_msg.cc
 	baz_time_keeper.cc
 	baz_burster.cc
+	baz_radar_detector.cc
+	baz_fastrak_decoder.cc
 )
 
 if (LIBUSB_FOUND)

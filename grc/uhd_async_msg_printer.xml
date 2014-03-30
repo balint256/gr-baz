@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<block>
+	<name>UHD: Async Msg Printer</name>
+	<key>uhd_async_msg_printer</key>
+	<category>UHD</category>
+	<import>from gnuradio import gr</import>
+	<import>from gnuradio import gru</import>
+	<import>from gnuradio import uhd</import>
+	<var_make></var_make>
+	<make>#slurp
+self._$(id)_enabled = $enable
+def _$(id)_async_callback(msg):
+	src = self.$src()
+	md = src.msg_to_async_metadata_t(msg)
+	if self._$(id)_enabled:
+		print "Channel: %i\tTime: %f\tEvent: %i" % (md.channel, md.time_spec.get_real_secs(), md.event_code)
+self.$(id)_async_rcv = gru.msgq_runner($(id)_msgq_in, $(id)_async_callback)
+</make>
+
+	<callback>self._$(id)_enabled = $enable</callback>
+
+	<param>
+		<name>Enable</name>
+		<key>enable</key>
+		<value>True</value>
+		<type>raw</type>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+	
+	<param>
+		<name>Source ID</name>
+		<key>src</key>
+		<value></value>
+		<type>string</type>
+	</param>
+	
+	<check>len($src) &gt; 0</check>
+	
+	<sink>
+		<name>msg</name>
+		<type>msg</type>
+	</sink>
+	
+	<doc>Prints UHD async messages.</doc>
+</block>

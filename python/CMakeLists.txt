@@ -36,6 +36,7 @@ GR_PYTHON_INSTALL(
 	eye.py
 	auto_fec.py
 	op25.py
+	op25_traffic_pane.py
 	message_callback.py
 	borip_server.py
 	std_flusher.py
@@ -55,7 +56,10 @@ GR_PYTHON_INSTALL(
 	doa_compass_plotter.py
 	doa_compass_control.py
 	baudline.py
-	op25_traffic_pane.py
+	message_server.py
+	radar_server.py
+	colours.py
+	static_text.py
 
     DESTINATION ${GR_PYTHON_DIR}/baz
 )

@@ -25,6 +25,7 @@ import threading
 #import SocketServer
 
 from gnuradio import gr, gru
+import baz
 
 if sys.modules.has_key('gnuradio.usrp'):
 	usrp =  sys.modules['gnuradio.usrp']
@@ -428,7 +429,7 @@ class remote_usrp(gr.hier_block2):
 		if self.udp_source is None:
 			assert self.vec2stream is None and self.ishort2complex is None
 			udp_interface = "0.0.0.0"	# MAGIC
-			self.udp_source = gr.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size, True, True, True)
+			self.udp_source = baz.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size, True, True, True)
 			#print "--> UDP Source listening on port:", udp_port, "interface:", udp_interface, "MTU:", self._packet_size
 			self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
 			self.ishort2complex = gr.interleaved_short_to_complex()

@@ -18,7 +18,7 @@
 #end if
 	, msg_part="$msg_part", custom_parts=$custom_parts,#slurp
 #end if
-	dummy=$dummy#slurp
+	dummy=$dummy, consume_dummy=$consume_dummy, print_stdout=$print_stdout#slurp
 )
 	</make>
 
@@ -35,6 +35,38 @@
 	    <value>False</value>
 	    <type>bool</type>
 	    <hide>#if str($dummy) == 'False' then 'part' else 'none'#</hide>
+	    <option>
+		    <name>Yes</name>
+		    <key>True</key>
+	    </option>
+	    <option>
+		    <name>No</name>
+		    <key>False</key>
+	    </option>
+	</param>
+	
+	<param>
+	    <name>Dummy Consume</name>
+	    <key>consume_dummy</key>
+	    <value>False</value>
+	    <type>bool</type>
+	    <hide>#if str($consume_dummy) == 'False' then 'part' else 'none'#</hide>
+	    <option>
+		    <name>Yes</name>
+		    <key>True</key>
+	    </option>
+	    <option>
+		    <name>No</name>
+		    <key>False</key>
+	    </option>
+	</param>
+	
+	<param>
+	    <name>Print</name>
+	    <key>print_stdout</key>
+	    <value>False</value>
+	    <type>bool</type>
+	    <hide>#if str($print_stdout) == 'False' then 'part' else 'none'#</hide>
 	    <option>
 		    <name>Yes</name>
 		    <key>True</key>

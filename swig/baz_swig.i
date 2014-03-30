@@ -38,6 +38,8 @@
 #include "baz_tag_to_msg.h"
 #include "baz_time_keeper.h"
 #include "baz_burster.h"
+#include "baz_radar_detector.h"
+#include "baz_fastrak_decoder.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -679,6 +681,38 @@ private:
 	baz_burster (const baz_burster_config& config);  	// private constructor
 public:
 	//
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,radar_detector)
+
+baz_radar_detector_sptr baz_make_radar_detector (int sample_rate, gr::msg_queue::sptr msgq);
+
+class baz_radar_detector : public gr_block
+{
+	baz_radar_detector (int sample_rate, gr_msg_queue_sptr msgq);  	// private constructor
+public:
+	void set_base_level(float level);
+	void set_threshold(float threshold);
+	void set_pulse_plateau(float level);
+	bool set_param(const std::string& param, float value);
+	void skip(int skip);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,fastrak_decoder)
+
+baz_fastrak_decoder_sptr baz_make_fastrak_decoder (int sample_rate);
+
+class baz_fastrak_decoder : public gr_block
+{
+	baz_fastrak_decoder (int sample_rate);  	// private constructor
+public:
+	void set_sync_threshold(float threshold);
+	unsigned int last_id_count(bool reset = false);
+	/*std::string*/unsigned int last_id() const;
 };
 
 #endif // GR_BAZ_WITH_CMAKE

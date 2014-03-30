@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<block>
+	<name>Any Code</name>
+	<!-- Must begin with 'variable' -->
+	<key>variable_any_code</key>
+	<category>Misc</category>
+	<import>from gnuradio import gr</import>
+	<!-- Must have 'value' variable -->
+	<var_make>self.$(id) = $(id) = $value</var_make>
+	<make>#slurp
+if not hasattr(self, '_post_any_code_evaluators'):
+	self._post_any_code_evaluators = []
+	self.wxEVT_AnyCode = wxEVT_AnyCode = wx.NewEventType()
+	##class DataEvent(wx.PyEvent):
+	##	def __init__(self, data):
+	##		wx.PyEvent.__init__(self)
+	##		self.SetEventType(wxEVT_AnyCode)
+	##		self.data = data
+	def _run_evaluators(event):
+		##_post_any_code_evaluators = event.data
+		_post_any_code_evaluators = self._post_any_code_evaluators
+		if len(_post_any_code_evaluators) > 0:
+			##print "Running post-evaluators..."
+			for id, evaluator in _post_any_code_evaluators:
+				try:
+					##print "Running evaluator for '%s'" % (id)
+					evaluator()
+				except Exception, e:
+					print "Exception while running Any Code evaluator for '%s':" % (id), e
+			del  _post_any_code_evaluators[0:len(_post_any_code_evaluators)]
+		##else:
+		##	print "No post-evaluators to run"
+	self._run_evaluators = _run_evaluators
+	self.GetWin().Connect(-1, -1, wxEVT_AnyCode, _run_evaluators)
+	def _run_evaluators_later(evaluator=None):
+		if evaluator is not None:
+			self._post_any_code_evaluators += [evaluator]
+		try:
+			de = wx.PyEvent()
+			de.SetEventType(wxEVT_AnyCode)
+			wx.PostEvent(self.GetWin(), de)
+		except TypeError: ## On shutdown
+			pass
+	self._run_evaluators_later = _run_evaluators_later
+	_run_evaluators_later()
+	##print "Posted post-evaluators message"
+def __post_evalutate_$(id)():
+	##if not hasattr(self, '_post_any_code_evaluators'):
+	##	self._post_any_code_evaluators = []
+	self._post_any_code_evaluators += [('$(id)', lambda: self._evalutate_$(id)(**$deps))]
+	##print "Added '$(id)' to post-evaluation list:", e
+def __evalutate_$(id)(*args, **kwds):
+	try:
+#if $injection() == 'variable'
+		self.$(id) = $code()
+#elif $injection() == 'plain'
+		$code()
+#end if
+		self.set_$(id)(self.$(id))
+	## If this is proper AttributeError (e.g. typo) this will lead to an infinite loop)
+	except AttributeError, e:
+		print e
+		__post_evalutate_$(id)()
+	except Exception, e:
+		print "Exception while evaluating $(id):", e
+self._evalutate_$(id) = __evalutate_$(id)
+self.__post_evalutate_$(id) = __post_evalutate_$(id)
+#if $first_eval() == 'inline'
+self._evalutate_$(id)(**$deps)
+$(id) = self.$(id)
+#elif $first_eval() == 'post'
+self.__post_evalutate_$(id)()
+#end if
+##if not hasattr(self, '_post_any_code_evaluators'):
+##	self._post_any_code_evaluators = []
+##self._post_any_code_evaluators += [('$(id)', lambda: self._evalutate_$(id)(**$deps))]
+##self.GetWin().Bind(wx.EVT_WINDOW_CREATE, lambda e: self._evalutate_$(id)(**$deps))
+</make>
+	
+	<!--<callback>self._evalutate_$(id)(**$deps)</callback>-->
+	<!--<callback>self._run_evaluators_later(('$(id)', lambda: self._evalutate_$(id)(**$deps)))</callback>-->
+	<callback>#slurp
+#if $callback_mode() == 'inline'
+self._evalutate_$(id)(**$deps)
+#elif $callback_mode() == 'post'
+self._run_evaluators_later(('$(id)', lambda: self._evalutate_$(id)(**$deps)))
+#end if</callback>
+	
+	<!--
+	<param>
+		<name>Import</name>
+		<key>block_import</key>
+		<type>raw</type>
+	</param>
+	-->
+	<param>
+		<name>Var deps</name>
+		<key>deps</key>
+		<value>{}</value>
+		<type>raw</type>
+	</param>
+	
+	<param>
+		<name>Code</name>
+		<key>code</key>
+		<value></value>
+		<type>string</type>
+	</param>
+	
+	<param>
+		<name>Default</name>
+		<key>value</key>
+		<value>None</value>
+		<type>raw</type>
+	</param>
+	
+	<param>
+		<name>Injection</name>
+		<key>injection</key>
+		<value>variable</value>
+		<type>enum</type>
+		<hide>part</hide>
+		<option>
+			<name>Assign to variable</name>
+			<key>variable</key>
+		</option>
+		<option>
+			<name>Plain</name>
+			<key>plain</key>
+		</option>
+	</param>
+	
+	<param>
+		<name>First evaluation</name>
+		<key>first_eval</key>
+		<value>inline</value>
+		<type>enum</type>
+		<hide>part</hide>
+		<option>
+			<name>Inline</name>
+			<key>inline</key>
+		</option>
+		<option>
+			<name>Post</name>
+			<key>post</key>
+		</option>
+		<option>
+			<name>None</name>
+			<key>none</key>
+		</option>
+	</param>
+	
+	<param>
+		<name>Callback mode</name>
+		<key>callback_mode</key>
+		<value>post</value>
+		<type>enum</type>
+		<hide>part</hide>
+		<option>
+			<name>Inline</name>
+			<key>inline</key>
+		</option>
+		<option>
+			<name>Post</name>
+			<key>post</key>
+		</option>
+		<option>
+			<name>None</name>
+			<key>none</key>
+		</option>
+	</param>
+	<!--
+	<param>
+		<name>Down-stream deps</name>
+		<key>down_stream_deps</key>
+		<value>{}</value>
+		<type>raw</type>
+	</param>
+	-->
+<!-- Must come before sink/source -->
+	<check>len("$code()") &gt; 0</check>
+	
+	<doc>Inject arbitrary code.
+Add GRC Variable names to the 'Var deps' map to make the code fire when those variables change.
+NOTE: Remember to use 'self.' before variables in the code line, so that the up-to-date value is used (not the initial one).
+The code can use 'args' (tuple) and 'kwds' (map) as the local variable to extract arguments if necessary.
+</doc>
+</block>

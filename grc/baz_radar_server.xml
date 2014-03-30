@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##RADAR Server
+###################################################
+ -->
+<block>
+	<name>RADAR Server</name>
+	<key>baz_radar_server</key>
+	<category>Networking Tools</category>
+	<import>from baz import radar_server</import>
+
+	<make>radar_server.radar_server(fg=self, msgq=$(id)_msgq_in, queue_size=$queue_size, port=$port,#slurp
+#if len($detector()) &gt; 0
+detector=self.$detector()
+#end if
+)</make>
+
+	<!--<callback></callback>-->
+
+	<param>
+		<name>Port</name>
+		<key>port</key>
+		<value>5256</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Queue Size</name>
+		<key>queue_size</key>
+		<value>2048</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Detector</name>
+		<key>detector</key>
+		<value></value>
+		<type>string</type>
+	</param>
+
+	<sink>
+		<name>in</name>
+		<type>msg</type>
+	</sink>
+
+	<doc>RADAR server</doc>
+</block>
+

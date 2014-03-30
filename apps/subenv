@@ -45,6 +45,6 @@ fi
 export SUBENV="$MODULE"
 
 # Start the new session
-bash -i
+$SHELL -i
 
 echo "Exiting $BASE_PATH"

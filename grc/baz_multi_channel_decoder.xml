@@ -19,6 +19,7 @@
 		decoder=$decoder,
 		#decoder_args=$decoder_args,
 		params=$params,
+		per_freq_params=$per_freq_params,
 		$decoder_args())</make>
 	
 	<callback>set_baseband_freq($baseband_freq)</callback>
@@ -58,6 +59,14 @@
 		<name>Parameters</name>
 		<key>params</key>
 		<value>None</value>
+		<type>raw</type>
+		<hide>part</hide>
+	</param>
+	
+	<param>
+		<name>Per-freq Params</name>
+		<key>per_freq_params</key>
+		<value>{}</value>
 		<type>raw</type>
 		<hide>part</hide>
 	</param>

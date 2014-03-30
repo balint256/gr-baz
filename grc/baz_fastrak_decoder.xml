@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##FasTrak Decoder
+###################################################
+ -->
+<block>
+	<name>FasTrak Decoder</name>
+	<key>baz_fastrak_decoder</key>
+	<category>FasTrak</category>
+	<import>import baz</import>
+
+	<make>baz.fastrak_decoder(sample_rate=$sample_rate)
+self.$(id).set_sync_threshold($sync_threshold)
+</make>
+
+	<!--<callback>set_sample_rate($sample_rate)</callback>-->
+	<callback>set_sync_threshold($sync_threshold)</callback>
+
+	<param>
+		<name>Sample Rate</name>
+		<key>sample_rate</key>
+		<value>samp_rate</value>
+		<type>int</type>
+	</param>
+	
+	<param>
+		<name>Sync Threshold</name>
+		<key>sync_threshold</key>
+		<value>0.8</value>
+		<type>real</type>
+	</param>
+<!--
+	<param>
+		<name>Skip Samples</name>
+		<key>skip</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $skip() == 0 then 'part' else 'none'#</hide>
+	</param>
+-->
+	<sink>
+		<name>in</name>
+		<type>float</type>
+	</sink>
+
+	<sink>
+		<name>sync</name>
+		<type>float</type>
+		<!--<optional>1</optional>-->
+	</sink>
+	
+	<source>
+		<name>out</name>
+		<type>float</type>
+		<optional>1</optional>
+	</source>
+
+	<source>
+		<name>samp</name>
+		<type>float</type>
+		<optional>1</optional>
+	</source>
+<!--
+	<source>
+		<name>msg</name>
+		<type>msg</type>
+		<optional>1</optional>
+	</source>
+-->
+	<doc>FasTrak tag decoder</doc>
+</block>

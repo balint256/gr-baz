@@ -26,11 +26,13 @@ import gnuradio.gr.gr_threading as _threading
 import struct, datetime, time, traceback, itertools
 
 class fsm(_threading.Thread):
-	def __init__(self, msgq, callback=None):
+	def __init__(self, msgq, callback=None, sink=None, baseband_freq=0):
 		_threading.Thread.__init__(self)
 		self.setDaemon(1)
 		self.msgq = msgq
 		self.callback = callback
+		self.sink = sink
+		self.baseband_freq = baseband_freq
 		self.keep_running = True
 		#self.unmuted = False
 		self.active_freq = None
@@ -67,14 +69,20 @@ class fsm(_threading.Thread):
 				#print src_id, key, val, appended
 				
 				if val == 'unmuted':
-					#print "[", self.active_freq, "]", src_id, key, val, appended
+					print "[", self.active_freq, "]", src_id, key, val, appended
+					colour = (0.,0.,0.)
 					if self.active_freq == None:
-						print "Unmuted at", freq_offset
+						print "Unmuted at", self.baseband_freq+freq_offset
 						#self.unmuted = True
 						self.active_freq = freq_offset
 						self.callback(freq_offset)
+						colour = (0.0,0.8,0.0)
+					if self.sink is not None:
+						self.sink.set_line({'id':freq_offset,'type':'v','offset':self.baseband_freq+freq_offset,'action':True,'colour':colour})
 				elif val == 'muted':
-					#print "[", self.active_freq, "]", src_id, key, val, appended
+					if self.sink is not None:
+						self.sink.set_line({'id':freq_offset,'action':False})
+					print "[", self.active_freq, "]", src_id, key, val, appended
 					if self.active_freq == freq_offset:
 						print "Muted."
 						self.active_freq = None

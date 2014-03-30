@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<block>
+	<name>Any Code Post-Evaluator</name>
+	<key>variable_any_code_post_eval</key>
+	<category>Misc</category>
+	<import>from gnuradio import gr</import>
+	<!--<var_make>self.$(id) = $(id) = None</var_make>-->
+	<make>wxEVT_$(id) = wx.NewEventType()
+##class DataEvent(wx.PyEvent):
+##	def __init__(self, data):
+##		wx.PyEvent.__init__(self)
+##		self.SetEventType (wxEVT_$(id))
+##		self.data = data
+de = wx.PyEvent()
+de.SetEventType(wxEVT_$(id))
+if not hasattr(self, '_post_any_code_evaluators'):
+	self._post_any_code_evaluators = []
+def _run_evaluators(event):
+	if not hasattr(self, '_post_any_code_evaluators'):
+		print "No post-evaluators to run"
+		return
+	print "Running post-evaluators..."
+	for id, evaluator in self._post_any_code_evaluators:
+		try:
+			print "Running evaluator for '%s'" % (id)
+			evaluator()
+		except Exception, e:
+			print "Exception while running Any Code evaluator for '%s':" % (id), e
+self.GetWin().Connect(-1, -1, wxEVT_$(id), _run_evaluators)
+##de = DataEvent (self._post_any_code_evaluators)
+print "Posted post-evaluators message"
+wx.PostEvent(self.GetWin(), de)
+</make>
+	
+	<doc>Run the Any Code evaluators after initialisation.</doc>
+</block>

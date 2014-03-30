@@ -63,7 +63,7 @@ class missile_launcher:
 		print "==> Resetting turret..."
 		self.calibrating = True
 		self.set_elevation(-90.0, False, -5.0)
-		self.set_azimuth(350.0, False, 151) # MAGIC # Calc'd: 141.1
+		self.set_azimuth(350.0, False, 151-7) # MAGIC # Calc'd: 141.1
 		#self.set_azimuth(-350.0, False, -139.7)
 		self.set_elevation(0.0)
 		self.set_azimuth(0.0, from_limit=True)

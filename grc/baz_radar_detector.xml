@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##RADAR Detector
+###################################################
+ -->
+<block>
+	<name>RADAR Detector</name>
+	<key>baz_radar_detector</key>
+	<category>Misc</category>
+	<import>import baz</import>
+
+	<make>baz.radar_detector(sample_rate=$sample_rate, msgq=$(id)_msgq_out)
+self.$(id).set_base_level($base_level)
+self.$(id).set_threshold($threshold)
+self.$(id).set_pulse_plateau($pulse_plateau)
+self.$(id).skip($skip)
+</make>
+
+	<callback>set_base_level($base_level)</callback>
+	<callback>set_threshold($threshold)</callback>
+	<callback>set_pulse_plateau($pulse_plateau)</callback>
+	<callback>skip($skip)</callback>
+
+	<param>
+		<name>Sample Rate</name>
+		<key>sample_rate</key>
+		<value>samp_rate</value>
+		<type>int</type>
+	</param>
+
+	<param>
+		<name>Skip Samples</name>
+		<key>skip</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>#if $skip() == 0 then 'part' else 'none'#</hide>
+	</param>
+
+	<param>
+		<name>Threshold (dB)</name>
+		<key>threshold</key>
+		<value>3.0</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Pulse Plateau (dB)</name>
+		<key>pulse_plateau</key>
+		<value>3.0</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Manual Base Level</name>
+		<key>base_level</key>
+		<value>0.0</value>
+		<type>real</type>
+		<hide>#if $base_level() &lt;= 0 then 'part' else 'none'#</hide>
+	</param>
+
+	<sink>
+		<name>in</name>
+		<type>float</type>
+	</sink>
+
+	<sink>
+		<name>lvl</name>
+		<type>float</type>
+		<optional>1</optional>
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>float</type>
+		<optional>1</optional>
+	</source>
+
+	<source>
+		<name>msg</name>
+		<type>msg</type>
+		<!--<optional>1</optional>-->
+	</source>
+
+	<doc>RADAR burst detector</doc>
+</block>
+

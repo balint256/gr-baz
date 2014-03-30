@@ -61,6 +61,14 @@ SET(baz_blocks
 	missile_launcher.xml
 	doa_compass.xml
 	baudline.xml
+	baz_message_server.xml
+	baz_radar_server.xml
+	baz_radar_detector.xml
+	baz_any_code.xml
+	baz_any_code_post_eval.xml
+	uhd_async_msg_printer.xml
+	baz_fastrak_decoder.xml
+	baz_static_text.xml
 )
 
 if (LIBUSB_FOUND)

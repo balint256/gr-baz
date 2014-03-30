@@ -31,21 +31,6 @@ try:
 except:
     pass
 
-# Reference code
-#class decode_watcher(threading.Thread):
-#    def __init__(self, msgq, traffic_pane, **kwds):
-#        threading.Thread.__init__ (self, **kwds)
-#        self.setDaemon(1)
-#        self.msgq = msgq
-#        self.keep_running = True
-#        self.start()
-#    def run(self):
-#        while(self.keep_running):
-#            msg = self.msgq.delete_head()
-#            pickled_dict = msg.to_string()
-#            attrs = pickle.loads(pickled_dict)
-#            #update(attrs)
-
 SYMBOL_DEVIATION = 600
 SYMBOL_RATE = 4800
 

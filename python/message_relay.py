@@ -42,11 +42,11 @@ class queue_watcher(threading.Thread):
 					break
 				try:
 					if self.tx_msgq:
-						#self.tx_msgq.insert_tail(msg)
-						if self.tx_msgq.full_p():
-							print "==> Dropping message!"
-						else:
-							self.tx_msgq.handle(msg)
+						self.tx_msgq.insert_tail(msg)
+						#if self.tx_msgq.full_p():
+						#	print "==> Dropping message!"
+						#else:
+						#	self.tx_msgq.handle(msg)
 						#print "==> Message relay forwarded message"
 				except:
 					pass

@@ -12,7 +12,7 @@
 	<import>from baz import time_panel</import>
 
 	<make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
-time_panel.time_panel_sink($(parent).GetWin(), $item_size, $samp_rate, $rate, $relative, $mode)
+time_panel.time_panel_sink($(parent).GetWin(), $item_size, $samp_rate, $rate, $relative, '$mode')
 #if not $grid_pos()
 $(parent).Add(self.$(id).win)
 #else

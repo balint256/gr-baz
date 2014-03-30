@@ -28,7 +28,22 @@ def tune(u, unit, subdev, freq):
 	return u.tune(unit, subdev, freq)
 
 class tune_result:
-	pass
+	def __init__(self, baseband_freq=0, actual_rf_freq=0, dxc_freq=0, residual_freq=0, inverted=False):
+		self.baseband_freq = baseband_freq
+		self.actual_rf_freq = actual_rf_freq
+		self.dxc_freq = dxc_freq
+		self.residual_freq = residual_freq
+		self.inverted = inverted
+
+class usrp_tune_result(tune_result):
+	def __init__(self, baseband=None, dxc=None, residual=None, **kwds):
+		tune_result.__init__(self, **kwds)
+		if baseband is not None:
+			self.baseband_freq = self.baseband = baseband
+		if dxc is not None:
+			self.dxc_freq = self.dxc = dxc
+		if residual is not None:
+			self.residual_freq = self.residual = residual
 
 def pick_subdev(u, candidates=[]):
     return u.pick_subdev(candidates)
@@ -231,11 +246,10 @@ class device(gr.hier_block2):
 		self._tune_result = self._uhd_device.set_center_freq(freq, 0)
 		#print "[UHD]", freq, "=", self._tune_result
 		#return self._tune_result	# usrp.usrp_tune_result
-		tr = tune_result()
-		tr.baseband_freq = self._tune_result.actual_rf_freq
-		tr.dxc_freq = self._tune_result.actual_dsp_freq
-		tr.residual_freq = (freq - tr.baseband_freq - tr.dxc_freq)
-		tr.inverted = False
+		tr = tune_result(
+			baseband_freq = self._tune_result.actual_rf_freq,
+			dxc_freq = self._tune_result.actual_dsp_freq,
+			residual_freq = (freq - self._tune_result.actual_rf_freq - self._tune_result.actual_dsp_freq))
 		return tr
 	
 	def tune(self, unit, subdev, freq):

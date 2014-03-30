@@ -27,7 +27,7 @@ from gnuradio import gr, gru
 from baz import message_relay
 
 class multi_channel_decoder(gr.hier_block2):
-	def __init__(self, msgq, baseband_freq, frequencies, decoder, decoder_args=None, params={}, **kwargs):
+	def __init__(self, msgq, baseband_freq, frequencies, decoder, decoder_args=None, params={}, per_freq_params={}, **kwargs):
 		gr.hier_block2.__init__(self, "multi_channel_decoder",
 			gr.io_signature(1, 1, gr.sizeof_gr_complex),
 			gr.io_signature(0, 0, 0))
@@ -37,6 +37,7 @@ class multi_channel_decoder(gr.hier_block2):
 		self.decoder_args = decoder_args or ""
 		self.params = params
 		self.kwargs = kwargs
+		self.per_freq_params = per_freq_params
 		
 		self.decoders = []
 		self.decoders_unused = []
@@ -60,7 +61,15 @@ class multi_channel_decoder(gr.hier_block2):
 			#factory_eval_str = "decoder_factory(baseband_freq=%s,freq=%f,%s)" % (self.baseband_freq, f, self.decoder_args)
 			for f in create:
 				#d = eval(factory_eval_str)
-				d = decoder_factory(baseband_freq=self.baseband_freq, freq=f, **self.kwargs)
+				combined_args = self.kwargs
+				combined_args['baseband_freq'] = self.baseband_freq
+				combined_args['freq'] = f
+				if f in self.per_freq_params:
+					for k in self.per_freq_params[f].keys():
+						combined_args[k] = self.per_freq_params[f][k]
+				print "==> Creating decoder:", decoder_factory, "with", combined_args
+				#d = decoder_factory(baseband_freq=self.baseband_freq, freq=f, **combined_args)
+				d = decoder_factory(**combined_args)
 				d._msgq_relay = message_relay.message_relay(self.msgq, d.msg_out.msgq())
 				self.connect(self, d)
 				self.decoders += [d]
@@ -81,7 +90,7 @@ class multi_channel_decoder(gr.hier_block2):
 	
 	def update_parameters(self, params):
 		for k in params:
-			if k not in self.params or self.params[k] != params[k]:
+			if k not in self.params or self.params[k] != params[k]:	# Only update those that don't exist yet or have changed
 				print "Updating parameter:", k, params[k]
 				for decoder in self.decoders:
 					try:
