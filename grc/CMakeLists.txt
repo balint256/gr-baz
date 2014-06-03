@@ -69,6 +69,8 @@ SET(baz_blocks
 	uhd_async_msg_printer.xml
 	baz_fastrak_decoder.xml
 	baz_static_text.xml
+
+	baz_xmlrpc_server.xml
 )
 
 if (LIBUSB_FOUND)

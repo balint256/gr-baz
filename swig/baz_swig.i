@@ -40,6 +40,8 @@
 #include "baz_burster.h"
 #include "baz_radar_detector.h"
 #include "baz_fastrak_decoder.h"
+#include "baz_overlap.h"
+#include "baz_manchester_decode_bb.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -480,12 +482,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,gate)
 
-baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false);
+baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true);
 
 class baz_gate : public gr::sync_block
 {
 private:
-  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay);  	// private constructor
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose);  	// private constructor
 public:
   void set_blocking(bool enable);
   void set_threshold(float threshold);
@@ -713,6 +715,27 @@ public:
 	void set_sync_threshold(float threshold);
 	unsigned int last_id_count(bool reset = false);
 	/*std::string*/unsigned int last_id() const;
+};
+
+GR_SWIG_BLOCK_MAGIC(baz,overlap)
+
+baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap, int samp_rate);
+
+class baz_overlap : public gr::block
+{
+	baz_overlap (int item_size, int vlen, int overlap, int samp_rate);  	// private constructor
+public:
+	void set_overlap(int overlap);
+};
+
+GR_SWIG_BLOCK_MAGIC(baz,manchester_decode_bb)
+
+baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window);
+
+class baz_manchester_decode_bb : public gr::block
+{
+  baz_manchester_decode_bb (bool original, int threshold, int window);  	// private constructor
+public:
 };
 
 #endif // GR_BAZ_WITH_CMAKE

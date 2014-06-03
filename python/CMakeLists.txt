@@ -61,6 +61,8 @@ GR_PYTHON_INSTALL(
 	colours.py
 	static_text.py
 
+	introspective_xmlrpc_server.py
+
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 

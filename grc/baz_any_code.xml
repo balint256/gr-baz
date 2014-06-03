@@ -31,7 +31,10 @@ if not hasattr(self, '_post_any_code_evaluators'):
 		##else:
 		##	print "No post-evaluators to run"
 	self._run_evaluators = _run_evaluators
-	self.GetWin().Connect(-1, -1, wxEVT_AnyCode, _run_evaluators)
+	try:
+		self.GetWin().Connect(-1, -1, wxEVT_AnyCode, _run_evaluators)
+	except:
+		pass	# FIXME
 	def _run_evaluators_later(evaluator=None):
 		if evaluator is not None:
 			self._post_any_code_evaluators += [evaluator]
@@ -41,6 +44,8 @@ if not hasattr(self, '_post_any_code_evaluators'):
 			wx.PostEvent(self.GetWin(), de)
 		except TypeError: ## On shutdown
 			pass
+		except AttributeError:	# FIXME
+			print "Cannot post message"
 	self._run_evaluators_later = _run_evaluators_later
 	_run_evaluators_later()
 	##print "Posted post-evaluators message"

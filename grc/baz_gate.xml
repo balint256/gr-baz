@@ -5,7 +5,7 @@
     <category>Misc</category>
     <import>from gnuradio import gr</import>
     <import>import baz</import>
-    <make>baz.gate($(type.size), $block, $threshold, $trigger_length, $tag, $delay, $sample_rate, $no_delay)</make>
+    <make>baz.gate($(type.size), $block, $threshold, $trigger_length, $tag, $delay, $sample_rate, $no_delay, $verbose)</make>
 
     <callback>set_blocking($block)</callback>
     <callback>set_threshold($threshold)</callback>
@@ -123,6 +123,22 @@
 		<value>samp_rate</value>
 		<type>int</type>
   </param>
+  
+	<param>
+		<name>Verbose</name>
+		<key>verbose</key>
+		<value>True</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
 
 <!-- Must come before sink/source -->
   <!--<check></check>-->
@@ -142,10 +158,22 @@
     <type>$type</type>
     <optional>1</optional>
   </sink>
+  
+  <sink>
+    <name>thru</name>
+    <type>$type</type>
+    <optional>1</optional>
+  </sink>
 
   <source>
     <name>out</name>
     <type>$type</type>
+  </source>
+  
+  <source>
+    <name>thru</name>
+    <type>$type</type>
+    <optional>1</optional>
   </source>
 
     <doc></doc>

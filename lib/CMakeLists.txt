@@ -38,6 +38,8 @@ SET(baz_headers
 	baz_burster.h
 	baz_radar_detector.h
 	baz_fastrak_decoder.h
+	baz_overlap.h
+	baz_manchester_decode_bb.h
 )
 
 if (LIBUSB_FOUND)
@@ -81,6 +83,8 @@ SET(baz_sources
 	baz_burster.cc
 	baz_radar_detector.cc
 	baz_fastrak_decoder.cc
+	baz_overlap.cc
+	baz_manchester_decode_bb.cc
 )
 
 if (LIBUSB_FOUND)

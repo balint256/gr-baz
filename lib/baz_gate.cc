@@ -46,24 +46,24 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_gate_sptr
-baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, int trigger_length /*= 0*/, bool tag /*= false*/, double delay /*= 0.0*/, int sample_rate /*= 0*/, bool no_delay /*= false*/)
+baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, int trigger_length /*= 0*/, bool tag /*= false*/, double delay /*= 0.0*/, int sample_rate /*= 0*/, bool no_delay /*= false*/, bool verbose /*= true*/)
 {
-  return baz_gate_sptr (new baz_gate (item_size, block, threshold, trigger_length, tag, delay, sample_rate, no_delay));
+  return baz_gate_sptr (new baz_gate (item_size, block, threshold, trigger_length, tag, delay, sample_rate, no_delay, verbose));
 }
 
 /*
  * The private constructor
  */
-baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay)
+baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose)
   : gr::block ("gate",
-		   gr::io_signature::make3 (2, 3, item_size, sizeof(/*char*/float), item_size),
-		   gr::io_signature::make (1, 1, item_size))
+		   gr::io_signature::make3 (2, 4, item_size, sizeof(/*char*/float), item_size),
+		   gr::io_signature::make2 (1, 2, item_size, item_size))
   , d_item_size(item_size), d_threshold(threshold), d_trigger_length(trigger_length), d_block(block), d_tag(tag), d_delay(delay), d_sample_rate(sample_rate), d_no_delay(no_delay)
-  , d_trigger_count(0), d_time_offset(-1), d_in_burst(false), d_output_index(0)
+  , d_trigger_count(0), d_time_offset(-1), d_in_burst(false), d_output_index(0), d_verbose(verbose)
 {
   memset(&d_last_time, 0x00, sizeof(uhd::time_spec_t));
 
-  fprintf(stderr, "[%s<%i>] Threshold: %.1f, length: %d, item size: %d, blocking: %s, tag: %s, delay: %.6f, sample rate: %d, no delay: %s\n", name().c_str(), unique_id(), threshold, trigger_length, item_size, (block ? "yes" : "no"), (tag ? "yes" : "no"), delay, sample_rate, (no_delay ? "yes" : "no"));
+  fprintf(stderr, "[%s<%i>] Threshold: %.1f, length: %d, item size: %d, blocking: %s, tag: %s, delay: %.6f, sample rate: %d, no delay: %s, verbose: %s\n", name().c_str(), unique_id(), threshold, trigger_length, item_size, (block ? "yes" : "no"), (tag ? "yes" : "no"), delay, sample_rate, (no_delay ? "yes" : "no"), (verbose ? "yes" : "no"));
 }
 
 /*
@@ -142,6 +142,12 @@ baz_gate::general_work (int noutput_items, gr_vector_int &ninput_items,
   const char *in = (char*)input_items[0];
   const float *level = (float*)input_items[1];
   char *out = (char*)output_items[0];
+  const char* thru = NULL;
+  if (input_items.size() >= 4)
+    thru = (const char*)input_items[3];
+  char* thru_out = NULL;
+  if (output_items.size() >= 2)
+    thru_out = (char*)output_items[1];
 /*
 for (int k = 0; k < min(10,ninput_items[0]); ++k) {
     gr_complex* c = (gr_complex*)(in + d_item_size * k);
@@ -149,7 +155,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 }*/
 
   int tag_channel = ((ninput_items.size() >= 3) ? 2 : 1);
-  const uint64_t nread = nitems_read(tag_channel); //number of items read on port 0
+  const uint64_t nread = nitems_read(tag_channel);
   std::vector<gr::tag_t> tags;
 
   int tag_index_offset = 0;
@@ -200,7 +206,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
         --d_trigger_count;
 
       if ((d_trigger_count == 0) && (level[i] >= d_threshold)) { // 'else' to avoid double trigger and offset in incoming repeating vector
-        fprintf(stderr, "[%s<%i>] Triggered: %.1f, current count: %d\n", name().c_str(), unique_id(), level[i], d_trigger_count);
+        if (d_verbose) fprintf(stderr, "[%s<%i>] Triggered: %.1f, current count: %d\n", name().c_str(), unique_id(), level[i], d_trigger_count);
         d_trigger_count = (d_trigger_length - 1);
 /*
         uhd::tx_metadata_t md;
@@ -236,11 +242,15 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
           d_in_burst = false;
         }
       }
+
 if (d_in_burst == false) {
     gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
     //fprintf(stderr, ">>> #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
 }
-      memcpy(out + (j * d_item_size), in + (noutput * d_item_size), d_item_size);
+
+      memcpy(out + (j * d_item_size), in + (/*noutput*/i * d_item_size), d_item_size);
+      if (thru && thru_out)
+        memcpy(thru_out + (j * d_item_size), thru + (/*noutput*/i * d_item_size), d_item_size);
 
         j++;
       ++noutput;
@@ -254,13 +264,15 @@ if (d_in_burst == false) {
       }
       else if (d_in_burst == false && _first) {
           gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
-          fprintf(stderr, "!!! #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
+//          fprintf(stderr, "!!! #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
       }
       if ((d_in_burst == false) && was_in_burst && _first)
         _first = false;
     }
     else if (d_block == false) {
       memset(out + (j * d_item_size), 0x00, d_item_size);
+      if (thru_out)
+        memset(thru_out + (j * d_item_size), 0x00, d_item_size);
       j++;
     }
   }
@@ -270,10 +282,12 @@ if (d_in_burst == false) {
     fprintf(stderr, "[%s] noutput items: %d, gate control input items: %d\n", name().c_str(), noutput_items, ninput_items[1]);
   }*/
 
-  consume(0, noutput);
+  consume(0, /*noutput*/noutput_items);
   consume(1, noutput_items);
   if (ninput_items.size() >= 3)
     consume(2, noutput_items);
+  if (thru != NULL)
+    consume(3, noutput_items);
 
   return j;
 }
