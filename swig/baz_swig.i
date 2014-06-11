@@ -730,11 +730,11 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,manchester_decode_bb)
 
-baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window);
+baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose = false);
 
 class baz_manchester_decode_bb : public gr::block
 {
-  baz_manchester_decode_bb (bool original, int threshold, int window);  	// private constructor
+  baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose);  	// private constructor
 public:
 };
 

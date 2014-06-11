@@ -45,9 +45,9 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_manchester_decode_bb_sptr 
-baz_make_manchester_decode_bb (bool original, int threshold, int window)
+baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose /*= false*/)
 {
-  return baz_manchester_decode_bb_sptr (new baz_manchester_decode_bb (original, threshold, window));
+  return baz_manchester_decode_bb_sptr (new baz_manchester_decode_bb (original, threshold, window, verbose));
 }
 
 /*
@@ -67,11 +67,11 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_manchester_decode_bb::baz_manchester_decode_bb (bool original, int threshold, int window)
+baz_manchester_decode_bb::baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose)
   : gr::block ("manchester_decode_bb",
 		   gr::io_signature::make (MIN_IN, MAX_IN, sizeof (char)),
 		   gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char)))
-  , d_original(original), d_threshold(threshold), d_window(window)
+  , d_original(original), d_threshold(threshold), d_window(window), d_verbose(verbose)
   , d_current_window(0), d_violation_count(0), d_offset(0)
 {
 	fprintf(stderr, "[%s<%i>] original: %s, threshold: %d, window: %d\n", name().c_str(), unique_id(), (original ? "yes" : "no"), threshold, window);
@@ -129,9 +129,12 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 			
 			d_violation_history.push_back(true);
 			
-			//fprintf(stderr, "[%s<%i>] violation (%d %d)\n", name().c_str(), unique_id(), (int)first, (int)second);
-			fprintf(stderr, " ! ");
-			fflush(stderr);
+			if (d_verbose)
+			{
+				//fprintf(stderr, "[%s<%i>] violation (%d %d)\n", name().c_str(), unique_id(), (int)first, (int)second);
+				fprintf(stderr, " ! ");
+				fflush(stderr);
+			}
 		}
 		else
 		{
@@ -142,8 +145,11 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 			
 			out[noutput++] = (bit ? 0x01 : 0x00);
 			
-			fprintf(stderr, "%d", (int)bit);
-			fflush(stderr);
+			if (d_verbose)
+			{
+				fprintf(stderr, "%d", (int)bit);
+				fflush(stderr);
+			}
 		}
 		
 		if (d_violation_history.size() == d_window)
@@ -161,8 +167,11 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 				
 				--i;	// Rewind and re-use previous this bit as first of next pair
 				
-				fprintf(stderr, "\n");
-				fprintf(stderr, "[%s<%i>] violation threshold exceeded\n", name().c_str(), unique_id());
+				if (d_verbose)
+				{
+					fprintf(stderr, "\n");
+					fprintf(stderr, "[%s<%i>] violation threshold exceeded\n", name().c_str(), unique_id());
+				}
 			}
 		}
 		

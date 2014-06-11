@@ -53,7 +53,7 @@ typedef boost::shared_ptr<baz_manchester_decode_bb> baz_manchester_decode_bb_spt
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window);
+BAZ_API baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose = false);
 
 /*!
  * \brief square2 a stream of floats.
@@ -67,11 +67,11 @@ private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend BAZ_API baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window);
+  friend BAZ_API baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose);
 
-  baz_manchester_decode_bb (bool original, int threshold, int window);  	// private constructor
+  baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose);  	// private constructor
   
-  bool d_original;
+  bool d_original, d_verbose;
   int d_threshold, d_window;
   int d_current_window, d_violation_count;
   int d_offset;
