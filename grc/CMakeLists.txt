@@ -71,6 +71,8 @@ SET(baz_blocks
 	baz_static_text.xml
 
 	baz_xmlrpc_server.xml
+	baz_tcp_source.xml
+	baz_tcp_sink.xml
 )
 
 if (LIBUSB_FOUND)

@@ -40,6 +40,10 @@ SET(baz_headers
 	baz_fastrak_decoder.h
 	baz_overlap.h
 	baz_manchester_decode_bb.h
+	baz_sweep.h
+	baz_merge.h
+	baz_tcp_sink.h
+	baz_tcp_source.h
 )
 
 if (LIBUSB_FOUND)
@@ -85,6 +89,10 @@ SET(baz_sources
 	baz_fastrak_decoder.cc
 	baz_overlap.cc
 	baz_manchester_decode_bb.cc
+	baz_sweep.cc
+	baz_merge.cc
+	baz_tcp_sink.cc
+	baz_tcp_source.cc
 )
 
 if (LIBUSB_FOUND)

@@ -106,8 +106,8 @@ void baz_sweep::sweep(float freq, float rate /*= -1.0f*/, bool is_duration /*= f
 		rate = std::abs(freq - d_last_output) / rate;
 	}
 	
-	if (rate == 0.0)
-		return;
+	//if (rate == 0.0)
+	//	return;
 	
 	fprintf(stderr, "[%s<%i>] beginning sweep to %f at %f\n", name().c_str(), unique_id(), freq, rate);
 	
@@ -124,6 +124,17 @@ void baz_sweep::sweep(float freq, float rate /*= -1.0f*/, bool is_duration /*= f
 		fprintf(stderr, "[%s<%i>] sweep already in progress (to %f at %f while asking for %s at %s\n", name().c_str(), unique_id(), d_target, d_sweep_rate, freq, rate);
 		
 		d_sweep_done.notify_all();
+		
+		d_sweep_rate = 0.0;
+	}
+	
+	if (rate == 0.0)
+	{
+		fprintf(stderr, "[%s<%i>] jumped to %f\n", name().c_str(), unique_id(), freq);
+		
+		d_last_output = freq;
+		
+		return;
 	}
 	
 	d_start_freq = d_last_output;

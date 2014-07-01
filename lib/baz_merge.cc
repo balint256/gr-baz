@@ -37,6 +37,8 @@
 #include <baz_merge.h>
 #include <gnuradio/io_signature.h>
 
+#include <gnuradio/blocks/pdu.h>
+
 #include <boost/format.hpp>
 
 #include <stdio.h>
@@ -156,7 +158,16 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 			{
 				memcpy(out, (const char *)input_items[d_selected_input], to_copy * item_size);
 				
-				pmt::pmt_t msg = pmt::string_to_symbol("flush");
+				pmt::pmt_t msg_flush = pmt::string_to_symbol("flush");
+				
+				pmt::pmt_t msg_dict = pmt::make_dict();
+				msg_dict = dict_add(msg_dict, msg_flush, pmt::PMT_T);
+
+				//pmt::pmt_t pdu_vector = gr::blocks::pdu::make_pdu_vector(gr::blocks::pdu::byte_t, (const uint8_t*)"", 0);
+				pmt::pmt_t pdu_vector = pmt::init_u8vector(1, (const uint8_t*)"");
+
+				pmt::pmt_t msg = pmt::cons(msg_dict, pdu_vector);
+				
 				message_port_pub(msg_output_ids[d_selected_input - 1], msg);
 			}
 			
@@ -179,7 +190,14 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 		}
 		else
 		{
-			fprintf(stderr, "[%s<%i>] no samples for burst %llu on sample %llu\n", name().c_str(), unique_id(), d_total_burst_count, nread);
+			if (d_ignore_current)
+			{
+				fprintf(stderr, "[%s<%i>] no samples for burst %llu on sample %llu\n", name().c_str(), unique_id(), d_total_burst_count, nread);
+				
+				d_selected_input = 0;
+				d_ignore_current = false;
+				d_items_to_copy = 0;
+			}
 			
 			return 0;	// Waiting for more samples to arrive on selected input
 		}
@@ -253,7 +271,7 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 					break;
 				}
 				
-				//fprintf(stderr, "[%s<%i>] beginning burst %llu of length %d at sample %llu on input %d (ignoring: %s)\n", name().c_str(), unique_id(), d_total_burst_count, d_items_to_copy, nread, d_selected_input, (d_ignore_current ? "yes" : "no"));
+				fprintf(stderr, "[%s<%i>] beginning burst %llu of length %d at sample %llu on input %d (ignoring: %s)\n", name().c_str(), unique_id(), d_total_burst_count, d_items_to_copy, nread, d_selected_input, (d_ignore_current ? "yes" : "no"));
 				
 				return 0;
 			}

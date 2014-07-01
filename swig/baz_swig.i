@@ -42,6 +42,10 @@
 #include "baz_fastrak_decoder.h"
 #include "baz_overlap.h"
 #include "baz_manchester_decode_bb.h"
+#include "baz_sweep.h"
+#include "baz_merge.h"
+#include "baz_tcp_sink.h"
+#include "baz_tcp_source.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -717,6 +721,8 @@ public:
 	/*std::string*/unsigned int last_id() const;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
 GR_SWIG_BLOCK_MAGIC(baz,overlap)
 
 baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap, int samp_rate);
@@ -728,6 +734,8 @@ public:
 	void set_overlap(int overlap);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
 GR_SWIG_BLOCK_MAGIC(baz,manchester_decode_bb)
 
 baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose = false);
@@ -738,4 +746,67 @@ class baz_manchester_decode_bb : public gr::block
 public:
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,sweep)
+
+baz_sweep_sptr baz_make_sweep (float samp_rate, float sweep_rate = 0.0, bool is_duration = false);
+
+class baz_sweep : public gr::sync_block
+{
+	baz_sweep (float samp_rate, float sweep_rate, bool is_duration);
+public:
+	void sweep(float freq, float rate = -1.0f, bool is_duration = false, bool block = false);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,merge)
+
+baz_merge_sptr baz_make_merge (int item_size, float samp_rate, int additional_streams = 1, bool drop_residual = true, const char* length_tag = "length", const char* ignore_tag = "ignore");
+
+class baz_merge : public gr::block
+{
+	baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag);  	// private constructor
+public:
+	void set_start_time(double time);
+	void set_start_time(uint64_t whole, double frac);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,tcp_sink);
+
+baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking = true, bool verbose = false) throw (std::runtime_error);
+
+class baz_tcp_sink : public gr::sync_block
+{
+protected:
+	baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool verbose) throw (std::runtime_error);
+public:
+	~baz_tcp_sink ();
+
+	void connect( const char *host, unsigned short port );
+	void disconnect();
+	void set_status_msgq(gr::msg_queue::sptr queue);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,tcp_source);
+
+baz_tcp_source_sptr baz_make_tcp_source (size_t itemsize, const char *host, unsigned short port, int buffer_size = 0, bool verbose = false) throw (std::runtime_error);
+
+class baz_tcp_source : public gr::sync_block
+{
+protected:
+	baz_tcp_source (size_t itemsize, const char *host, unsigned short port, int buffer_size = 0, bool verbose = false) throw (std::runtime_error);
+public:
+	~baz_tcp_source ();
+
+	int get_port();
+	void signal_eos();
+};
+
 #endif // GR_BAZ_WITH_CMAKE
+

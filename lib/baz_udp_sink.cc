@@ -475,6 +475,15 @@ void UDP_SINK_NAME::disconnect()
 
   gr::thread::scoped_lock guard(d_mutex);  // protect d_socket from work()
 
+  if ((d_bor) && (d_bor_first == false)) {
+    BOR_PACKET_HEADER end_packet;
+    memset(&end_packet, 0x00, sizeof(end_packet));
+    end_packet.flags = BF_STREAM_END | BF_EMPTY_PAYLOAD;
+    end_packet.idx = d_bor_counter++;
+    
+    send(d_socket, (char*)&end_packet, sizeof(end_packet), 0);
+  }
+
   // Send a few zero-length packets to signal receiver we are done
   if(d_eof) {
     int i;

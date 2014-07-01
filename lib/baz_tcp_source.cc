@@ -538,7 +538,7 @@ int baz_tcp_source::work (int noutput_items, gr_vector_const_void_star &input_it
 		else if (r == 0)
 		{
 //fprintf(stderr, "!"); fflush(stderr);
-			fprintf(stderr, "[%s<%i>] recv returned 0 - disconnecting client\n", name().c_str(), unique_id(), 
+			fprintf(stderr, "[%s<%i>] recv returned 0 - disconnecting client\n", name().c_str(), unique_id());
 			
 			disconnect_client();
 			
