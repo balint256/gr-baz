@@ -777,16 +777,16 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,tcp_sink);
 
-baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking = true, bool verbose = false) throw (std::runtime_error);
+baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking = true, bool auto_reconnect = false, bool verbose = false) throw (std::runtime_error);
 
 class baz_tcp_sink : public gr::sync_block
 {
 protected:
-	baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool verbose) throw (std::runtime_error);
+	baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool auto_reconnect, bool verbose) throw (std::runtime_error);
 public:
 	~baz_tcp_sink ();
 
-	void connect( const char *host, unsigned short port );
+	bool connect( const char *host, unsigned short port );
 	void disconnect();
 	void set_status_msgq(gr::msg_queue::sptr queue);
 };

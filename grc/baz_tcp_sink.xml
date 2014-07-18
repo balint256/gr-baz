@@ -13,6 +13,7 @@
 	host=$addr,
 	port=$port,
 	blocking=$blocking,
+	auto_reconnect=$auto_reconnect,
 	verbose=$verbose,
 ##	server=$server,
 )</make>
@@ -73,6 +74,21 @@
 		</option>
 		<option>
 			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
+	<param>
+		<name>Auto-reconnect</name>
+		<key>auto_reconnect</key>
+		<value>False</value>
+		<type>enum</type>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
 			<key>False</key>
 		</option>
 	</param>

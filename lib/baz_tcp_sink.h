@@ -33,7 +33,7 @@
 class BAZ_API baz_tcp_sink;
 typedef boost::shared_ptr<baz_tcp_sink> baz_tcp_sink_sptr;
 
-BAZ_API baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking = true, bool verbose = false);
+BAZ_API baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking = true, bool auto_reconnect = false, bool verbose = false);
 
 /*!
  * \brief Write stream to an TCP socket.
@@ -48,7 +48,7 @@ BAZ_API baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, 
 class BAZ_API baz_tcp_sink : public gr::sync_block
 {
 private:
-	friend BAZ_API baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool verbose);
+	friend BAZ_API baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool auto_reconnect, bool verbose);
 	size_t d_itemsize;
 
 	int d_socket;          // handle to socket
@@ -56,7 +56,10 @@ private:
 	gr::thread::mutex d_mutex;           // protects d_socket and d_connected
 	gr::msg_queue::sptr d_status_queue;
 	bool d_blocking;
+	bool d_auto_reconnect;
 	bool d_verbose;
+	std::string d_last_host;
+	unsigned short d_last_port;
 
 protected:
   /*!
@@ -67,11 +70,12 @@ protected:
    *                     NULL or None for no connection
    * \param port         Destination port to connect to on receiving host
    */
-	baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool verbose);
+	baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool auto_reconnect, bool verbose);
   
 	bool create();
 	void allocate();
 	void destroy();
+	void _disconnect();
 
 public:
 	~baz_tcp_sink ();
@@ -84,7 +88,7 @@ public:
    *
    * Calls disconnect() to terminate any current connection first.
    */
-	void connect( const char *host, unsigned short port );
+	bool connect( const char *host, unsigned short port );
 
   /*! \brief Send zero-length packet (if eof is requested) then stop sending
    *

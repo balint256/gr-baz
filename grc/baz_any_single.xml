@@ -8,7 +8,8 @@
 #if $block_import
 import $block_import
 #endif</import>-->
-    <make>$block_maker()</make>
+    <make>$block_maker()
+self.connect(self.$(id))</make>
     <!--
 	<param>
 		<name>Import</name>

@@ -145,7 +145,7 @@ static void report_error( const char *msg1, const char *msg2 )
 		throw std::runtime_error(msg2);
 }
 
-baz_tcp_sink::baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool verbose)
+baz_tcp_sink::baz_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool auto_reconnect, bool verbose)
 	: gr::sync_block ("tcp_sink",
 		gr::io_signature::make (1, 1, itemsize),
 		gr::io_signature::make (0, 0, 0))
@@ -153,7 +153,10 @@ baz_tcp_sink::baz_tcp_sink (size_t itemsize, const char *host, unsigned short po
 	, d_socket(-1)
 	, d_connected(false)
 	, d_blocking(blocking)
+	, d_auto_reconnect(auto_reconnect)
 	, d_verbose(verbose)
+	, d_last_host(host)
+	, d_last_port(port)
 {
 #if defined(USING_WINSOCK) // for Windows (with MinGW)
 	// initialize winsock DLL
@@ -164,7 +167,7 @@ baz_tcp_sink::baz_tcp_sink (size_t itemsize, const char *host, unsigned short po
 	}
 #endif
 
-	create();
+	//create();
 
 	// Get the destination address
 	connect(host, port);
@@ -229,8 +232,8 @@ bool baz_tcp_sink::create()
 
 void baz_tcp_sink::destroy()
 {
-	if (d_connected)
-		disconnect();
+	//if (d_connected)
+	//	disconnect();
 
 	if (d_socket != -1) {
 		shutdown(d_socket, SHUT_RDWR);
@@ -247,14 +250,15 @@ void baz_tcp_sink::destroy()
 
 // public constructor that returns a shared_ptr
 
-baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool verbose)
+baz_tcp_sink_sptr baz_make_tcp_sink (size_t itemsize, const char *host, unsigned short port, bool blocking, bool auto_reconnect, bool verbose)
 {
-	return gnuradio::get_initial_sptr(new baz_tcp_sink (itemsize, host, port, blocking, verbose));
+	return gnuradio::get_initial_sptr(new baz_tcp_sink (itemsize, host, port, blocking, auto_reconnect, verbose));
 }
 
 baz_tcp_sink::~baz_tcp_sink ()
 {
-	destroy();
+	//destroy();
+	disconnect();
 
 #if defined(USING_WINSOCK) // for Windows (with MinGW)
 	// free winsock resources
@@ -290,7 +294,18 @@ int baz_tcp_sink::work (int noutput_items, gr_vector_const_void_star &input_item
 
 	if (d_connected == false)
 	{
-		return (d_blocking ? 0 : noutput_items);
+		if (d_auto_reconnect == false)
+			return -1;
+		
+		//if (d_verbose)
+			fprintf(stderr, "[TCP Sink \"%s (%ld)\"] Attemping re-connect: %s:%d\n", name().c_str(), unique_id(), d_last_host.c_str(), d_last_port);
+		
+		if (connect(d_last_host.c_str(), d_last_port) == false)
+		{
+			boost::this_thread::sleep(boost::posix_time::milliseconds(/*d_sleep_duration*/100));	// MAGIC
+		
+			return (d_blocking ? 0 : noutput_items);	// FIXME: 'connect' will block anyway - was meant for non-blocking re-connect
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////
@@ -343,7 +358,12 @@ int baz_tcp_sink::work (int noutput_items, gr_vector_const_void_star &input_item
 			if (r == -1)
 			{
 				report_error("tcp_sink/tags", NULL);
-				return -1;
+				
+				if (d_verbose) fprintf(stderr, "[TCP Sink \"%s (%ld)\"] Disconnecting...\n", name().c_str(), unique_id());
+				
+				_disconnect();
+				
+				return 0;
 			}
 			
 			if (next_offset != -1)
@@ -366,7 +386,10 @@ int baz_tcp_sink::work (int noutput_items, gr_vector_const_void_star &input_item
 		else*/
 		{
 			report_error("tcp_sink/data", NULL);	// there should be no error case where this function should not exit immediately
-			return -1;	// FIXME: return 0 and attempt re-connect
+			
+			_disconnect();
+			
+			return 0;
 		}
 	}
 /*
@@ -381,15 +404,18 @@ int baz_tcp_sink::work (int noutput_items, gr_vector_const_void_star &input_item
 	return to_copy;
 }
 
-void baz_tcp_sink::connect( const char *host, unsigned short port )
+bool baz_tcp_sink::connect( const char *host, unsigned short port )
 {
 	if (d_connected)
 		disconnect();
 
+	if (create() == false)
+		return false;
+
 retry_connect:
 
 	if ((host == NULL) || (host[0] == '\0'))
-		return;
+		return false;
 	
 	// Get the destination address
 	struct addrinfo *ip_dst;
@@ -408,7 +434,9 @@ retry_connect:
 		
 		char error_msg[1024];
 		snprintf(error_msg, sizeof(error_msg), "[TCP Sink \"%s (%ld)\"] getaddrinfo(%s:%d) - %s\n", name().c_str(), unique_id(), host, port, gai_strerror(ret));
-		report_error(/*"baz_tcp_sink/getaddrinfo"*/error_msg, /*"can't initialize destination socket"*/error_msg);
+		report_error(/*"baz_tcp_sink/getaddrinfo"*/error_msg, /*"can't initialize destination socket"*/(d_auto_reconnect ? NULL : error_msg));
+		
+		return false;	// For 'd_auto_reconnect'
 	}
 
 	bool first = true;
@@ -428,10 +456,14 @@ retry_connect:
 			goto retry_connect;
 		}
 		
-		report_error("socket connect", "can't connect to socket");
+		report_error("socket connect", (d_auto_reconnect ? NULL : "can't connect to socket"));
+		
+		return false;	// For 'd_auto_reconnect'
 	}
 
 	d_connected = true;
+	d_last_host = host;
+	d_last_port = port;
 
 	if (ip_dst) {
 		freeaddrinfo(ip_dst);
@@ -439,9 +471,18 @@ retry_connect:
 	}
 
 	fprintf(stderr, "[TCP Sink \"%s (%ld)\"] Connected: %s:%d\n", name().c_str(), unique_id(), host, port);
+	
+	return true;
 }
 
 void baz_tcp_sink::disconnect()
+{
+	gr::thread::scoped_lock guard(d_mutex);  // protect d_socket from work()
+
+	_disconnect();
+}
+
+void baz_tcp_sink::_disconnect()
 {
 	if (!d_connected)
 		return;
@@ -449,8 +490,6 @@ void baz_tcp_sink::disconnect()
 #if SNK_VERBOSE
 	printf("baz_tcp_sink disconnecting\n");
 #endif
-
-	gr::thread::scoped_lock guard(d_mutex);  // protect d_socket from work()
 
 	BOR_PACKET_HEADER end_packet;
 	memset(&end_packet, 0x00, sizeof(end_packet));
@@ -500,4 +539,6 @@ void baz_tcp_sink::disconnect()
 	//fprintf(stderr, "[TCP Sink \"%s\"] Disconnected\n", name().c_str());
 
 	d_connected = false;
+	
+	destroy();
 }

@@ -64,7 +64,7 @@ def __evalutate_$(id)(*args, **kwds):
 		self.set_$(id)(self.$(id))
 	## If this is proper AttributeError (e.g. typo) this will lead to an infinite loop)
 	except AttributeError, e:
-		print e
+		print "AttributeError while evaulating $(id):", e
 		__post_evalutate_$(id)()
 	except Exception, e:
 		print "Exception while evaluating $(id):", e
