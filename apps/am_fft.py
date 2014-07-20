@@ -22,7 +22,7 @@
 
 # usrp_fft.py modified for AM by Balint Seeber (http://wiki.spench.net/wiki/gr-baz)
 
-from gnuradio import gr, gru
+from gnuradio import gr, gru, blocks
 from gnuradio import usrp
 from gnuradio import eng_notation
 from gnuradio.eng_option import eng_option
@@ -126,7 +126,8 @@ class app_top_block(stdgui2.std_top_block):
             self.scope = fftsink2.fft_sink_f (panel, fft_size=options.fft_size, sample_rate=input_rate, 
                 ref_scale=options.ref_scale, ref_level=0.0, y_divs = 10, avg_alpha=options.avg_alpha)
 
-        self.MAG = gr.complex_to_mag()	# AM
+        try: self.MAG = blocks.complex_to_mag()	# AM
+        except: self.MAG = gr.complex_to_mag()
         self.connect(self.u, self.MAG, self.scope)
 
         self._build_gui(vbox)

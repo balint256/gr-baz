@@ -198,7 +198,8 @@ class device(gr.hier_block2):
 			if self._args[0]:
 				scale = 1.0 / scale
 			#print "Scaling by", self._scale
-			self._multiplier = external_port = gr.multiply_const_vcc((scale,))
+			try: self._multiplier = external_port = blocks.multiply_const_vcc((scale,))
+			except: self._multiplier = external_port = gr.multiply_const_vcc((scale,))
 			if self._args[0]:
 				self.connect(self, self._multiplier)
 			else:
