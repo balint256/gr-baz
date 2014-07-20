@@ -149,16 +149,6 @@ class device(gr.hier_block2):
 		
 		# FIXME: 'which'
 		
-		if ((subdev_spec is not None) and (not isinstance(subdev_spec, str))) or (isinstance(subdev_spec, str) and (subdev_spec != "")):
-			if isinstance(subdev_spec, str) == False:
-				if isinstance(subdev_spec, tuple):
-					if len(subdev_spec) > 1:
-						subdev_spec = "%s:%s" % (chr(ord('A') + subdev_spec[0]), subdev_spec[1])
-					else:
-						subdev_spec = chr(ord('A') + subdev_spec[0])
-				else:
-					raise Exception, "Unknown sub-device specification: " + str(subdev_spec)
-		
 		stream_args = uhd.stream_args(
 			cpu_format=self._args[1],
 			channels=range(1),
@@ -174,6 +164,24 @@ class device(gr.hier_block2):
 				device_addr=address,
 				stream_args=stream_args,
 			)
+		
+		if ((subdev_spec is not None) and (not isinstance(subdev_spec, str))) or (isinstance(subdev_spec, str) and (subdev_spec != "")):
+			if isinstance(subdev_spec, str) == False:
+				if isinstance(subdev_spec, tuple):
+					if len(subdev_spec) > 1:
+						default_subdev_spec = self._uhd_device.get_subdev_spec()
+						idx = default_subdev_spec.find(':')
+						if idx > -1:
+							try:
+								int(default_subdev_spec[idx+1:])
+							except:
+								subdev_spec = "%s:%s" % (chr(ord('A') + subdev_spec[0]), chr(ord('A') + subdev_spec[1]))
+						if isinstance(subdev_spec, str) == False:
+							subdev_spec = "%s:%s" % (chr(ord('A') + subdev_spec[0]), subdev_spec[1])
+					else:
+						subdev_spec = chr(ord('A') + subdev_spec[0])
+				else:
+					raise Exception, "Unknown sub-device specification: " + str(subdev_spec)
 		
 		if subdev_spec is not None:
 			self._uhd_device.set_subdev_spec(subdev_spec, 0)
