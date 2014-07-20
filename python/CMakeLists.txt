@@ -62,6 +62,7 @@ GR_PYTHON_INSTALL(
 	static_text.py
 
 	introspective_xmlrpc_server.py
+	usrp.py
 
     DESTINATION ${GR_PYTHON_DIR}/baz
 )

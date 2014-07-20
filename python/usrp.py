@@ -193,7 +193,7 @@ class device(gr.hier_block2):
 		
 		external_port = self
 		self._multiplier = None
-		if self._scale != 1.0:
+		if self._args[1] != "sc16" and self._scale != 1.0:
 			scale = self._scale
 			if self._args[0]:
 				scale = 1.0 / scale
@@ -209,13 +209,19 @@ class device(gr.hier_block2):
 		
 		if self._args[0]:
 			if self._args[1] == "sc16":
-				self._s2v = blocks.stream_to_vector(gr.sizeof_short, 2)
+				try:
+					self._s2v = blocks.stream_to_vector(gr.sizeof_short, 2)
+				except:
+					self._s2v = gr.stream_to_vector(gr.sizeof_short, 2)
 				self.connect(external_port, self._s2v, self._uhd_device)
 			else:
 				self.connect(external_port, self._uhd_device)
 		else:
 			if self._args[1] == "sc16":
-				self._v2s = gr.vector_to_stream(gr.sizeof_short, 2)
+				try:
+					self._v2s = blocks.vector_to_stream(gr.sizeof_short, 2)
+				except:
+					self._v2s = gr.vector_to_stream(gr.sizeof_short, 2)
 				self.connect(self._uhd_device, self._v2s, external_port)
 			else:
 				self.connect(self._uhd_device, external_port)

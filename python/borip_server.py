@@ -431,7 +431,7 @@ class GnuRadioDevice(Device, NetworkTransport):
             try:
                 gr = GainRange(_gr[0], _gr[1])
                 if len(_gr) > 2:
-				    gr.step = _gr[2]
+                    gr.step = _gr[2]
                 return gr
             except:
                 pass
@@ -946,7 +946,7 @@ class ThreadedTCPRequestHandler(SocketServer.StreamRequestHandler): # BaseReques
             
             elif command == "DEVICE":
                 error = ""
-                if (self.server.options.lock == False) and (len(data) > 0):
+                if (self.server.options.lock == False) and data is not None and (len(data) > 0):
                     self.close_device()
                     
                     if data != "!":

@@ -24,13 +24,18 @@ import socket
 import threading
 #import SocketServer
 
-from gnuradio import gr, gru
+from gnuradio import gr, gru, blocks
+
 import baz
 
+usrp = None
 if sys.modules.has_key('gnuradio.usrp'):
 	usrp =  sys.modules['gnuradio.usrp']
 else:
-	from gnuradio import usrp
+	try:
+		from gnuradio import usrp	# Will work if libusrp is installed, or symlink exists to local usrp.py
+	except:
+		import usrp
 
 _default_port = 28888
 _reconnect_interval = 5
@@ -412,6 +417,8 @@ class remote_usrp(gr.hier_block2):
 						else:
 							raise Exception, "Unknown sub-device specification: " + str(subdev_spec)
 					hint += " " + subdev_spec
+				if len(hint) == 0:
+					hint = "-"	# Create default
 				self._send("DEVICE", hint)
 			
 			self._created = True
@@ -431,8 +438,10 @@ class remote_usrp(gr.hier_block2):
 			udp_interface = "0.0.0.0"	# MAGIC
 			self.udp_source = baz.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size, True, True, True)
 			#print "--> UDP Source listening on port:", udp_port, "interface:", udp_interface, "MTU:", self._packet_size
-			self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
-			self.ishort2complex = gr.interleaved_short_to_complex()
+			try: self.vec2stream = blocks.vector_to_stream(gr.sizeof_short * 1, 2)
+			except: self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
+			try: self.ishort2complex = blocks.interleaved_short_to_complex()
+			except: self.ishort2complex = gr.interleaved_short_to_complex()
 		
 			self.connect(self.udp_source, self.vec2stream, self.ishort2complex, self)
 		else:
