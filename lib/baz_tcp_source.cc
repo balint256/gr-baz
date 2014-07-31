@@ -178,7 +178,7 @@ baz_tcp_source::baz_tcp_source(size_t itemsize, const char *host, unsigned short
 	if (buffer_size <= 0)
 		buffer_size = DEFAULT_BUFFER_SIZE;
 	
-	fprintf(stderr, "[%s<%i>] item size: %d, host: %s, port: %hd, buffer size: %d, verbose: %s\n", name().c_str(), unique_id(), itemsize, host, port, buffer_size, (verbose ? "yes" : "no"));
+	fprintf(stderr, "[%s<%i>] item size: %d, host: %s, port: %hu, buffer size: %d, verbose: %s\n", name().c_str(), unique_id(), itemsize, host, port, buffer_size, (verbose ? "yes" : "no"));
 	
 	int ret = 0;
 

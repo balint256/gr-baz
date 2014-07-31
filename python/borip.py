@@ -128,6 +128,7 @@ class remote_usrp(gr.hier_block2):
 		self.udp_source = None
 		self.vec2stream = None
 		self.ishort2complex = None
+		self.multiply_const = None
 		
 		self._last_address = None
 		self._last_which = None
@@ -442,8 +443,11 @@ class remote_usrp(gr.hier_block2):
 			except: self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
 			try: self.ishort2complex = blocks.interleaved_short_to_complex()
 			except: self.ishort2complex = gr.interleaved_short_to_complex()
+			mul_factor = 1./2**15
+			try: self.multiply_const = blocks.multiply_const_cc(mul_factor)
+			except: self.multiply_const = gr.multiply_const_cc(mul_factor)
 		
-			self.connect(self.udp_source, self.vec2stream, self.ishort2complex, self)
+			self.connect(self.udp_source, self.vec2stream, self.ishort2complex, self.multiply_const, self)
 		else:
 			assert self.vec2stream is not None and self.ishort2complex is not None
 		

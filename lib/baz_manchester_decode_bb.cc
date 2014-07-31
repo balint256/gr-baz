@@ -157,7 +157,7 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 			int violation_count = 0;
 			for (size_t n = 0; n < d_violation_history.size(); n++)
 			{
-				if (d_violation_history[n])
+				if (d_violation_history[n])	// FIXME: Optimise later: circular buffer, pre-populate with 0s, maintain running count and update when popping earliest value
 					++violation_count;
 			}
 			

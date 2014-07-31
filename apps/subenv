@@ -42,7 +42,11 @@ if [ -e $BASE_PATH/subenv.init ]; then
 fi
 
 # 'export' is necessary
-export SUBENV="$MODULE"
+if [ -z "$SUBENV" ]; then
+	export SUBENV="$MODULE"
+else
+	export SUBENV="$SUBENV:$MODULE"	# FIXME: If $MODULE is a full path, extract last directory
+fi
 
 # Start the new session
 $SHELL -i

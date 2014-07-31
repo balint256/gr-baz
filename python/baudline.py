@@ -31,8 +31,8 @@ import sys, subprocess, tempfile, os, signal
 from gnuradio import gr, gru, blocks
 
 class baudline_sink(gr.hier_block2):
-	def __init__(self, fmt, item_size, channels, is_complex, sample_rate,
-		flip_complex=True, baseband_freq=None, decimation=1, scale=1.0, overlap=None, slide_size=None, fft_size=None, jump_step=None, x_slip=None,
+	def __init__(self, fmt, item_size, channels, is_complex, sample_rate, aggregate_channel_count=1,
+		flip_complex=False, baseband_freq=None, decimation=1, scale=1.0, overlap=None, slide_size=None, fft_size=None, jump_step=None, x_slip=None,
 		mode='pipe', buffered=True, kill_on_del=True, memory=None, peak_hold=False, **kwds):
 		
 		gr.hier_block2.__init__(self, "baudline_sink",
@@ -66,9 +66,9 @@ class baudline_sink(gr.hier_block2):
 			"-record",
 			"-spacebar", "recordpause",
 			"-samplerate", str(int(sample_rate)),
-			"-channels", str(channels),
+			"-channels", str(channels * aggregate_channel_count),
 			"-format", fmt,
-			"-backingstore",
+			#"-backingstore",
 			
 			# #
 			#"-threads",

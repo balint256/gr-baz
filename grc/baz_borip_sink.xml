@@ -11,7 +11,7 @@
 	<import>from baz import borip_server</import>
 	
 	<!-- *$vlen, $ipaddr, $port, $psize, $eof, $borip -->
-	<make>borip_server.server(size=($type.size*$type.vlen), mul=$mul, server=True, parent=self, verbose=$verbose)
+	<make>borip_server.server(size=($type.size*$type.vlen), mul=$mul, server=True, parent=self, verbose=$verbose, debug=$debug, show_commands=$show_commands)
 #if $status_in()
 self.$(id).set_status_msgq($(id)_msgq_in)
 #end if
@@ -126,6 +126,39 @@ self.$(id).set_status_msgq($(id)_msgq_in)
 			<key>False</key>
 		</option>
 	</param>
+
+	<param>
+	    <name>Debug Output</name>
+		<key>debug</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>#if str($debug) == 'False' then 'part' else 'none'#</hide>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
+			<key>False</key>
+		</option>
+	</param>
+
+	<param>
+	    <name>Show Commands</name>
+		<key>show_commands</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>#if str($show_commands) == 'False' then 'part' else 'none'#</hide>
+		<option>
+			<name>On</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Off</name>
+			<key>False</key>
+		</option>
+	</param>
+
 	<param>
 	    <name>Accept status</name>
 	    <key>status_in</key>

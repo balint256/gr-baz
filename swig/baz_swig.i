@@ -24,9 +24,12 @@
 #include "baz_swap_ff.h"
 #include "baz_agc_cc.h"
 #include "baz_test_counter_cc.h"
-#include "baz_rtl_source_c.h"
 #include "baz_udp_source.h"
 #include "baz_udp_sink.h"
+
+#ifdef LIBUSB_FOUND
+#include "baz_rtl_source_c.h"
+#endif // LIBUSB_FOUND
 
 #ifdef GR_BAZ_WITH_CMAKE
 
@@ -46,6 +49,7 @@
 #include "baz_merge.h"
 #include "baz_tcp_sink.h"
 #include "baz_tcp_source.h"
+#include "baz_auto_ber_bf.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -806,6 +810,20 @@ public:
 
 	int get_port();
 	void signal_eos();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,auto_ber_bf);
+
+baz_auto_ber_bf_sptr baz_make_auto_ber_bf (int degree, int sync_bits, int sync_decim);
+
+class baz_auto_ber_bf : public gr::sync_block
+{
+protected:
+	baz_auto_ber_bf (int degree, int sync_bits, int sync_decim);
+public:
+	~baz_auto_ber_bf();
 };
 
 #endif // GR_BAZ_WITH_CMAKE

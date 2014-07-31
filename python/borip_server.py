@@ -20,7 +20,7 @@ from gnuradio import gr
 import baz
 
 class server(gr.hier_block2):   # Stand-alone block
-    def __init__(self, size=gr.sizeof_gr_complex, mul=1, server=False, parent=None, verbose=False):    # 'parent' should be flowgraph in which this is the 'BorIP Sink' block
+    def __init__(self, size=gr.sizeof_gr_complex, mul=1, server=False, parent=None, verbose=False, debug=False, show_commands=False):    # 'parent' should be flowgraph in which this is the 'BorIP Sink' block
         gr.hier_block2.__init__(self, "borip_server",
             gr.io_signature(1, 1, size),
             gr.io_signature(0, 0, 0))
@@ -31,7 +31,8 @@ class server(gr.hier_block2):   # Stand-alone block
             if mul != 1:
                 if verbose:
                     print "**> Applying constant multiplication:", mul
-                self.mul = gr.multiply_const_cc(mul)
+                try: self.mul = blocks.multiply_const_cc(mul)
+                except: self.mul = gr.multiply_const_cc(mul)
                 self.connect(src, self.mul)
                 src = self.mul
             
@@ -54,6 +55,8 @@ class server(gr.hier_block2):   # Stand-alone block
             self.parent = parent
             self.server = borip_server(block=self)
             self.server.options.verbose = verbose
+            self.server.options.debug = debug
+            self.server.options.command = show_commands
             self.server.options.fixed_flowgraph = True
             self.server.options.lock = True
             self.server.start()

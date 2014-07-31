@@ -11,6 +11,7 @@
 		is_complex=$type.complex,
 		channels=$type.channels,
 		sample_rate=$samp_rate,
+		aggregate_channel_count=$channel_count,
 		baseband_freq=$baseband_freq,
 		decimation=$decim,
 		scale=$scale,
@@ -96,6 +97,14 @@
 		<value>0</value>
 		<type>real</type>
 		<hide>#if $baseband_freq() != 0 then 'none' else 'part'#</hide>
+	</param>
+
+	<param>
+		<name>Channels</name>
+		<key>channel_count</key>
+		<value>1</value>
+		<type>int</type>
+		<hide>#if $channel_count() != 1 then 'none' else 'part'#</hide>
 	</param>
 	
 	<param>

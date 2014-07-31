@@ -44,6 +44,7 @@ SET(baz_headers
 	baz_merge.h
 	baz_tcp_sink.h
 	baz_tcp_source.h
+	baz_auto_ber_bf.h
 )
 
 if (LIBUSB_FOUND)
@@ -93,6 +94,7 @@ SET(baz_sources
 	baz_merge.cc
 	baz_tcp_sink.cc
 	baz_tcp_source.cc
+	baz_auto_ber_bf.cc
 )
 
 if (LIBUSB_FOUND)
@@ -131,6 +133,7 @@ list(APPEND baz_libs
 	${GNURADIO_RUNTIME_LIBRARIES}
 	${GNURADIO_PMT_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_DIGITAL_LIBRARIES}
 	${LIBUSB_LIBRARIES}
 	${UHD_LIBRARIES}
 	${ARMADILLO_LIBRARIES}
