@@ -95,17 +95,22 @@ class remote_usrp(gr.hier_block2):
 	"""
 	Remote USRP via BorIP
 	"""
-	def __init__(self, address, which=0, decim_rate=0, packet_size=0, reconnect_attempts=None):
+	def __init__(self, address, which=0, decim_rate=0, packet_size=0, reconnect_attempts=None, format="fc32"):
 		"""
 		Remote USRP. Remember to call 'create'
 		"""
+		valid_formats = {'fc32': gr.sizeof_gr_complex, 'sc16': (gr.sizeof_short * 2)}
+		if format not in valid_formats.keys():
+			raise Exception("Invalid output format: '%s' (must be one of: %s)" % (str(format), ", ".join(valid_formats)))
+		
 		gr.hier_block2.__init__(self, "remote_usrp",
 			gr.io_signature(0, 0, 0),
-			gr.io_signature(1, 1, gr.sizeof_gr_complex))
+			gr.io_signature(1, 1, valid_formats[format]))
 		
 		self._decim_rate = decim_rate
 		self._address = address
 		self._which = which
+		self._format = format
 		
 		self.s = None
 		self._adc_freq = int(64e6)
@@ -439,15 +444,18 @@ class remote_usrp(gr.hier_block2):
 			udp_interface = "0.0.0.0"	# MAGIC
 			self.udp_source = baz.udp_source(gr.sizeof_short * 2, udp_interface, udp_port, self._packet_size, True, True, True)
 			#print "--> UDP Source listening on port:", udp_port, "interface:", udp_interface, "MTU:", self._packet_size
-			try: self.vec2stream = blocks.vector_to_stream(gr.sizeof_short * 1, 2)
-			except: self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
-			try: self.ishort2complex = blocks.interleaved_short_to_complex()
-			except: self.ishort2complex = gr.interleaved_short_to_complex()
-			mul_factor = 1./2**15
-			try: self.multiply_const = blocks.multiply_const_cc(mul_factor)
-			except: self.multiply_const = gr.multiply_const_cc(mul_factor)
-		
-			self.connect(self.udp_source, self.vec2stream, self.ishort2complex, self.multiply_const, self)
+			if self._format == "fc32":
+				try: self.vec2stream = blocks.vector_to_stream(gr.sizeof_short * 1, 2)
+				except: self.vec2stream = gr.vector_to_stream(gr.sizeof_short * 1, 2)
+				try: self.ishort2complex = blocks.interleaved_short_to_complex()	# FIXME: Use vector mode and skip 'vector_to_stream'
+				except: self.ishort2complex = gr.interleaved_short_to_complex()
+				mul_factor = 1./2**15
+				try: self.multiply_const = blocks.multiply_const_cc(mul_factor)
+				except: self.multiply_const = gr.multiply_const_cc(mul_factor)
+			
+				self.connect(self.udp_source, self.vec2stream, self.ishort2complex, self.multiply_const, self)
+			elif self._format == "sc16":
+				self.connect(self.udp_source, self)
 		else:
 			assert self.vec2stream is not None and self.ishort2complex is not None
 		
