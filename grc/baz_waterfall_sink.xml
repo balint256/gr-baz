@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Waterfall Sink
+###################################################
+ -->
+<block>
+	<name>Waterfall Sink (Baz)</name>
+	<key>baz_waterfall_sink</key>
+	<category>WX GUI Widgets</category>
+	<!--<import>from gnuradio.fft import window</import>-->
+    <import>from gnuradio import wxgui</import>
+	<import>from baz import waterfall_sink</import>
+	<make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
+waterfall_sink.waterfall_sink_f(
+	$(parent).GetWin(),
+	x_offset=$x_offset,
+	dynamic_range=$dynamic_range,
+	ref_level=$ref_level,
+	ref_scale=$ref_scale,
+	data_len=$data_len,
+	title=$title,
+#if $win_size()
+	size=$win_size,
+#end if
+	always_run=$always_run,
+)
+#if not $grid_pos()
+$(parent).Add(self.$(id).win)
+#else
+$(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
+#end if
+#if $freqvar() is not None
+def $(id)_callback(x, y):
+	self.set_$(freqvar)(x)
+
+self.$(id).set_callback($(id)_callback)
+#end if</make>
+	<callback>set_x_offset($x_offset)</callback>
+	<param>
+		<name>Title</name>
+		<key>title</key>
+		<value>Waterfall Plot</value>
+		<type>string</type>
+	</param>
+	<param>
+		<name>X Offset</name>
+		<key>x_offset</key>
+		<value>0</value>
+		<type>real</type>
+	</param>
+	<param>
+		<name>Dynamic Range</name>
+		<key>dynamic_range</key>
+		<value>100</value>
+		<type>real</type>
+	</param>
+	<param>
+		<name>Reference Level</name>
+		<key>ref_level</key>
+		<value>0</value>
+		<type>real</type>
+	</param>
+	<param>
+		<name>Ref Scale (p2p)</name>
+		<key>ref_scale</key>
+		<value>2.0</value>
+		<type>real</type>
+	</param>
+	<param>
+		<name>Data Length</name>
+		<key>data_len</key>
+		<value>1024</value>
+		<type>int</type>
+	</param>
+	<param>
+		<name>Run</name>
+		<key>always_run</key>
+		<value>False</value>
+		<type>enum</type>
+		<hide>part</hide>
+		<option>
+			<name>Always</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>When visible</name>
+			<key>False</key>
+		</option>
+	</param>
+	<param>
+		<name>Window Size</name>
+		<key>win_size</key>
+		<value></value>
+		<type>int_vector</type>
+		<hide>#if $win_size() then 'none' else 'part'#</hide>
+	</param>
+	<param>
+		<name>Grid Position</name>
+		<key>grid_pos</key>
+		<value></value>
+		<type>grid_pos</type>
+	</param>
+	<param>
+		<name>Notebook</name>
+		<key>notebook</key>
+		<value></value>
+		<type>notebook</type>
+	</param>
+	<param>
+		<name>Freq Set Varname</name>
+		<key>freqvar</key>
+		<value>None</value>
+		<type>raw</type>
+	</param>
+	<check>not $win_size or len($win_size) == 2</check>
+	<sink>
+		<name>in</name>
+		<type>float</type>
+		<vlen>$data_len</vlen>
+	</sink>
+	<doc>
+Leave the window blank for the default size, otherwise enter a tuple of (width, height) pixels.
+
+Use the Grid Position (row, column, row span, column span) to position the graphical element in the window.
+
+Use the Notebook Param (notebook-id, page-index) to place the graphical element inside of a notebook page.
+	</doc>
+</block>

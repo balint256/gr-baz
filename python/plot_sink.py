@@ -24,7 +24,7 @@ from __future__ import division
 ##################################################
 # Imports
 ##################################################
-from gnuradio import gr, blks2
+from gnuradio import gr, blocks#, blks2
 from gnuradio.wxgui import common
 from gnuradio.wxgui.pubsub import pubsub
 from gnuradio.wxgui.constants import *
@@ -83,7 +83,7 @@ class plot_sink_f(gr.hier_block2, common.wxgui_hb):
 		)
 		#blocks
 		msgq = gr.msg_queue(2)
-		sink = gr.message_sink(gr.sizeof_float*data_len, msgq, True)
+		sink = blocks.message_sink(gr.sizeof_float*data_len, msgq, True)
 		
 		#controller
 		self.controller = pubsub()

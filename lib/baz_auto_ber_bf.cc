@@ -76,7 +76,7 @@ baz_auto_ber_bf::baz_auto_ber_bf (int degree, int sync_bits, int sync_decim)
 	d_glfsr_length = (unsigned int)((1ULL << degree)-1);
 	d_glfsr_rounded_length = d_glfsr_length + 1;
 	int mask = 0;
-	int seed = 1;
+	int seed = 1;	// MAGIC
 	if (mask == 0)
 		mask = gr::digital::glfsr::glfsr_mask(degree);
 	d_glfsr = new gr::digital::glfsr(mask, seed);
@@ -97,14 +97,23 @@ baz_auto_ber_bf::baz_auto_ber_bf (int degree, int sync_bits, int sync_decim)
 		if (bit_count == sync_bits)
 		{
 			d_sync_list.push_back(word);
-			word = 0;
-			bit_count = 0;
 			
 			if ((word_count % sync_decim) == 0)
 			{
-				if (d_sync_map.find(word) != d_sync_map.end())
+				if (d_dupe_map.find(word) != d_dupe_map.end())
 				{
-					fprintf(stderr, "Already saw word %llx\n", word);
+					d_dupe_map[word] += 1;
+				}
+				else if (d_sync_map.find(word) != d_sync_map.end())
+				{
+					//fprintf(stderr, "Already saw word %llx\n", word);
+					
+					d_sync_map.erase(word);
+					
+					if (d_dupe_map.find(word) != d_dupe_map.end())
+						d_dupe_map[word] += 1;	// Shouldn't get here
+					else
+						d_dupe_map[word] = 1;
 				}
 				else
 				{
@@ -112,9 +121,14 @@ baz_auto_ber_bf::baz_auto_ber_bf (int degree, int sync_bits, int sync_decim)
 				}
 			}
 			
+			word = 0;
+			bit_count = 0;
 			++word_count;
 		}
 	}
+	
+	fprintf(stderr, "Sync map count: %d\n", d_sync_map.size());
+	fprintf(stderr, "Dupe map count: %d\n", d_dupe_map.size());
 	
 	if (bit_count > 0)
 	{
@@ -135,8 +149,7 @@ void baz_auto_ber_bf::set_exponent(float exponent)
   d_exponent = exponent;
 }
 */
-int 
-baz_auto_ber_bf::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
+int baz_auto_ber_bf::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
 	const unsigned char *in = (const unsigned char *) input_items[0];
 	float *out = (float *) output_items[0];

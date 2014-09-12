@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<block>
+	<name>Run Remote</name>
+	<!-- Must begin with 'variable' -->
+	<key>variable_run_remote</key>
+	<category>Misc</category>
+	<import>exec("try:\n\timport sys; import run_remote;\n\tif run_remote.run_remote($(remote_host)) == True: sys.exit(0)\nexcept Exception, e: pass")</import>
+	<!-- Must have 'value' variable -->
+	<var_make>self.$(id) = $(id) = $value</var_make>
+	<make></make>
+	
+	<!--<callback></callback>-->
+	
+	<param>
+		<name>Default</name>
+		<key>value</key>
+		<value>None</value>
+		<type>raw</type>
+		<hide>all</hide>
+	</param>
+	
+	<param>
+		<name>Remote Host</name>
+		<key>remote_host</key>
+		<value></value>
+		<type>string</type>
+	</param>
+	
+<!-- Must come before sink/source -->
+	<!--<check></check>-->
+	
+	<doc></doc>
+</block>

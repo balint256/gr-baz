@@ -5,10 +5,10 @@
 ###################################################
  -->
 <block>
-	<name>Plot Sink</name>
+	<name>Plot Sink (Baz)</name>
 	<key>baz_plot_sink</key>
 	<category>WX GUI Widgets</category>
-	<import>from gnuradio import window</import>
+	<!--<import>from gnuradio import window</import>-->
 	<import>from baz import plot_sink</import>
 	<make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
 plot_sink.plot_sink_f($(parent).GetWin(),

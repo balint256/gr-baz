@@ -699,7 +699,7 @@ GR_SWIG_BLOCK_MAGIC(baz,radar_detector)
 
 baz_radar_detector_sptr baz_make_radar_detector (int sample_rate, gr::msg_queue::sptr msgq);
 
-class baz_radar_detector : public gr_block
+class baz_radar_detector : public gr::block
 {
 	baz_radar_detector (int sample_rate, gr_msg_queue_sptr msgq);  	// private constructor
 public:
@@ -716,7 +716,7 @@ GR_SWIG_BLOCK_MAGIC(baz,fastrak_decoder)
 
 baz_fastrak_decoder_sptr baz_make_fastrak_decoder (int sample_rate);
 
-class baz_fastrak_decoder : public gr_block
+class baz_fastrak_decoder : public gr::block
 {
 	baz_fastrak_decoder (int sample_rate);  	// private constructor
 public:

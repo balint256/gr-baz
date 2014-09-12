@@ -82,7 +82,7 @@ private:
 	int d_glfsr_length, d_glfsr_rounded_length;
 	//typedef std::hash_map<uint64_t, int> SyncMap;
 	typedef boost::unordered_map<uint64_t, int> SyncMap;
-	SyncMap d_sync_map;
+	SyncMap d_sync_map, d_dupe_map;
 	std::vector<uint64_t> d_sync_list;
 	uint64_t d_current_word;
 	int d_sync_bit_length;

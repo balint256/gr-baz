@@ -64,6 +64,9 @@ GR_PYTHON_INSTALL(
 	introspective_xmlrpc_server.py
 	usrp.py
 
+	waterfall_sink.py
+	waterfall_window.py
+
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 
