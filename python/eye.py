@@ -14,7 +14,7 @@ import threading, math
 import wx
 import numpy
 
-from gnuradio import gr
+from gnuradio import gr, blocks
 import gnuradio.wxgui.plot as plot
 
 # sample_rate/v_scale/t_scale is unused
@@ -95,7 +95,7 @@ class eye_sink_f(gr.hier_block2):
                                 gr.io_signature(0,0,0))
 
         msgq = gr.msg_queue(2)  # message queue that holds at most 2 messages
-        self.st = gr.message_sink(gr.sizeof_float, msgq, dont_block=1)
+        self.st = blocks.message_sink(gr.sizeof_float, msgq, True)
         self.connect((self, 0), self.st)
 
         self.win = datascope_window(
