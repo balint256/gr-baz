@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  untitled.py
+#  multi_channel_decoder.py
 #  
-#  Copyright 2013 Balint Seeber <balint@crawfish>
+#  Copyright 2013 Balint Seeber <balint256@gmail.com>
 #  
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -44,9 +44,9 @@ class multi_channel_decoder(gr.hier_block2):
 		
 		self.set_baseband_freq(baseband_freq)
 		
-		self.set_frequencies(frequencies)
+		self.set_frequencies(frequencies, True)
 	
-	def set_frequencies(self, freq_list):
+	def set_frequencies(self, freq_list, skip_lock=False):	# FIXME: Filter duplicate frequencies / connect Null Sink if freq list is empty / Lock
 		current_freqs = []
 		map_freqs = {}
 		for decoder in self.decoders:
@@ -54,6 +54,7 @@ class multi_channel_decoder(gr.hier_block2):
 			map_freqs[decoder.get_freq()] = decoder
 		create = [f for f in freq_list if f not in current_freqs]
 		remove = [f for f in current_freqs if f not in freq_list]
+		if not skip_lock: self.lock()
 		try:
 			decoder_factory = self.decoder
 			if isinstance(self.decoder, str):
@@ -78,10 +79,13 @@ class multi_channel_decoder(gr.hier_block2):
 		try:
 			for f in remove:
 				decoder = map_freqs[f]
+				print "Disconnecting decoder for %f" % (decoder.get_freq())
 				self.disconnect(self, decoder)
+				self.decoders.remove(decoder)
 				#self.decoders_unused += [decoder]	# FIXME: Re-use mode
 		except Exception, e:
 			print "Failed to remove decoder:", e
+		if not skip_lock: self.unlock()
 	
 	def set_baseband_freq(self, baseband_freq):
 		self.baseband_freq = baseband_freq

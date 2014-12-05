@@ -210,7 +210,7 @@ GR_SWIG_BLOCK_MAGIC(baz,delay)
 
 baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
 
-class baz_delay : public gr::sync_block
+class baz_delay : public gr::block
 {
  private:
   baz_delay (size_t itemsize, int delay);

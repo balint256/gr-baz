@@ -40,28 +40,22 @@ BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
  * \brief delay the input by a certain number of samples
  * \ingroup misc_blk
  */
-class BAZ_API baz_delay : public gr::sync_block
+class BAZ_API baz_delay : public gr::block
 {
-  friend BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
+	friend BAZ_API baz_delay_sptr baz_make_delay (size_t itemsize, int delay);
 
-  baz_delay (size_t itemsize, int delay);
+	baz_delay (size_t itemsize, int delay);
 
-  boost::mutex	d_mutex;
-  size_t d_itemsize;
-  int d_delay;
-  unsigned char* d_buffer;
-  int d_buffer_length;
-  int d_zero;
-  int d_buffer_pos;
-  int d_buffer_use;
+	boost::mutex d_mutex;
+	size_t d_itemsize;
+	int d_delay;
 
- public:
-  int delay () const { return d_delay; }
-  void set_delay (int delay);
+public:
+	int delay () const { return d_delay; }
+	void set_delay (int delay);
 
-  int work (int noutput_items,
-	    gr_vector_const_void_star &input_items,
-	    gr_vector_void_star &output_items);
+	void forecast(int noutput_items, gr_vector_int &ninput_items_required);
+	int general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
 };
 
 #endif
