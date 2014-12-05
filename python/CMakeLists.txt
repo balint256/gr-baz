@@ -67,6 +67,11 @@ GR_PYTHON_INSTALL(
 	waterfall_sink.py
 	waterfall_window.py
 
+	correlator.py
+	delayed_start.py
+	horizons_block.py
+	rx_time.py
+
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 

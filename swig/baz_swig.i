@@ -7,10 +7,10 @@
 %include "config.h"
 //#endif // HAVE_CONFIG_H
 
-%{
-//#include "howto_square_ff.h"
-//#include "howto_square2_ff.h"
+#undef BAZ_API
+#define BAZ_API
 
+%{
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif // HAVE_CONFIG_H
@@ -53,6 +53,7 @@
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
+#include "baz_usrp_acquire.h"
 #endif // UHD_FOUND
 
 #ifdef ARMADILLO_FOUND
@@ -64,12 +65,8 @@
 // Somehow SWIG is missing this, and refuses to include pycontainer.swg
 #ifndef SWIGPY_SLICE_ARG
 #define SWIGPY_SLICE_ARG(obj) ((PySliceObject*) (obj))
-#endif 
-
+#endif
 %}
-
-//%include "howto_square_ff.i"
-//%include "howto_square2_ff.i"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -506,6 +503,13 @@ public:
   void set_no_delay(bool no_delay);
 };
 
+
+////////////////////////////////////////
+
+%template(usrp_acquire_sptr) boost::shared_ptr<gr::baz::usrp_acquire>;
+
+%include "baz_usrp_acquire.h"
+
 #endif // UHD_FOUND
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -827,4 +831,3 @@ public:
 };
 
 #endif // GR_BAZ_WITH_CMAKE
-

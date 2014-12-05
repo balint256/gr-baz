@@ -45,6 +45,7 @@ SET(baz_headers
 	baz_tcp_sink.h
 	baz_tcp_source.h
 	baz_auto_ber_bf.h
+	baz_usrp_acquire.h
 )
 
 if (LIBUSB_FOUND)
@@ -113,7 +114,7 @@ else ()
 endif ()
 
 if (UHD_FOUND)
-	LIST(APPEND baz_sources baz_gate.cc)
+	LIST(APPEND baz_sources baz_gate.cc baz_usrp_acquire.cc)
 else ()
 	SET(UHD_LIBRARIES "")
 endif ()
