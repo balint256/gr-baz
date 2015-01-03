@@ -7,6 +7,7 @@
 <block>
 	<name>Variable Delay</name>
 	<key>baz_delay</key>
+	<category>Misc</category>
 	<import>import baz</import>
 	<make>baz.delay($type.size*$vlen, $delay)</make>
 	<callback>set_delay($delay)</callback>

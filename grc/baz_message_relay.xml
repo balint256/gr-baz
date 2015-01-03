@@ -7,6 +7,7 @@
 <block>
 	<name>Message Relay</name>
 	<key>baz_message_relay</key>
+	<category>Message Tools</category>
 	<import>from baz import message_relay</import>
 	
 	<make>message_relay.message_relay(tx_msgq=$(id)_msgq_out,rx_msgq=#slurp

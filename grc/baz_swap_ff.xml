@@ -7,6 +7,7 @@
 <block>
 	<name>Swap</name>
 	<key>swap_ff</key>
+	<category>Misc</category>
 	<import>import baz</import>
 	<make>baz.swap_ff($swap)</make>
 	<callback>set_swap($swap)</callback>
