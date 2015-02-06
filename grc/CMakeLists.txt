@@ -76,6 +76,7 @@ SET(baz_blocks
 	baz_run_remote.xml
 
 	baz_waterfall_sink.xml
+	baz_burst_tagger.xml
 )
 
 if (LIBUSB_FOUND)

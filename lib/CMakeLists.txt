@@ -46,6 +46,8 @@ SET(baz_headers
 	baz_tcp_source.h
 	baz_auto_ber_bf.h
 	baz_usrp_acquire.h
+	baz_peak_detector.h
+	baz_burst_tagger.h
 )
 
 if (LIBUSB_FOUND)
@@ -96,6 +98,8 @@ SET(baz_sources
 	baz_tcp_sink.cc
 	baz_tcp_source.cc
 	baz_auto_ber_bf.cc
+	baz_peak_detector.cc
+	baz_burst_tagger_impl.cc
 )
 
 if (LIBUSB_FOUND)

@@ -21,7 +21,10 @@
 # Include swig generation macros
 ########################################################################
 find_package(SWIG)
-find_package(PythonLibs)
+#find_package(PythonLibs)
+find_package(PythonLibs 2)
+#set(Python_ADDITIONAL_VERSIONS "2.7")
+#find_package(PythonLibs 2.7 REQUIRED)
 if(NOT SWIG_FOUND OR NOT PYTHONLIBS_FOUND)
     return()
 endif()

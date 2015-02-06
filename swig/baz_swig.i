@@ -50,6 +50,8 @@
 #include "baz_tcp_sink.h"
 #include "baz_tcp_source.h"
 #include "baz_auto_ber_bf.h"
+#include "baz_peak_detector.h"
+#include "baz_burst_tagger.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -829,5 +831,25 @@ protected:
 public:
 	~baz_auto_ber_bf();
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,peak_detector);
+
+baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0);
+
+class BAZ_API baz_peak_detector : public gr::sync_block
+{
+protected:
+	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha);  	// private constructor
+public:
+	~baz_peak_detector ();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_burst_tagger.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, burst_tagger);
 
 #endif // GR_BAZ_WITH_CMAKE
