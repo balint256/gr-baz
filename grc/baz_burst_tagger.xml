@@ -5,7 +5,7 @@
   <category>Stream Tag Tools</category>
   <import>import pmt</import>
   <import>import baz</import>
-  <make>mac.burst_tagger($tag_name, $mult, $pad_front, $pad_rear, $drop_residue, $verbose)</make>
+  <make>baz.burst_tagger($tag_name, $mult, $pad_front, $pad_rear, $drop_residue, $verbose)</make>
 
   <param>
     <name>Tag Name</name>
