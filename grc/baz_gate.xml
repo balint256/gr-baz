@@ -5,7 +5,7 @@
     <category>Misc</category>
     <import>from gnuradio import gr</import>
     <import>import baz</import>
-    <make>baz.gate($(type.size), $block, $threshold, $trigger_length, $tag, $delay, $sample_rate, $no_delay, $verbose)</make>
+    <make>baz.gate($(type.size), $block, $threshold, $trigger_length, $tag, $delay, $sample_rate, $no_delay, $verbose, $retriggerable)</make>
 
     <callback>set_blocking($block)</callback>
     <callback>set_threshold($threshold)</callback>
@@ -128,6 +128,22 @@
 		<name>Verbose</name>
 		<key>verbose</key>
 		<value>True</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
+	<param>
+		<name>Re-triggerable</name>
+		<key>retriggerable</key>
+		<value>False</value>
 		<type>bool</type>
 		<hide>part</hide>
 		<option>

@@ -52,6 +52,7 @@
 #include "baz_auto_ber_bf.h"
 #include "baz_peak_detector.h"
 #include "baz_burst_tagger.h"
+#include "baz_burst_buffer.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -489,12 +490,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,gate)
 
-baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true);
+baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false);
 
 class baz_gate : public gr::sync_block
 {
 private:
-  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose);  	// private constructor
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable);  	// private constructor
 public:
   void set_blocking(bool enable);
   void set_threshold(float threshold);
@@ -851,5 +852,19 @@ public:
 %include "baz_burst_tagger.h"
 
 GR_SWIG_BLOCK_MAGIC2(baz, burst_tagger);
+
+////////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,burst_buffer);
+
+baz_burst_buffer_sptr baz_make_burst_buffer (int itemsize, bool verbose = false);
+
+class baz_burst_buffer : public gr::block
+{
+protected:
+	baz_burst_buffer (int itemsize, bool verbose = false);
+public:
+	~baz_burst_buffer();
+};
 
 #endif // GR_BAZ_WITH_CMAKE

@@ -46,24 +46,25 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_gate_sptr
-baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, int trigger_length /*= 0*/, bool tag /*= false*/, double delay /*= 0.0*/, int sample_rate /*= 0*/, bool no_delay /*= false*/, bool verbose /*= true*/)
+baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, int trigger_length /*= 0*/, bool tag /*= false*/, double delay /*= 0.0*/, int sample_rate /*= 0*/, bool no_delay /*= false*/, bool verbose /*= true*/, bool retriggerable /*= false*/)
 {
-  return baz_gate_sptr (new baz_gate (item_size, block, threshold, trigger_length, tag, delay, sample_rate, no_delay, verbose));
+  return baz_gate_sptr (new baz_gate (item_size, block, threshold, trigger_length, tag, delay, sample_rate, no_delay, verbose, retriggerable));
 }
 
 /*
  * The private constructor
  */
-baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose)
-  : gr::block ("gate",
-		   gr::io_signature::make3 (2, 4, item_size, sizeof(/*char*/float), item_size),
-		   gr::io_signature::make2 (1, 2, item_size, item_size))
-  , d_item_size(item_size), d_threshold(threshold), d_trigger_length(trigger_length), d_block(block), d_tag(tag), d_delay(delay), d_sample_rate(sample_rate), d_no_delay(no_delay)
-  , d_trigger_count(0), d_time_offset(-1), d_in_burst(false), d_output_index(0), d_verbose(verbose)
+baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable)
+	: gr::block ("gate",
+		gr::io_signature::make3 (2, 4, item_size, sizeof(/*char*/float), item_size),
+		gr::io_signature::make2 (1, 2, item_size, item_size))
+	, d_item_size(item_size), d_threshold(threshold), d_trigger_length(trigger_length), d_block(block), d_tag(tag), d_delay(delay), d_sample_rate(sample_rate), d_no_delay(no_delay)
+	, d_trigger_count(0), d_time_offset(-1), d_in_burst(false), d_output_index(0), d_verbose(verbose), d_retriggerable(retriggerable)
+	, d_flush_length(0), d_flush_count(0)	// FIXME: Expose flush length
 {
   memset(&d_last_time, 0x00, sizeof(uhd::time_spec_t));
 
-  fprintf(stderr, "[%s<%i>] Threshold: %.1f, length: %d, item size: %d, blocking: %s, tag: %s, delay: %.6f, sample rate: %d, no delay: %s, verbose: %s\n", name().c_str(), unique_id(), threshold, trigger_length, item_size, (block ? "yes" : "no"), (tag ? "yes" : "no"), delay, sample_rate, (no_delay ? "yes" : "no"), (verbose ? "yes" : "no"));
+  fprintf(stderr, "[%s<%i>] Threshold: %.1f, length: %d, item size: %d, blocking: %s, tag: %s, delay: %.6f, sample rate: %d, no delay: %s, verbose: %s, retriggerable: %s\n", name().c_str(), unique_id(), threshold, trigger_length, item_size, (block ? "yes" : "no"), (tag ? "yes" : "no"), delay, sample_rate, (no_delay ? "yes" : "no"), (verbose ? "yes" : "no"), (retriggerable ? "yes" : "no"));
 }
 
 /*
@@ -75,10 +76,18 @@ baz_gate::~baz_gate ()
 
 void baz_gate::forecast(int noutput_items, gr_vector_int &ninput_items_required)
 {
-  for (int i = 0; i < ninput_items_required.size(); ++i)
-    ninput_items_required[i] = noutput_items;
-  //ninput_items_required[0] = (d_block ? 0 : noutput_items);
-  //ninput_items_required[1] = noutput_items;
+	if (d_flush_count > 0)
+	{
+		//fprintf(stderr, "[%s<%i>] Forecast during flush (noutput_items: %d)\n", name().c_str(), unique_id(), noutput_items);
+	}
+	
+	for (int i = 0; i < ninput_items_required.size(); ++i)
+	{
+		//ninput_items_required[i] = noutput_items;
+		ninput_items_required[i] = ((d_flush_count > 0) ? 0 : noutput_items);
+		//ninput_items_required[0] = (d_block ? 0 : noutput_items);
+		//ninput_items_required[1] = noutput_items;
+	}
 }
 
 void baz_gate::set_blocking(bool enable)
@@ -128,166 +137,251 @@ static const pmt::pmt_t SOB_KEY = pmt::string_to_symbol("tx_sob");
 static const pmt::pmt_t EOB_KEY = pmt::string_to_symbol("tx_eob");
 static const pmt::pmt_t TX_TIME_KEY = pmt::string_to_symbol("tx_time");
 static const pmt::pmt_t RX_TIME_KEY = pmt::string_to_symbol("rx_time");
+static const pmt::pmt_t IGNORE_KEY = pmt::string_to_symbol("ignore");
 
 static bool _first = true;
 static gr_complex _first_c = gr_complex(-1,-1);
 
 int
-baz_gate::general_work (int noutput_items, gr_vector_int &ninput_items,
-			gr_vector_const_void_star &input_items,
-			gr_vector_void_star &output_items)
+baz_gate::general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
-  gr::thread::scoped_lock guard(d_mutex);
-  
-  const char *in = (char*)input_items[0];
-  const float *level = (float*)input_items[1];
-  char *out = (char*)output_items[0];
-  const char* thru = NULL;
-  if (input_items.size() >= 4)
-    thru = (const char*)input_items[3];
-  char* thru_out = NULL;
-  if (output_items.size() >= 2)
-    thru_out = (char*)output_items[1];
+	gr::thread::scoped_lock guard(d_mutex);
+	
+	int work_eob_count = 0;
+	
+	//if (d_in_burst)
+	//	fprintf(stderr, "[%s] In burst (trigger count: %d)\n", name().c_str(), d_trigger_count);
+
+	const char *in = (char*)input_items[0];
+	const float *level = (float*)input_items[1];
+	char *out = (char*)output_items[0];
+	const char* thru = NULL;
+	if (input_items.size() >= 4)
+		thru = (const char*)input_items[3];
+	char* thru_out = NULL;
+	if (output_items.size() >= 2)
+		thru_out = (char*)output_items[1];
+	
+	////////////////////////////////////////////////////////////////////////////
+	
+	if (d_flush_count)
+	{
+		int to_go = std::min(noutput_items, d_flush_count);
+		
+		if (d_flush_count == d_flush_length)
+		{
+			fprintf(stderr, "[%s<%i>] Starting flush at head of work (noutput_items: %d)\n", name().c_str(), unique_id(), noutput_items);
+			
+			add_item_tag(0, nitems_written(0), SOB_KEY, pmt::from_bool(true));
+			add_item_tag(0, nitems_written(0), IGNORE_KEY, pmt::from_bool(true));
+		}
+		
+		memset(out, 0x00, d_item_size * to_go);
+		if (thru_out)
+			memset(thru_out, 0x00, d_item_size * to_go);
+		
+		//fprintf(stderr, "[%s<%i>] -\n", name().c_str(), unique_id());
+		
+		if (to_go == d_flush_count)
+		{
+			fprintf(stderr, "[%s<%i>] Finishing flush in work (noutput_items: %d, to_go: %d)\n", name().c_str(), unique_id(), noutput_items, to_go);
+			
+			add_item_tag(0, nitems_written(0)+to_go-1, EOB_KEY, pmt::from_bool(true));
+		}
+		
+		d_flush_count -= to_go;
+		
+		return to_go;
+	}
+	
 /*
 for (int k = 0; k < min(10,ninput_items[0]); ++k) {
-    gr_complex* c = (gr_complex*)(in + d_item_size * k);
-    fprintf(stderr, "\t-> %.5f,%.5f\n", )
+	gr_complex* c = (gr_complex*)(in + d_item_size * k);
+	fprintf(stderr, "\t-> %.5f,%.5f\n", )
 }*/
 
-  int tag_channel = ((ninput_items.size() >= 3) ? 2 : 1);
-  const uint64_t nread = nitems_read(tag_channel);
-  std::vector<gr::tag_t> tags;
+	////////////////////////////////////////////////////////////////////////////
 
-  int tag_index_offset = 0;
-  uint64_t next_tag_offset = -1;
-  get_tags_in_range(tags, tag_channel, nread, nread+ninput_items[tag_channel], RX_TIME_KEY);
-  for (int i = 0; i < tags.size(); ++i) {
-//    fprintf(stderr, "[%s] Tag #%d %s\n", name().c_str(), i, pmt::write_string(tags[i].key).c_str());
-  }
-  if (tags.size() > 0) {
-    next_tag_offset = tags[0].offset;
-//    fprintf(stderr, "[%s] Tags: %d (next offset: %d)\n", name().c_str(), tags.size(), next_tag_offset);
-  }
+	int tag_channel = ((ninput_items.size() >= 3) ? 2 : 1);
+	const uint64_t nread = nitems_read(tag_channel);
+	std::vector<gr::tag_t> tags;
+
+	int tag_index_offset = 0;
+	uint64_t next_tag_offset = -1;
+	get_tags_in_range(tags, tag_channel, nread, nread + /*ninput_items[tag_channel]*/noutput_items, RX_TIME_KEY);
+	std::sort(tags.begin(), tags.end(), gr::tag_t::offset_compare);
+	for (int i = 0; i < tags.size(); ++i) {
+//		fprintf(stderr, "[%s] Tag #%d %s\n", name().c_str(), i, pmt::write_string(tags[i].key).c_str());
+	}
+	if (tags.size() > 0) {
+		next_tag_offset = tags[0].offset;
+//   	fprintf(stderr, "[%s] Tags: %d (next offset: %d)\n", name().c_str(), tags.size(), next_tag_offset);
+	}
 
 //fprintf(stderr, "[%s] Work %d, %d, %d\n", name().c_str(), noutput_items, ninput_items[0], ninput_items[1]);
 
-  int noutput = 0, j = 0;
-  for (int i = 0; i < noutput_items; i++) {
+	int noutput = 0, j = 0;
+	for (int i = 0; i < noutput_items; i++) {
 
-    if (next_tag_offset == (nitems_read(tag_channel) + i)) {
-      gr::tag_t tag = tags[tag_index_offset++];
+	////////////////////////////////////////////////////////////////////////////
 
-      uint64_t _next = -1;
-      if (tag_index_offset < tags.size())
-        _next = tags[tag_index_offset].offset;
+		if (next_tag_offset == (nitems_read(tag_channel) + i)) {
+			gr::tag_t tag = tags[tag_index_offset++];	// Initially -1, so will start at 0
 
-      d_time_offset = 0;
-      d_last_time = uhd::time_spec_t(
-          pmt::to_uint64(pmt::tuple_ref(tag.value, 0)),
-          pmt::to_double(pmt::tuple_ref(tag.value, 1)));
-//      fprintf(stderr, "[%s] Processing tag #%d %s (next offset: %d) time: %f\n", name().c_str(), next_tag_offset, pmt::write_string(tag.key).c_str(), _next, d_last_time.get_real_secs());
+			uint64_t _next = -1;
+			if (tag_index_offset < tags.size())
+				_next = tags[tag_index_offset].offset;
 
-      next_tag_offset = _next;
-    }
-    else
-      ++d_time_offset;
+			d_time_offset = 0;
+			d_last_time = uhd::time_spec_t(
+				pmt::to_uint64(pmt::tuple_ref(tag.value, 0)),
+				pmt::to_double(pmt::tuple_ref(tag.value, 1)));
+//			fprintf(stderr, "[%s] Processing tag #%d %s (next offset: %d) time: %f\n", name().c_str(), next_tag_offset, pmt::write_string(tag.key).c_str(), _next, d_last_time.get_real_secs());
 
-//    gr_complex* c = (gr_complex*)(in + (i * d_item_size));
+			next_tag_offset = _next;
+		}
+		else
+			++d_time_offset;
+
+	////////////////////////////////////////////////////////////////////////////
+//		gr_complex* c = (gr_complex*)(in + (i * d_item_size));
 //fprintf(stderr, "[%s] Sample %.1f, %.1f\n, level %.1f", name().c_str(), c->real(), c->imag(), level[i]);
-    if ((level[i] >= d_threshold) || (d_trigger_count > 0)) {
-        bool was_in_burst = d_in_burst;
+		if ((level[i] >= d_threshold) || (d_trigger_count > 0)) {
+			bool was_in_burst = d_in_burst;
 /*
-      tags.clear();
-      get_tags_in_range(tags, 0, nread+i, nread+i+1);
-      if (tags.size() > 0)
-        fprintf(stderr, "[%s] Tag offset %d\n", name().c_str(), tags[0].offset);
+			tags.clear();
+			get_tags_in_range(tags, 0, nread+i, nread+i+1);
+			if (tags.size() > 0)
+				fprintf(stderr, "[%s] Tag offset %d\n", name().c_str(), tags[0].offset);
 */
-      if (d_trigger_count > 0)
-        --d_trigger_count;
-
-      if ((d_trigger_count == 0) && (level[i] >= d_threshold)) { // 'else' to avoid double trigger and offset in incoming repeating vector
-        if (d_verbose) fprintf(stderr, "[%s<%i>] Triggered: %.1f, current count: %d\n", name().c_str(), unique_id(), level[i], d_trigger_count);
-        d_trigger_count = (d_trigger_length - 1);
+			if (d_trigger_count > 0)
+				--d_trigger_count;
+			
+			if ((((d_trigger_count == 0) && (d_in_burst == false)) || (d_retriggerable)) && (level[i] >= d_threshold)) { // 'else' to avoid double trigger and offset in incoming repeating vector
+				if (d_verbose) {
+					fprintf(stderr, "[%s<%i>] Triggered: %.1f, current count: %d\n", name().c_str(), unique_id(), level[i], d_trigger_count);
+				}
+				
+				if (d_trigger_length > 0)
+					d_trigger_count = (d_trigger_length - 1);
 /*
-        uhd::tx_metadata_t md;
-        md.start_of_burst = true;
-        md.end_of_burst = false;
-        md.has_time_spec = true;
-        md.time_spec = uhd::time_spec_t(seconds_in_future);
-        add_item_tag(0, offset, key, value);
+				uhd::tx_metadata_t md;
+				md.start_of_burst = true;
+				md.end_of_burst = false;
+				md.has_time_spec = true;
+				md.time_spec = uhd::time_spec_t(seconds_in_future);
+				add_item_tag(0, offset, key, value);
 */
-        if (d_tag && (d_in_burst == false)) {
-          //assert(d_in_burst == false);  // FIXME: This can fail if changing d_tag at runtime
+				if (d_in_burst == false) {
+					//assert(d_in_burst == false);  // FIXME: This can fail if changing d_tag at runtime
 
-          add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::from_bool(true));
-          if (d_no_delay == false) {
-            uhd::time_spec_t next = (d_last_time + uhd::time_spec_t(0, d_time_offset, d_sample_rate)) + uhd::time_spec_t(d_delay);
-            add_item_tag(0, nitems_written(0)+j, TX_TIME_KEY, pmt::make_tuple(pmt::from_uint64(next.get_full_secs()), pmt::from_double(next.get_frac_secs())));
-          }
+					if (d_tag) {
+						add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::from_bool(true));
+						if (d_no_delay == false) {
+							uhd::time_spec_t next = (d_last_time + uhd::time_spec_t(0, d_time_offset, d_sample_rate)) + uhd::time_spec_t(d_delay);
+							add_item_tag(0, nitems_written(0)+j, TX_TIME_KEY, pmt::make_tuple(pmt::from_uint64(next.get_full_secs()), pmt::from_double(next.get_frac_secs())));
+						}
+					}
 
-          d_in_burst = true;
-        }
-      }
-      else if (d_trigger_count == 0) {
+					d_in_burst = true;
+				}
+			}
+			else if (d_trigger_count == 0) {
 /*
-        uhd::tx_metadata_t md;
-        md.start_of_burst = false;
-        md.end_of_burst = true;
-        md.has_time_spec = false;
-        add_item_tag(0, offset, key, value);
+				uhd::tx_metadata_t md;
+				md.start_of_burst = false;
+				md.end_of_burst = true;
+				md.has_time_spec = false;
+				add_item_tag(0, offset, key, value);
 */
-        if (d_in_burst) {
-          fprintf(stderr, "[%s<%i>] EOB %d + %d\n", name().c_str(), unique_id(), nitems_written(0), j);
-          add_item_tag(0, nitems_written(0)+j, EOB_KEY, pmt::from_bool(true));
-          d_in_burst = false;
-        }
-      }
+				if (d_in_burst) {
+					if (d_tag) {
+						if (d_verbose) {
+							fprintf(stderr, "[%s<%i>] EOB %d + %d\n", name().c_str(), unique_id(), nitems_written(0), j);
+						}
+						add_item_tag(0, nitems_written(0)+j, EOB_KEY, pmt::from_bool(true));
+						++work_eob_count;
+					}
+					
+					d_in_burst = false;
+				}
+			}
 
 if (d_in_burst == false) {
-    gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
-    //fprintf(stderr, ">>> #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
+	gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
+	//fprintf(stderr, ">>> #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
 }
 
-      memcpy(out + (j * d_item_size), in + (/*noutput*/i * d_item_size), d_item_size);
-      if (thru && thru_out)
-        memcpy(thru_out + (j * d_item_size), thru + (/*noutput*/i * d_item_size), d_item_size);
+			memcpy(out + (j * d_item_size), in + (/*noutput*/i * d_item_size), d_item_size);
+			if (thru && thru_out)
+				memcpy(thru_out + (j * d_item_size), thru + (/*noutput*/i * d_item_size), d_item_size);
 
-        j++;
-      ++noutput;
+			j++;
+			++noutput;
 
-      if ((d_in_burst || was_in_burst) && _first) {
-          gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
+			////////////////////////////////////////////////////////////////////
+			if ((d_in_burst || was_in_burst) && _first) {
+				gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
           //if (*c != _first_c) {
 //            fprintf(stderr, "#%05d %.5f,%.5f (trig: %d, i: %d)\n", noutput, c->real(), c->imag(), d_trigger_count, i);
           //  _first_c = *c;
           //}
-      }
-      else if (d_in_burst == false && _first) {
-          gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
-//          fprintf(stderr, "!!! #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
-      }
-      if ((d_in_burst == false) && was_in_burst && _first)
-        _first = false;
-    }
-    else if (d_block == false) {
-      memset(out + (j * d_item_size), 0x00, d_item_size);
-      if (thru_out)
-        memset(thru_out + (j * d_item_size), 0x00, d_item_size);
-      j++;
-    }
-  }
+			}
+			else if (d_in_burst == false && _first) {
+				gr_complex* c = (gr_complex*)(in + ((noutput-1) * d_item_size));
+//          	fprintf(stderr, "!!! #%05d %.1f,%.1f (%d)\n", noutput, c->real(), c->imag(), d_trigger_count);
+			}
+			if ((d_in_burst == false) && was_in_burst && _first)
+			_first = false;
+		}
+	////////////////////////////////////////////////////////////////////////////
+		else if (d_block == false) {
+			memset(out + (j * d_item_size), 0x00, d_item_size);
+			if (thru_out)
+				memset(thru_out + (j * d_item_size), 0x00, d_item_size);
+			j++;
+		}
+	}
+	////////////////////////////////////////////////////////////////////////////
 
-  assert((d_block) || (j == noutput_items));    // Triggers if changed during work (no thread safety)
-  /*if (noutput_items != ninput_items[1]) { // This is not true
-    fprintf(stderr, "[%s] noutput items: %d, gate control input items: %d\n", name().c_str(), noutput_items, ninput_items[1]);
-  }*/
+	assert((d_block) || (j == noutput_items));    // Triggers if changed during work (no thread safety)
+	/*if (noutput_items != ninput_items[1]) { // This is not true
+		fprintf(stderr, "[%s] noutput items: %d, gate control input items: %d\n", name().c_str(), noutput_items, ninput_items[1]);
+	}*/
 
-  consume(0, /*noutput*/noutput_items);
-  consume(1, noutput_items);
-  if (ninput_items.size() >= 3)
-    consume(2, noutput_items);
-  if (thru != NULL)
-    consume(3, noutput_items);
+	consume(0, /*noutput*/noutput_items);
+	consume(1, noutput_items);
+	if (ninput_items.size() >= 3)
+		consume(2, noutput_items);
+	if (thru != NULL)
+		consume(3, noutput_items);
+	
+	if ((d_block) && (d_in_burst == false) && (work_eob_count > 0) && (d_flush_length > 0))	// If we're blocking and had at least one EOB go out
+	{
+		int remaining = noutput_items - j;
+		
+		if (remaining > 0)
+		{
+			fprintf(stderr, "[%s<%i>] Starting flush with remaining %d samples after %d EOBs\n", name().c_str(), unique_id(), remaining, work_eob_count);
+			
+			add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::from_bool(true));
+			add_item_tag(0, nitems_written(0)+j, IGNORE_KEY, pmt::from_bool(true));
+			
+			memset(out + (j * d_item_size), 0x00, d_item_size * remaining);
+			if (thru_out)
+				memset(thru_out + (j * d_item_size), 0x00, d_item_size * remaining);
+			j += remaining;
+		}
+		
+		d_flush_count = std::max(0, d_flush_length - remaining);
+		
+		if (d_flush_count == 0)
+		{
+			fprintf(stderr, "[%s<%i>] Finishing flush at end of work\n", name().c_str(), unique_id());
+			
+			add_item_tag(0, nitems_written(0)+j-1, EOB_KEY, pmt::from_bool(true));
+		}
+	}
 
-  return j;
+	return j;
 }
