@@ -60,7 +60,7 @@ namespace gr {
         m_data.clear();
     }
     
-    std::vector<size_t> usrp_acquire:: finite_acquisition_v(const size_t nsamps, bool stream_now, double delay, size_t skip, double timeout)
+    std::vector<size_t> usrp_acquire::finite_acquisition_v(const size_t nsamps, bool stream_now, double delay, size_t skip, double timeout)
     {
         boost::mutex::scoped_lock lock(d_mutex);
         
@@ -124,6 +124,11 @@ namespace gr {
         res.push_back(final_num_samps);
         
         return res;
+    }
+    
+    void usrp_acquire::set_gpio_attr(const std::string &bank, const std::string &attr, const boost::uint32_t value, const boost::uint32_t mask, const size_t mboard)
+    {
+        m_dev->set_gpio_attr(bank, attr, value, mask, mboard);
     }
 
   } /* namespace baz */
