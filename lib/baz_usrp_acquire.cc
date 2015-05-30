@@ -126,7 +126,7 @@ namespace gr {
         return res;
     }
     
-    void usrp_acquire::set_gpio_attr(const std::string &bank, const std::string &attr, const boost::uint32_t value, const boost::uint32_t mask, const size_t mboard)
+    void usrp_acquire::set_gpio_attr(const std::string &bank, const std::string &attr, const boost::uint32_t value, const boost::uint32_t mask, const size_t mboard/* = 0*/)
     {
         m_dev->set_gpio_attr(bank, attr, value, mask, mboard);
     }
