@@ -45,7 +45,6 @@ SET(baz_headers
 	baz_tcp_sink.h
 	baz_tcp_source.h
 	baz_auto_ber_bf.h
-	baz_usrp_acquire.h
 	baz_peak_detector.h
 	baz_burst_tagger.h
 	baz_burst_buffer.h
@@ -56,7 +55,7 @@ if (LIBUSB_FOUND)
 endif ()
 
 if (UHD_FOUND)
-	list(APPEND baz_headers baz_gate.h)
+	list(APPEND baz_headers baz_gate.h baz_usrp_acquire.h baz_hopper.h)
 endif ()
 
 install(FILES
@@ -120,7 +119,7 @@ else ()
 endif ()
 
 if (UHD_FOUND)
-	LIST(APPEND baz_sources baz_gate.cc baz_usrp_acquire.cc)
+	LIST(APPEND baz_sources baz_gate.cc baz_usrp_acquire.cc baz_hopper.cc)
 else ()
 	SET(UHD_LIBRARIES "")
 endif ()

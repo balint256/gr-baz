@@ -57,6 +57,7 @@
 #ifdef UHD_FOUND
 #include "baz_gate.h"
 #include "baz_usrp_acquire.h"
+#include "baz_hopper.h"
 #endif // UHD_FOUND
 
 #ifdef ARMADILLO_FOUND
@@ -506,12 +507,33 @@ public:
   void set_no_delay(bool no_delay);
 };
 
-
 ////////////////////////////////////////
 
 %template(usrp_acquire_sptr) boost::shared_ptr<gr::baz::usrp_acquire>;
 
 %include "baz_usrp_acquire.h"
+
+////////////////////////////////////////////////////////////////////////////////
+
+GR_SWIG_BLOCK_MAGIC(baz,hopper);
+
+baz_hopper_sptr baz_make_hopper (
+	size_t item_size,
+	int sample_rate,
+	int chunk_length,
+	int drop_length,
+	std::vector<std::vector<double> > freqs,
+	::gr::basic_block_sptr source,
+	bool verbose = false
+);
+
+class baz_hopper : public gr::block
+{
+//protected:
+//	baz_hopper (int itemsize, ..., bool verbose = false);
+public:
+	~baz_hopper();
+};
 
 #endif // UHD_FOUND
 
@@ -867,4 +889,7 @@ public:
 	~baz_burst_buffer();
 };
 
+////////////////////////////////////////////////////////////////////////////////
+
 #endif // GR_BAZ_WITH_CMAKE
+
