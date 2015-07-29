@@ -64,6 +64,9 @@ baz_time_keeper::baz_time_keeper (int item_size, int sample_rate)
 	//memset(&d_last_time, 0x00, sizeof(uhd::time_spec_t));
 
 	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %d\n", name().c_str(), unique_id(), item_size, sample_rate);
+
+	d_status_port_id = pmt::mp("status");
+	message_port_register_out(d_status_port_id);
 }
 
 /*
@@ -144,7 +147,11 @@ int baz_time_keeper::work (int noutput_items, gr_vector_const_void_star &input_i
 		}
 		
 		if (d_ignore_next == false)
+		{
 			++d_update_count;
+
+			message_port_pub(d_status_port_id, pmt::string_to_symbol("update"));
+		}
 		
 		d_seen_time = true;
 		//d_ignore_next = false;	// [1]

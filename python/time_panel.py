@@ -96,7 +96,9 @@ class time_panel_sink(gr.hier_block2, common.wxgui_hb):
 			gr.io_signature(1, 1, item_size),
 			gr.io_signature(0, 0, 0)
 		)
+		self.message_port_register_hier_in('status')
 		self.time_keeper = baz.time_keeper(item_size, sample_rate)
+		self.msg_connect((self.time_keeper, 'status'), (self, 'status'))
 		self.win = time_panel(parent, rate, self.time_keeper, relative, mode)
 		self.wxgui_connect(self, self.time_keeper)
 	def set_rate(self, rate):

@@ -118,6 +118,12 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
 		<type>byte</type>
 		<vlen>$item_size</vlen>
 	</sink>
+
+    <source>
+        <name>status</name>
+        <type>message</type>
+        <optional>1</optional>
+    </source>
 	
 	<doc></doc>
 </block>

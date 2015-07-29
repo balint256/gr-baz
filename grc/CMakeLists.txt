@@ -77,6 +77,7 @@ SET(baz_blocks
 
 	baz_waterfall_sink.xml
 	baz_burst_tagger.xml
+	baz_any_message.xml
 )
 
 if (LIBUSB_FOUND)

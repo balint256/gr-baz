@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<block>
+    <name>Any Block (Message)</name>
+    <key>any_message</key>
+    <category>Misc</category>
+    <import>from gnuradio import gr</import>
+<!--<import>
+#if $block_import
+import $block_import
+#endif</import>-->
+    <make>$block_maker()</make>
+    <!--
+	<param>
+		<name>Import</name>
+		<key>block_import</key>
+		<type>raw</type>
+    </param>
+    -->
+    <param>
+		<name>Desc</name>
+		<key>block_desc</key>
+		<type>string</type>
+    </param>
+
+    <param>
+		<name>Maker</name>
+		<key>block_maker</key>
+		<!--<type>raw</type>-->
+		<type>string</type>
+    </param>
+
+  <param>
+		<name>Num Inputs</name>
+		<key>num_inputs</key>
+		<value>1</value>
+		<type>int</type>
+  </param>
+
+  <param>
+		<name>Num Outputs</name>
+		<key>num_outputs</key>
+		<value>1</value>
+		<type>int</type>
+  </param>
+<!-- Must come before sink/source -->
+  <!--<check>$num_inputs &gt;= 0</check>
+  <check>$num_outputs &gt;= 0</check>-->
+  <check>len("$block_maker()") &gt; 0</check>
+
+  <sink>
+    <name>in</name>
+    <type>message</type>
+    <nports>$num_inputs</nports>
+    <optional>1</optional>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>message</type>
+    <nports>$num_outputs</nports>
+    <optional>1</optional>
+  </source>
+
+    <doc>
+Supports any generic Python GR block - just type the raw maker code/function into 'Maker'.
+
+'Desc' is so that you can recognise what this block does when glancing at the flow graph.
+
+This block wraps a GR block with at least one source AND at least one sink.
+
+Don't forget to use the Import block to import the necessary Python packages for your 'Maker' function!
+    </doc>
+</block>

@@ -81,6 +81,7 @@ private:
 	int d_update_count;
 	bool d_ignore_next;
 	gr::thread::mutex d_mutex;
+	pmt::pmt_t d_status_port_id;
 
 public:
 	~baz_time_keeper ();	// public destructor

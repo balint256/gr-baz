@@ -17,7 +17,7 @@ import wx.xrc
 class TimePanel ( wx.Panel ):
 	
 	def __init__( self, parent ):
-		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL )
+		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,50 ), style = wx.TAB_TRAVERSAL )
 		
 		bSizer2 = wx.BoxSizer( wx.HORIZONTAL )
 		
