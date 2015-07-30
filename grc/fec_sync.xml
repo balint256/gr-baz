@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##FEC sync
+###################################################
+ -->
+<block>
+    <name>FEC Sync</name>
+    <key>baz_fec_sync</key>
+    <import>from baz import fec_sync</import>
+    <make>fec_sync.fec_sync($maker())</make>
+    <param>
+		<name>Maker</name>
+		<key>maker</key>
+		<value></value>
+		<type>string</type>
+    </param>
+
+    <sink>
+        <name>clock</name>
+        <type>message</type>
+    </sink>
+
+    <sink>
+        <name>pdu</name>
+        <type>message</type>
+    </sink>
+
+    <sink>
+        <name>status</name>
+        <type>message</type>
+        <optional>1</optional>
+    </sink>
+    <!--
+    <source>
+        <name>pdu</name>
+        <type>message</type>
+        <optional>1</optional>
+    </source>
+    -->
+    <doc></doc>
+</block>

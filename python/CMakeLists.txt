@@ -71,6 +71,8 @@ GR_PYTHON_INSTALL(
 	delayed_start.py
 	horizons_block.py
 	rx_time.py
+	fec_sync.py
+	usrp_agc.py
 
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
