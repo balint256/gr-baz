@@ -18,7 +18,7 @@ import threading, math, time
 import wx
 import numpy
 
-from gnuradio import gr, blocks
+from gnuradio import gr, blocks, fec, filter, analog
 from grc_gnuradio import blks2 as grc_blks2
 import baz
 
@@ -389,33 +389,52 @@ class auto_fec(gr.hier_block2):
 		self.input_watcher = auto_fec_input_watcher(self)
 		default_xform = self.input_watcher.xform_lock
 		
-		self.gr_conjugate_cc_0 = gr.conjugate_cc()
+		self.gr_conjugate_cc_0 = blocks.conjugate_cc()
+		self.conj_add = None
+		try:
+			self.gr_conjugate_cc_0.set(True)
+		except:
+			self.conj_mul_straight = blocks.multiply_const_vcc((0, ))
+			self.conj_mul_conj = blocks.multiply_const_vcc((1, ))
+			self.conj_add = blocks.add_vcc(1)
+			self.connect((self.gr_conjugate_cc_0, 0), (self.conj_mul_conj, 0))    
+			self.connect((self.conj_mul_conj, 0), (self.conj_add, 1))    
+			self.connect((self.conj_mul_straight, 0), (self.conj_add, 0))    
+			self.connect((self, 0), (self.conj_mul_straight, 0))
+
 		self.connect((self, 0), (self.gr_conjugate_cc_0, 0))	# Input
 		
-		self.blks2_selector_0 = grc_blks2.selector(
-			item_size=gr.sizeof_gr_complex*1,
-			num_inputs=2,
-			num_outputs=1,
-			input_index=default_xform.get_conjugation_index(),
-			output_index=0,
-		)
-		self.connect((self.gr_conjugate_cc_0, 0), (self.blks2_selector_0, 0))
-		self.connect((self, 0), (self.blks2_selector_0, 1))		# Input
+		#self.blks2_selector_0 = grc_blks2.selector(
+		#	item_size=gr.sizeof_gr_complex*1,
+		#	num_inputs=2,
+		#	num_outputs=1,
+		#	input_index=default_xform.get_conjugation_index(),
+		#	output_index=0,
+		#)
+		#self.connect((self.gr_conjugate_cc_0, 0), (self.blks2_selector_0, 0))
+		#self.connect((self, 0), (self.blks2_selector_0, 1))		# Input
 		
-		self.gr_multiply_const_vxx_3 = gr.multiply_const_vcc((0.707*(1+1j), ))
-		self.connect((self.blks2_selector_0, 0), (self.gr_multiply_const_vxx_3, 0))
+		# CHANGED
+		#self.gr_multiply_const_vxx_3 = blocks.multiply_const_vcc((0.707*(1+1j), ))
+		#self.connect((self.blks2_selector_0, 0), (self.gr_multiply_const_vxx_3, 0))
+		#self.connect((self.gr_conjugate_cc_0, 0), (self.gr_multiply_const_vxx_3, 0))
 		
-		self.gr_multiply_const_vxx_2 = gr.multiply_const_vcc((default_xform.get_rotation(), ))	# phase_mult
-		self.connect((self.gr_multiply_const_vxx_3, 0), (self.gr_multiply_const_vxx_2, 0))
+		self.gr_multiply_const_vxx_2 = blocks.multiply_const_vcc((default_xform.get_rotation(), ))	# phase_mult
+		#self.connect((self.gr_multiply_const_vxx_3, 0), (self.gr_multiply_const_vxx_2, 0))
+		# CHANGED
+		if self.conj_add is not None:
+			self.connect((self.conj_add, 0), (self.gr_multiply_const_vxx_2, 0))
+		else:
+			self.connect((self.gr_conjugate_cc_0, 0), (self.gr_multiply_const_vxx_2, 0))
 		
-		self.gr_complex_to_float_0_0 = gr.complex_to_float(1)
+		self.gr_complex_to_float_0_0 = blocks.complex_to_float(1)
 		self.connect((self.gr_multiply_const_vxx_2, 0), (self.gr_complex_to_float_0_0, 0))
 		
-		self.gr_interleave_1 = gr.interleave(gr.sizeof_float*1)
+		self.gr_interleave_1 = blocks.interleave(gr.sizeof_float*1)
 		self.connect((self.gr_complex_to_float_0_0, 1), (self.gr_interleave_1, 1))
 		self.connect((self.gr_complex_to_float_0_0, 0), (self.gr_interleave_1, 0))
 		
-		self.gr_multiply_const_vxx_0 = gr.multiply_const_vff((1, ))	# invert
+		self.gr_multiply_const_vxx_0 = blocks.multiply_const_vff((1, ))	# invert
 		self.connect((self.gr_interleave_1, 0), (self.gr_multiply_const_vxx_0, 0))
 		
 		self.baz_delay_2 = baz.delay(gr.sizeof_float*1, default_xform.get_puncture_delay())	# delay_puncture
@@ -430,11 +449,11 @@ class auto_fec(gr.hier_block2):
 		self.swap_ff_0 = baz.swap_ff(default_xform.get_viterbi_swap())	# swap_viterbi
 		self.connect((self.baz_delay_1, 0), (self.swap_ff_0, 0))
 		
-		self.gr_decode_ccsds_27_fb_0 = gr.decode_ccsds_27_fb()
+		self.gr_decode_ccsds_27_fb_0 = fec.decode_ccsds_27_fb()
 		
 		if use_throttle:
 			print "==> Using throttle at sample rate:", self.sample_rate
-			self.gr_throttle_0 = gr.throttle(gr.sizeof_float, self.sample_rate)
+			self.gr_throttle_0 = blocks.throttle(gr.sizeof_float, self.sample_rate)
 			self.connect((self.swap_ff_0, 0), (self.gr_throttle_0, 0))
 			self.connect((self.gr_throttle_0, 0), (self.gr_decode_ccsds_27_fb_0, 0))
 		else:
@@ -442,31 +461,31 @@ class auto_fec(gr.hier_block2):
 		
 		self.connect((self.gr_decode_ccsds_27_fb_0, 0), (self, 0))	# Output bytes
 		
-		self.gr_add_const_vxx_1 = gr.add_const_vff((-4096, ))
+		self.gr_add_const_vxx_1 = blocks.add_const_vff((-4096, ))
 		self.connect((self.gr_decode_ccsds_27_fb_0, 1), (self.gr_add_const_vxx_1, 0))
 		
-		self.gr_multiply_const_vxx_1 = gr.multiply_const_vff((-1, ))
+		self.gr_multiply_const_vxx_1 = blocks.multiply_const_vff((-1, ))
 		self.connect((self.gr_add_const_vxx_1, 0), (self.gr_multiply_const_vxx_1, 0))
 		self.connect((self.gr_multiply_const_vxx_1, 0), (self, 1))	# Output BER
 		
-		self.gr_single_pole_iir_filter_xx_0 = gr.single_pole_iir_filter_ff(ber_smoothing, 1)
+		self.gr_single_pole_iir_filter_xx_0 = filter.single_pole_iir_filter_ff(ber_smoothing, 1)
 		self.connect((self.gr_multiply_const_vxx_1, 0), (self.gr_single_pole_iir_filter_xx_0, 0))
 		
 		self.gr_keep_one_in_n_0 = blocks.keep_one_in_n(gr.sizeof_float, ber_sample_decimation)
 		self.connect((self.gr_single_pole_iir_filter_xx_0, 0), (self.gr_keep_one_in_n_0, 0))
 		
-		self.const_source_x_0 = gr.sig_source_f(0, gr.GR_CONST_WAVE, 0, 0, 0)	# Last param is const value
+		self.const_source_x_0 = analog.sig_source_f(0, analog.GR_CONST_WAVE, 0, 0, 0)	# Last param is const value
 		if use_throttle:
 			lock_throttle_rate = self.sample_rate // 16
 			print "==> Using lock throttle rate:", lock_throttle_rate
-			self.gr_throttle_1 = gr.throttle(gr.sizeof_float, lock_throttle_rate)
+			self.gr_throttle_1 = blocks.throttle(gr.sizeof_float, lock_throttle_rate)
 			self.connect((self.const_source_x_0, 0), (self.gr_throttle_1, 0))
 			self.connect((self.gr_throttle_1, 0), (self, 2))
 		else:
 			self.connect((self.const_source_x_0, 0), (self, 2))
 		
 		self.msg_q = gr.msg_queue(2*256)	# message queue that holds at most 2 messages, increase to speed up process
-		self.msg_sink = gr.message_sink(gr.sizeof_float, self.msg_q, dont_block=0)	# Block to speed up process
+		self.msg_sink = blocks.message_sink(gr.sizeof_float, self.msg_q, False)	# Block to speed up process
 		self.connect((self.gr_keep_one_in_n_0, 0), self.msg_sink)
 		
 		self.input_watcher.start()
@@ -478,7 +497,12 @@ class auto_fec(gr.hier_block2):
 				self.gr_multiply_const_vxx_2.set_k((xform.get_rotation(), ))
 			if changes is None or auto_fec_xform.CHANGE_CONJUGATION in changes:
 				print "\tApplying conjugation:", xform.get_conjugation_index()
-				self.blks2_selector_0.set_input_index(xform.get_conjugation_index())
+				#self.blks2_selector_0.set_input_index(xform.get_conjugation_index())
+				if self.conj_add is not None:
+					self.conj_mul_straight.set_k((float(xform.get_conjugation_index()),0))
+					self.conj_mul_conj.set_k((float(1 - xform.get_conjugation_index()),0))
+				else:
+					self.gr_conjugate_cc_0.set(xform.get_conjugation_index() == 0)
 			if changes is None or auto_fec_xform.CHANGE_INVERSION in changes:
 				pass
 			if changes is None or auto_fec_xform.CHANGE_PUNCTURE_DELAY in changes:

@@ -5,7 +5,7 @@
 ###################################################
  -->
 <block>
-    <name>FEC Sync</name>
+    <name>FEC Sync (Baz)</name>
     <key>baz_fec_sync</key>
     <import>from baz import fec_sync</import>
     <make>fec_sync.fec_sync($maker())</make>
