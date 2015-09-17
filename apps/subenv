@@ -26,9 +26,12 @@ fi
 echo "Entering $BASE_PATH"
 
 # Sub-environment
-export PATH=$BASE_PATH/bin:$PATH
+export SUBENV_PATH=$BASE_PATH/bin
+export PATH=$SUBENV_PATH:$PATH
 export LD_LIBRARY_PATH=$BASE_PATH/lib64:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$BASE_PATH/lib:$LD_LIBRARY_PATH
+
+export DYLD_LIBRARY_PATH=$BASE_PATH/lib:$DYLD_LIBRARY_PATH
 
 export PYTHONPATH=$BASE_PATH/lib64/python$PYTHON_VER/site-packages:$PYTHONPATH
 export PYTHONPATH=$BASE_PATH/lib64/python$PYTHON_VER/dist-packages:$PYTHONPATH
@@ -45,10 +48,11 @@ if [ -e $BASE_PATH/subenv.init ]; then
 fi
 
 # 'export' is necessary
+# FIXME: If $MODULE is a full path, extract last directory
 if [ -z "$SUBENV" ]; then
 	export SUBENV="$MODULE"
 else
-	export SUBENV="$SUBENV:$MODULE"	# FIXME: If $MODULE is a full path, extract last directory
+	export SUBENV="$SUBENV:$MODULE"
 fi
 
 # Start the new session
