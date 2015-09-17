@@ -68,7 +68,8 @@ class fsm(_threading.Thread):
 				
 				#print src_id, key, val, appended
 				
-				if val == 'unmuted':
+				#if val == 'unmuted':
+				if key == 'squelch_sob':
 					print "[", self.active_freq, "]", src_id, key, val, appended
 					colour = (0.,0.,0.)
 					if self.active_freq == None:
@@ -79,7 +80,8 @@ class fsm(_threading.Thread):
 						colour = (0.0,0.8,0.0)
 					if self.sink is not None:
 						self.sink.set_line({'id':freq_offset,'type':'v','offset':self.baseband_freq+freq_offset,'action':True,'colour':colour})
-				elif val == 'muted':
+				#elif val == 'muted':
+				elif key == 'squelch_eob':
 					if self.sink is not None:
 						self.sink.set_line({'id':freq_offset,'action':False})
 					print "[", self.active_freq, "]", src_id, key, val, appended
