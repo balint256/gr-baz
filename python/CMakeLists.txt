@@ -35,7 +35,7 @@ GR_PYTHON_INSTALL(
 	facsink.py
 	eye.py
 	auto_fec.py
-	op25.py
+	baz_op25.py
 	op25_traffic_pane.py
 	message_callback.py
 	borip_server.py

@@ -3,8 +3,8 @@
 	<name>OP25 FSK4 Demodulator</name>
 	<key>op25_fsk4</key>
 	<category>Synchronizers</category>
-	<import>from baz import op25</import>
-	<make>op25.op25_fsk4(channel_rate=$channel_rate, #slurp
+	<import>from baz import baz_op25</import>
+	<make>baz_op25.op25_fsk4(channel_rate=$channel_rate, #slurp
 #if $tune_out()
 auto_tune_msgq=$(id)_msgq_out,#slurp
 #end if

@@ -3,26 +3,71 @@
 	<name>OP25 Decoder (Combined)</name>
 	<key>op25_decoder</key>
 	<category>Modulators</category>
-	<import>from baz import op25</import>
-	<make>op25.op25_decoder(channel_rate=$channel_rate, output_dibits=$dibits_out, key=$key,#slurp
-#if $tune_out()
+	<import>from baz import baz_op25</import>
+	<make>baz_op25.op25_decoder(channel_rate=$channel_rate, idle_silence=$idle_silence, output_dibits=$dibits_out, key=$key, key_map=$key_map, verbose=$verbose#slurp
+#if str($msg_out) == 'auto_tune'
 auto_tune_msgq=$(id)_msgq_out,#slurp
+#elif str($msg_out) == 'traffic'
+traffic_msgq=$(id)_msgq_out,#slurp
 #end if
 )</make>
 	
-	<!--<callback></callback>-->
+	<callback>set_key($key)</callback>
+	<callback>set_key_map($key_map)</callback>
+	<callback>set_idle_silence($idle_silence)</callback>
+	<callback>set_logging($verbose)</callback>
 	
 	<param>
-	<name>Channel Rate</name>
-	<key>channel_rate</key>
-	<type>real</type>
+		<name>Channel Rate</name>
+		<key>channel_rate</key>
+		<type>real</type>
 	</param>
 
 	<param>
-	<name>Key (hex)</name>
-	<key>key</key>
-	<type>string</type>
-	<hide>#if len($key()) == 0 then 'part' else 'none'#</hide>
+		<name>Key (hex)</name>
+		<key>key</key>
+		<type>string</type>
+		<hide>#if len($key()) == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		<name>Key map (hex)</name>
+		<key>key_map</key>
+		<value>{}</value>
+		<type>raw</type>
+		<hide>#if len($key_map()) == 0 then 'part' else 'none'#</hide>
+	</param>
+	
+	<param>
+		<name>Idle silence</name>
+		<key>idle_silence</key>
+		<value>True</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+	
+	<param>
+		<name>Console logging</name>
+		<key>verbose</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
 	</param>
 	
 	<param>
@@ -42,18 +87,22 @@ auto_tune_msgq=$(id)_msgq_out,#slurp
 	</param>
 	
 	<param>
-		<name>Output auto tune</name>
-		<key>tune_out</key>
-		<value>True</value>
-		<type>bool</type>
+		<name>Output message</name>
+		<key>msg_out</key>
+		<value>none</value>
+		<type>enum</type>
 		<hide>part</hide>
 		<option>
-			<name>Yes</name>
-			<key>True</key>
+			<name>None</name>
+			<key>none</key>
 		</option>
 		<option>
-			<name>No</name>
-			<key>False</key>
+			<name>Auto-tune</name>
+			<key>auto_tune</key>
+		</option>
+		<option>
+			<name>Traffic</name>
+			<key>traffic</key>
 		</option>
 	</param>
 	
@@ -76,7 +125,7 @@ auto_tune_msgq=$(id)_msgq_out,#slurp
 	</source>
 	
 	<source>
-		<name>tune</name>
+		<name>msg</name>
 		<type>msg</type>
 		<optional>1</optional>
 	</source>
