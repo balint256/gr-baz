@@ -48,6 +48,7 @@ SET(baz_headers
 	baz_peak_detector.h
 	baz_burst_tagger.h
 	baz_burst_buffer.h
+	baz_additive_scrambler_bb.h
 )
 
 if (LIBUSB_FOUND)
@@ -101,6 +102,7 @@ SET(baz_sources
 	baz_peak_detector.cc
 	baz_burst_tagger_impl.cc
 	baz_burst_buffer.cc
+	baz_additive_scrambler_bb.cc
 )
 
 if (LIBUSB_FOUND)

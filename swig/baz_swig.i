@@ -53,6 +53,7 @@
 #include "baz_peak_detector.h"
 #include "baz_burst_tagger.h"
 #include "baz_burst_buffer.h"
+#include "baz_additive_scrambler_bb.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -859,12 +860,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,peak_detector);
 
-baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0);
+baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0, int look_ahead = 0);
 
-class BAZ_API baz_peak_detector : public gr::sync_block
+class BAZ_API baz_peak_detector : public gr::block
 {
 protected:
-	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha);  	// private constructor
+	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead);  	// private constructor
 public:
 	~baz_peak_detector ();
 };
@@ -891,5 +892,10 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#endif // GR_BAZ_WITH_CMAKE
+%include "baz_additive_scrambler_bb.h"
 
+GR_SWIG_BLOCK_MAGIC2(baz, additive_scrambler_bb);
+
+////////////////////////////////////////////////////////////////////////////////
+
+#endif // GR_BAZ_WITH_CMAKE

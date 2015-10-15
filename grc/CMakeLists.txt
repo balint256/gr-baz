@@ -79,6 +79,7 @@ SET(baz_blocks
 	baz_burst_tagger.xml
 	baz_any_message.xml
 	fec_sync.xml
+	baz_additive_scrambler_bb.xml
 )
 
 if (LIBUSB_FOUND)

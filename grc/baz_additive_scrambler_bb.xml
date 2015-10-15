@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+## Additive Scrambler
+###################################################
+ -->
+<block>
+	<name>Additive Scrambler (Baz)</name>
+	<key>baz_additive_scrambler_bb</key>
+	<import>import baz</import>
+	<make>baz.additive_scrambler_bb($mask, $seed, $len, $count, reset_tag_key=$reset_tag_key)</make>
+	<param>
+		<name>Mask</name>
+		<key>mask</key>
+		<value>0x8A</value>
+		<type>hex</type>
+	</param>
+	<param>
+		<name>Seed</name>
+		<key>seed</key>
+		<value>0x7F</value>
+		<type>hex</type>
+	</param>
+	<param>
+		<name>Length</name>
+		<key>len</key>
+		<value>7</value>
+		<type>int</type>
+	</param>
+	<param>
+		<name>Count</name>
+		<key>count</key>
+		<value>0</value>
+		<type>int</type>
+	</param>
+	<param>
+		<name>Reset tag key</name>
+		<key>reset_tag_key</key>
+		<value></value>
+		<type>string</type>
+	</param>
+	<sink>
+		<name>in</name>
+		<type>byte</type>
+	</sink>
+	<source>
+		<name>out</name>
+		<type>byte</type>
+	</source>
+</block>
