@@ -17,6 +17,8 @@ import threading
 import SocketServer
 
 from gnuradio import gr
+try: from gnuradio import blocks
+except: pass
 import baz
 
 class server(gr.hier_block2):   # Stand-alone block
@@ -36,7 +38,8 @@ class server(gr.hier_block2):   # Stand-alone block
                 self.connect(src, self.mul)
                 src = self.mul
             
-            self.c2is = gr.complex_to_interleaved_short()
+            try: self.c2is = blocks.complex_to_interleaved_short()
+            except: self.c2is = gr.complex_to_interleaved_short()
             self.connect(src, self.c2is)
             src = self.c2is
         elif (size == (2 * gr.sizeof_short)):   # Short * 2 (vlen = 2)
