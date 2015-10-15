@@ -254,7 +254,7 @@ if (ones > 0) fprintf(stderr, "ACARS: %i ones of %i (%i continuous zeroes), ave:
 					d_bit_counter = 0;
 					d_current_byte = 0x00;
 					
-					if ((d_flags & FLAG_DEL) || (d_byte_counter == MAX_PACKET_SIZE))
+					if ((d_flags & FLAG_DEL) || (d_byte_counter == MAX_ACARS_PACKET_SIZE))
 					{
 if ((d_flags & FLAG_ETX) == FLAG_NONE) fprintf(stderr, "ACARS: Missing ETX!\n");
 if ((d_flags & FLAG_DEL) == FLAG_NONE) fprintf(stderr, "ACARS: Missing DEL!\n");

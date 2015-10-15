@@ -81,7 +81,7 @@ private:
 		//STATE_END
 	};
 	
-#define MAX_PACKET_SIZE 252
+	const static int MAX_ACARS_PACKET_SIZE = 252;
 	
 	enum flags_t
 	{
@@ -99,8 +99,8 @@ private:
 		float reference_level;
 		float prekey_average;
 		int prekey_ones;
-		unsigned char byte_data[MAX_PACKET_SIZE];
-		unsigned char byte_error[MAX_PACKET_SIZE];
+		unsigned char byte_data[MAX_ACARS_PACKET_SIZE];
+		unsigned char byte_error[MAX_ACARS_PACKET_SIZE];
 		int parity_error_count;
 		int byte_count;
 		unsigned char flags;
