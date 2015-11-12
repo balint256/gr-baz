@@ -169,12 +169,12 @@ public:	// SWIG get: tuner ranges/values
 
 GR_SWIG_BLOCK_MAGIC(baz,print_char);
 
-baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL);
+baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL, int padding = 1, bool fixed_limit = false);
 
 class baz_print_char : public gr::sync_block
 {
 private:
-  baz_print_char (float threshold, int limit, const char* file);
+  baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

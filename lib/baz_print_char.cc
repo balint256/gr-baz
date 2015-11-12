@@ -38,9 +38,9 @@
 #include <gnuradio/io_signature.h>
 #include <stdio.h>
 
-baz_print_char_sptr BAZ_API baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/)
+baz_print_char_sptr BAZ_API baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/, int padding /*= 0*/, bool fixed_limit /*= false*/)
 {
-  return baz_print_char_sptr (new baz_print_char (threshold, limit, file));
+  return baz_print_char_sptr (new baz_print_char (threshold, limit, file, padding, fixed_limit));
 }
 
 static const int MIN_IN = 1;	// mininum number of input streams
@@ -51,7 +51,7 @@ static const int MAX_OUT = 0;	// maximum number of output streams
 typedef unsigned char BYTE;
 typedef BYTE *LPBYTE;
 
-baz_print_char::baz_print_char (float threshold, int limit, const char* file)
+baz_print_char::baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit)
   : gr::sync_block ("print_char",
 	      gr::io_signature::make2 (MIN_IN, MAX_IN, sizeof (BYTE), sizeof(float)),
 	      gr::io_signature::make (MIN_OUT, MAX_OUT, 0/*sizeof (float)*/))
@@ -59,6 +59,8 @@ baz_print_char::baz_print_char (float threshold, int limit, const char* file)
   , d_limit(limit)
   , d_length(0)
   , d_file(NULL)
+  , d_padding(1)
+  , d_fixed_limit(fixed_limit)
 {
   if (file)
   {
@@ -66,6 +68,10 @@ baz_print_char::baz_print_char (float threshold, int limit, const char* file)
 	if (d_file == NULL)
 	  perror("Failed to open symbol output file");
   }
+
+  d_padding = std::min(9, std::max(1, padding));
+
+  snprintf(d_format_string, sizeof(d_format_string), "%%0%dX", d_padding);
 }
 
 baz_print_char::~baz_print_char ()
@@ -88,7 +94,8 @@ int baz_print_char::work (int noutput_items, gr_vector_const_void_star &input_it
   
   for (int i = 0; i < noutput_items; i++)
   {
-    if ((level != NULL) && (level[i] < d_threshold))
+    if (((level != NULL) && (level[i] < d_threshold)) ||
+    	((d_fixed_limit) && (d_length == d_limit)))
 	{
 	  if (d_length)
 	  {
@@ -103,18 +110,19 @@ int baz_print_char::work (int noutput_items, gr_vector_const_void_star &input_it
 		d_length = 0;
 	  }
 	  
-	  continue;
+	  if ((level != NULL) && (level[i] < d_threshold))
+	  	continue;
 	}
 	
 	if ((d_limit == -1) || (d_length < d_limit))
 	{
 	  if (d_file)
 	  {
-		fprintf(d_file, "%01X", data[i]);
+		fprintf(d_file, d_format_string, data[i]);
 	  }
 	  else
 	  {
-		printf("%01X", data[i]); fflush(stdout);	// 02
+		printf(d_format_string, data[i]); fflush(stdout);	// 02
 	  }
 	}
 	else if ((d_limit > -1) && (d_length == d_limit))
