@@ -45,9 +45,9 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_manchester_decode_bb_sptr 
-baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose /*= false*/)
+baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose /*= false*/, bool show_bits /*= false*/)
 {
-  return baz_manchester_decode_bb_sptr (new baz_manchester_decode_bb (original, threshold, window, verbose));
+  return baz_manchester_decode_bb_sptr (new baz_manchester_decode_bb (original, threshold, window, verbose, show_bits));
 }
 
 /*
@@ -67,12 +67,12 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_manchester_decode_bb::baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose)
+baz_manchester_decode_bb::baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose, bool show_bits)
   : gr::block ("manchester_decode_bb",
 		   gr::io_signature::make (MIN_IN, MAX_IN, sizeof (char)),
 		   gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char)))
-  , d_original(original), d_threshold(threshold), d_window(window), d_verbose(verbose)
-  , d_current_window(0), d_violation_count(0), d_offset(0)
+  , d_original(original), d_threshold(threshold), d_window(window), d_verbose(verbose), d_show_bits(show_bits)
+  , d_current_window(0), d_violation_count(0), d_offset(0), d_violation_total_count(0)
 {
 	fprintf(stderr, "[%s<%i>] original: %s, threshold: %d, window: %d\n", name().c_str(), unique_id(), (original ? "yes" : "no"), threshold, window);
 	
@@ -129,7 +129,7 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 			
 			d_violation_history.push_back(true);
 			
-			if (d_verbose)
+			if (d_show_bits)
 			{
 				//fprintf(stderr, "[%s<%i>] violation (%d %d)\n", name().c_str(), unique_id(), (int)first, (int)second);
 				fprintf(stderr, " ! ");
@@ -145,7 +145,7 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 			
 			out[noutput++] = (bit ? 0x01 : 0x00);
 			
-			if (d_verbose)
+			if (d_show_bits)
 			{
 				fprintf(stderr, "%d", (int)bit);
 				fflush(stderr);
@@ -163,14 +163,17 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 			
 			if (violation_count >= d_threshold)
 			{
+				++d_violation_total_count;
+
 				d_violation_history.clear();
 				
 				--i;	// Rewind and re-use previous this bit as first of next pair
 				
 				if (d_verbose)
 				{
-					fprintf(stderr, "\n");
-					fprintf(stderr, "[%s<%i>] violation threshold exceeded\n", name().c_str(), unique_id());
+					if (d_show_bits)
+						fprintf(stderr, "\n");
+					fprintf(stderr, "[%s<%i>] violation threshold exceeded (# %d)\n", name().c_str(), unique_id(), d_violation_total_count);
 				}
 			}
 		}

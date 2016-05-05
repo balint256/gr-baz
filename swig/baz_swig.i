@@ -54,6 +54,7 @@
 #include "baz_burst_tagger.h"
 #include "baz_burst_buffer.h"
 #include "baz_additive_scrambler_bb.h"
+#include "baz_correlator.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -169,12 +170,12 @@ public:	// SWIG get: tuner ranges/values
 
 GR_SWIG_BLOCK_MAGIC(baz,print_char);
 
-baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL, int padding = 1, bool fixed_limit = false);
+baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL, int padding = 1, bool fixed_limit = false, bool append = false);
 
 class baz_print_char : public gr::sync_block
 {
 private:
-  baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit);
+  baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit, bool append);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -772,11 +773,11 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,manchester_decode_bb)
 
-baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose = false);
+baz_manchester_decode_bb_sptr baz_make_manchester_decode_bb (bool original, int threshold, int window, bool verbose = false, bool show_bits = false);
 
 class baz_manchester_decode_bb : public gr::block
 {
-  baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose);  	// private constructor
+  baz_manchester_decode_bb (bool original, int threshold, int window, bool verbose, bool show_bits);  	// private constructor
 public:
 };
 
@@ -895,6 +896,43 @@ public:
 %include "baz_additive_scrambler_bb.h"
 
 GR_SWIG_BLOCK_MAGIC2(baz, additive_scrambler_bb);
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+GR_SWIG_BLOCK_MAGIC(baz,correlator);
+
+baz_correlator_sptr baz_make_correlator(
+    float samp_rate,
+    float symbol_rate,
+    int window_length,
+    float threshold=0.5,
+    int width=1024,
+    const char* sync_path="sync.dat",
+    int sync_length=511,
+    int sync_offset=50,
+    //sync_dtype='c8',
+    int sync_window_length=50
+);
+
+class baz_correlator : public gr::block
+{
+protected:
+	baz_burst_buffer(
+        float samp_rate,
+        float symbol_rate,
+        int window_length,
+        float threshold,
+        int width,
+        const char* sync_path,
+        int sync_length,
+        int sync_offset,
+        //sync_dtype='c8',
+        int sync_window_length
+);
+public:
+	~baz_correlator();
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
