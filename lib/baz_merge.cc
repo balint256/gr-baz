@@ -48,9 +48,9 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_merge_sptr 
-baz_make_merge (int item_size, float samp_rate, int additional_streams /*= 1*/, bool drop_residual /*= true*/, const char* length_tag /*= "length"*/, const char* ignore_tag /*= "ignore"*/)
+baz_make_merge (int item_size, float samp_rate, int additional_streams /*= 1*/, bool drop_residual /*= true*/, const char* length_tag /*= "length"*/, const char* ignore_tag /*= "ignore"*/, bool verbose /*= false*/)
 {
-	return baz_merge_sptr (new baz_merge (item_size, samp_rate, additional_streams, drop_residual, length_tag, ignore_tag));
+	return baz_merge_sptr (new baz_merge (item_size, samp_rate, additional_streams, drop_residual, length_tag, ignore_tag, verbose));
 }
 
 /*
@@ -70,12 +70,13 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_merge::baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag)
+baz_merge::baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag, bool verbose = false)
 	: gr::block ("merge",
 		gr::io_signature::make (MIN_IN, /*MAX_IN*/MIN_IN+additional_streams, item_size),
 		gr::io_signature::make (MIN_OUT, MAX_OUT, item_size))
 	, d_samp_rate(samp_rate)
 	, d_drop_residual(drop_residual)
+	, d_verbose(verbose)
 	, d_start_time_whole(0)
 	, d_start_time_frac(0.0)
 	, d_selected_input(0)
@@ -87,7 +88,7 @@ baz_merge::baz_merge (int item_size, float samp_rate, int additional_streams, bo
 	// FIXME: flush tag
 	, d_total_burst_count(0)
 {
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f, additional streams: %d: length tag: \'%s\', ignore tag: \'%s\'\n", name().c_str(), unique_id(), item_size, samp_rate, additional_streams, length_tag, ignore_tag);
+	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f, additional streams: %d: length tag: \'%s\', ignore tag: \'%s\'\n, verbose: %s", name().c_str(), unique_id(), item_size, samp_rate, additional_streams, length_tag, ignore_tag, (d_verbose ? "yes" : "no"));
 	
 	//set_relative_rate(1);
 	
@@ -192,7 +193,7 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 		{
 			if (d_ignore_current)
 			{
-				fprintf(stderr, "[%s<%i>] no samples for burst %llu on sample %llu\n", name().c_str(), unique_id(), d_total_burst_count, nread);
+				if (d_verbose) fprintf(stderr, "[%s<%i>] no samples for burst %llu on sample %llu\n", name().c_str(), unique_id(), d_total_burst_count, nread);
 				
 				d_selected_input = 0;
 				d_ignore_current = false;
@@ -262,7 +263,7 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 				{
 					if (ignore_tag.offset != nread)
 					{
-						fprintf(stderr, "! Burst #%llu: Ignoring 'ignore' tag at %llu (expecting %llu)\n", d_total_burst_count, ignore_tag.offset, nread);
+						if (d_verbose) fprintf(stderr, "! Burst #%llu: Ignoring 'ignore' tag at %llu (expecting %llu)\n", d_total_burst_count, ignore_tag.offset, nread);
 						continue;
 					}
 					
@@ -271,7 +272,7 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 					break;
 				}
 				
-				fprintf(stderr, "[%s<%i>] beginning burst %llu of length %d at sample %llu on input %d (ignoring: %s)\n", name().c_str(), unique_id(), d_total_burst_count, d_items_to_copy, nread, d_selected_input, (d_ignore_current ? "yes" : "no"));
+				if (d_verbose) fprintf(stderr, "[%s<%i>] beginning burst %llu of length %d at sample %llu on input %d (ignoring: %s)\n", name().c_str(), unique_id(), d_total_burst_count, d_items_to_copy, nread, d_selected_input, (d_ignore_current ? "yes" : "no"));
 				
 				return 0;
 			}

@@ -492,12 +492,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,gate)
 
-baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false);
+baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false, const std::string& length_tag_name = "");
 
 class baz_gate : public gr::sync_block
 {
 private:
-  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable);  	// private constructor
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name);  	// private constructor
 public:
   void set_blocking(bool enable);
   void set_threshold(float threshold);
@@ -797,11 +797,11 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,merge)
 
-baz_merge_sptr baz_make_merge (int item_size, float samp_rate, int additional_streams = 1, bool drop_residual = true, const char* length_tag = "length", const char* ignore_tag = "ignore");
+baz_merge_sptr baz_make_merge (int item_size, float samp_rate, int additional_streams = 1, bool drop_residual = true, const char* length_tag = "length", const char* ignore_tag = "ignore", bool verbose = false);
 
 class baz_merge : public gr::block
 {
-	baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag);  	// private constructor
+	baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag, bool verbose);  	// private constructor
 public:
 	void set_start_time(double time);
 	void set_start_time(uint64_t whole, double frac);
@@ -880,12 +880,12 @@ GR_SWIG_BLOCK_MAGIC2(baz, burst_tagger);
 
 GR_SWIG_BLOCK_MAGIC(baz,burst_buffer);
 
-baz_burst_buffer_sptr baz_make_burst_buffer (int itemsize, bool verbose = false);
+baz_burst_buffer_sptr baz_make_burst_buffer (int itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
 
 class baz_burst_buffer : public gr::block
 {
 protected:
-	baz_burst_buffer (int itemsize, bool verbose = false);
+	baz_burst_buffer (int itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
 public:
 	~baz_burst_buffer();
 };

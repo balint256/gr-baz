@@ -34,7 +34,7 @@
 class BAZ_API baz_burst_buffer;
 typedef boost::shared_ptr<baz_burst_buffer> baz_burst_buffer_sptr;
 
-BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length = 0, bool verbose = false);
+BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
 
 /*!
  * \brief buffer bursts
@@ -42,9 +42,9 @@ BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_
  */
 class BAZ_API baz_burst_buffer : public gr::block
 {
-	friend BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length, bool verbose);
+	friend BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length, const std::string& length_tag_name, bool verbose);
 
-	baz_burst_buffer (size_t itemsize, int flush_length = 0, bool verbose = false);
+	baz_burst_buffer (size_t itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
 
 	//boost::mutex d_mutex;
 	size_t d_itemsize;
@@ -56,6 +56,8 @@ class BAZ_API baz_burst_buffer : public gr::block
 	int d_flush_length;
 	int d_flush_count;
 	bool d_verbose;
+	bool d_use_length_tag;
+	pmt::pmt_t d_length_tag_name;
 
 public:
 	~baz_burst_buffer();

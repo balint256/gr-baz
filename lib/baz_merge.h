@@ -54,7 +54,7 @@ typedef boost::shared_ptr<baz_merge> baz_merge_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_merge_sptr baz_make_merge(int item_size, float samp_rate, int additional_streams = 1, bool drop_residual = true, const char* length_tag = "length", const char* ignore_tag = "ignore");
+BAZ_API baz_merge_sptr baz_make_merge(int item_size, float samp_rate, int additional_streams = 1, bool drop_residual = true, const char* length_tag = "length", const char* ignore_tag = "ignore", bool verbose = false);
 
 /*!
  * \brief square2 a stream of floats.
@@ -68,9 +68,9 @@ private:
 	// The friend declaration allows howto_make_square2_ff to
 	// access the private constructor.
 
-	friend BAZ_API baz_merge_sptr baz_make_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag);
+	friend BAZ_API baz_merge_sptr baz_make_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag, bool verbose);
 
-	baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag);  	// private constructor
+	baz_merge (int item_size, float samp_rate, int additional_streams, bool drop_residual, const char* length_tag, const char* ignore_tag, bool verbose);  	// private constructor
 
 	float d_samp_rate;
 	bool d_drop_residual;
@@ -83,6 +83,7 @@ private:
 	pmt::pmt_t d_length_name, d_ignore_name;
 	std::vector<pmt::pmt_t> msg_output_ids;
 	uint64_t d_total_burst_count;
+	bool d_verbose;
 
 public:
 	~baz_merge ();	// public destructor
