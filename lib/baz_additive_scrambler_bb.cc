@@ -27,6 +27,7 @@
 #include "baz_additive_scrambler_bb.h"
 #include <gnuradio/io_signature.h>
 //#include <gnuradio/digital/lfsr.h>
+#include <stdio.h>
 
 namespace gr {
 namespace baz {

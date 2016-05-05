@@ -4,7 +4,7 @@
 	<key>op25_decoder</key>
 	<category>Modulators</category>
 	<import>from baz import baz_op25</import>
-	<make>baz_op25.op25_decoder(channel_rate=$channel_rate, idle_silence=$idle_silence, output_dibits=$dibits_out, key=$key, key_map=$key_map, verbose=$verbose#slurp
+	<make>baz_op25.op25_decoder(channel_rate=$channel_rate, idle_silence=$idle_silence, output_dibits=$dibits_out, key=$key, key_map=$key_map, verbose=$verbose, #slurp
 #if str($msg_out) == 'auto_tune'
 auto_tune_msgq=$(id)_msgq_out,#slurp
 #elif str($msg_out) == 'traffic'

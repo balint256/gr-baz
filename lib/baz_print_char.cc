@@ -38,9 +38,9 @@
 #include <gnuradio/io_signature.h>
 #include <stdio.h>
 
-baz_print_char_sptr BAZ_API baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/, int padding /*= 0*/, bool fixed_limit /*= false*/)
+baz_print_char_sptr BAZ_API baz_make_print_char (float threshold /*= 0.0*/, int limit /*= -1*/, const char* file /*= NULL*/, int padding /*= 0*/, bool fixed_limit /*= false*/, bool append /*= false*/)
 {
-  return baz_print_char_sptr (new baz_print_char (threshold, limit, file, padding, fixed_limit));
+  return baz_print_char_sptr (new baz_print_char (threshold, limit, file, padding, fixed_limit, append));
 }
 
 static const int MIN_IN = 1;	// mininum number of input streams
@@ -51,10 +51,10 @@ static const int MAX_OUT = 0;	// maximum number of output streams
 typedef unsigned char BYTE;
 typedef BYTE *LPBYTE;
 
-baz_print_char::baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit)
+baz_print_char::baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit, bool append)
   : gr::sync_block ("print_char",
 	      gr::io_signature::make2 (MIN_IN, MAX_IN, sizeof (BYTE), sizeof(float)),
-	      gr::io_signature::make (MIN_OUT, MAX_OUT, 0/*sizeof (float)*/))
+	      gr::io_signature::make (MIN_OUT, MAX_OUT, 0))
   , d_threshold(threshold)
   , d_limit(limit)
   , d_length(0)
@@ -64,9 +64,9 @@ baz_print_char::baz_print_char (float threshold, int limit, const char* file, in
 {
   if (file)
   {
-	d_file = fopen(file, "w");
+	d_file = fopen(file, (append ? "w+" : "w"));
 	if (d_file == NULL)
-	  perror("Failed to open symbol output file");
+	  fprintf(stderr, "Failed to open symbol output file: %s (%i - %s)\n", file, errno, strerror(errno));
   }
 
   d_padding = std::min(9, std::max(1, padding));
@@ -90,12 +90,9 @@ int baz_print_char::work (int noutput_items, gr_vector_const_void_star &input_it
   if (input_items.size() >= 2)
 	level = (const float *) input_items[1];
   
-  //float *out = (float *) output_items[0];
-  
   for (int i = 0; i < noutput_items; i++)
   {
-    if (((level != NULL) && (level[i] < d_threshold)) ||
-    	((d_fixed_limit) && (d_length == d_limit)))
+    if ((level != NULL) && (level[i] < d_threshold))
 	{
 	  if (d_length)
 	  {
@@ -110,8 +107,7 @@ int baz_print_char::work (int noutput_items, gr_vector_const_void_star &input_it
 		d_length = 0;
 	  }
 	  
-	  if ((level != NULL) && (level[i] < d_threshold))
-	  	continue;
+	  continue;
 	}
 	
 	if ((d_limit == -1) || (d_length < d_limit))
@@ -122,34 +118,34 @@ int baz_print_char::work (int noutput_items, gr_vector_const_void_star &input_it
 	  }
 	  else
 	  {
-		printf(d_format_string, data[i]); fflush(stdout);	// 02
+		printf(d_format_string, data[i]);
+		fflush(stdout);
 	  }
 	}
 	else if ((d_limit > -1) && (d_length == d_limit))
 	{
 	  if (d_file == NULL)
 	  {
-		printf("..."); fflush(stdout);
+		printf("...");
+		fflush(stdout);
 	  }
 	}
 	
 	++d_length;
+
+	if ((d_fixed_limit) && (d_length == d_limit))
+	{
+		if (d_file == NULL)
+		{
+		  printf(" [%i symbol limit]\n", d_length);
+		  fflush(stdout);
+		}
+		else
+		  fprintf(d_file, "\n");
+
+		d_length = 0;
+	}
   }
 
   return noutput_items;	// Tell runtime system how many output items we produced.
 }
-/*
-int baz_print_char::general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
-{
-  const float *in = (const float *) input_items[0];
-  float *out = (float *) output_items[0];
-
-  for (int i = 0; i < noutput_items; i++){
-    out[i] = in[i] * in[i];
-  }
-
-  consume_each (noutput_items);	// Tell runtime system how many input items we consumed on each input stream.
-
-  return noutput_items;	// Tell runtime system how many output items we produced.
-}
-*/

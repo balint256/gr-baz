@@ -49,6 +49,7 @@ SET(baz_headers
 	baz_burst_tagger.h
 	baz_burst_buffer.h
 	baz_additive_scrambler_bb.h
+	baz_correlator.h
 )
 
 if (LIBUSB_FOUND)
@@ -103,6 +104,7 @@ SET(baz_sources
 	baz_burst_tagger_impl.cc
 	baz_burst_buffer.cc
 	baz_additive_scrambler_bb.cc
+	baz_correlator.cc
 )
 
 if (LIBUSB_FOUND)
@@ -145,6 +147,7 @@ list(APPEND baz_libs
 	${LIBUSB_LIBRARIES}
 	${UHD_LIBRARIES}
 	${ARMADILLO_LIBRARIES}
+	${VOLK_LIBRARIES}
 )
 
 if(MSVC)

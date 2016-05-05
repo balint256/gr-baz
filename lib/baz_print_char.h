@@ -44,7 +44,7 @@ typedef boost::shared_ptr<baz_print_char> baz_print_char_sptr;
  * constructor is private.  howto_make_square_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL, int padding = 1, bool fixed_limit = false);
+BAZ_API baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limit = -1, const char* file = NULL, int padding = 1, bool fixed_limit = false, bool append = false);
 
 /*!
  * \brief square a stream of floats.
@@ -55,8 +55,8 @@ BAZ_API baz_print_char_sptr baz_make_print_char (float threshold = 0.0, int limi
 class BAZ_API baz_print_char : public gr::sync_block
 {
 private:
-  friend BAZ_API baz_print_char_sptr baz_make_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit);
-  baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit);  	// private constructor
+  friend BAZ_API baz_print_char_sptr baz_make_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit, bool append);
+  baz_print_char (float threshold, int limit, const char* file, int padding, bool fixed_limit, bool append);  	// private constructor
 private:
 	float d_threshold;
 	int d_limit;
@@ -67,7 +67,6 @@ private:
 	char d_format_string[5];
  public:
   ~baz_print_char ();	// public destructor
-  //int general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
   int work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
 };
 

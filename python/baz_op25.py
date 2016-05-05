@@ -36,6 +36,7 @@ except:
 
 SYMBOL_DEVIATION = 600
 SYMBOL_RATE = 4800
+AUDIO_RATE = 8000
 
 class op25_fsk4(gr.hier_block2):
     def __init__(self, channel_rate, auto_tune_msgq=None):
