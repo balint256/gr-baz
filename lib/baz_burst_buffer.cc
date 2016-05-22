@@ -38,12 +38,12 @@
 
 using namespace std;
 
-baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length /*= 0*/, bool verbose /*= false*/)
+baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length /*= 0*/, const std::string& length_tag_name/* = ""*/, bool verbose /*= false*/)
 {
-	return baz_burst_buffer_sptr (new baz_burst_buffer (itemsize, flush_length, verbose));
+	return baz_burst_buffer_sptr (new baz_burst_buffer (itemsize, flush_length, length_tag_name, verbose));
 }
 
-baz_burst_buffer::baz_burst_buffer (size_t itemsize, int flush_length /*= 0*/, bool verbose /*= false*/)
+baz_burst_buffer::baz_burst_buffer (size_t itemsize, int flush_length /*= 0*/, const std::string& length_tag_name/* = ""*/, bool verbose /*= false*/)
   : gr::block ("burst_buffer",
 		gr::io_signature::make (1, 1, itemsize),
 		gr::io_signature::make (1, 1, itemsize))
@@ -56,10 +56,14 @@ baz_burst_buffer::baz_burst_buffer (size_t itemsize, int flush_length /*= 0*/, b
 	, d_flush_length(flush_length)
 	, d_flush_count(0)
 	, d_verbose(verbose)
+	, d_use_length_tag(false)
+	, d_length_tag_name(pmt::mp(length_tag_name))
 {
 	set_tag_propagation_policy(block::TPP_DONT);
 	
-	fprintf(stderr, "[%s<%i>] item size: %d\n", name().c_str(), unique_id(), itemsize);
+	fprintf(stderr, "[%s<%i>] item size: %d, flush length: %d, length tag name: %s\n", name().c_str(), unique_id(), itemsize, flush_length, length_tag_name.c_str());
+
+	d_use_length_tag = (length_tag_name.size() > 0);
 
 	reallocate_buffer();
 }
@@ -153,6 +157,9 @@ int baz_burst_buffer::general_work (int noutput_items, gr_vector_int &ninput_ite
 			if (d_verbose) fprintf(stderr, "[%s<%i>] Adding SOB\n", name().c_str(), unique_id());
 			
 			add_item_tag(0, nitems_written(0), SOB_KEY, pmt::from_bool(true));
+
+			if (d_use_length_tag)
+				add_item_tag(0, nitems_written(0), d_length_tag_name, pmt::from_long(d_sample_count));
 			
 			d_add_sob = false;
 		}

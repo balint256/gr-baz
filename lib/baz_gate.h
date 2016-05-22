@@ -55,7 +55,7 @@ typedef boost::shared_ptr<baz_gate> baz_gate_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false);
+BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false, const std::string& length_tag_name = "");
 
 /*!
  * \brief square2 a stream of floats.
@@ -69,9 +69,9 @@ private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable);
+  friend BAZ_API baz_gate_sptr baz_make_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name);
 
-  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable);  	// private constructor
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name);  	// private constructor
 
   int d_item_size;
   bool d_block;
@@ -91,6 +91,8 @@ private:
   bool d_retriggerable;
   int d_flush_length;
   int d_flush_count;
+  int d_burst_sample_count;
+  pmt::pmt_t d_length_tag_name;
 
 public:
   ~baz_gate ();	// public destructor
