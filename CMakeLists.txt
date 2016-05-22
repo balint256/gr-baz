@@ -136,7 +136,7 @@ else()
     endif()
 endif()
 
-find_package(volk)
+find_package(Volk)
 
 ########################################################################
 # Optional req UHD
