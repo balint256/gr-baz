@@ -288,7 +288,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 						}
 					}
 
-					if (pmt::eq(d_length_tag_name, pmt::PMT_NIL) == false)
+					if ((d_length_tag_name) && (pmt::eq(d_length_tag_name, pmt::PMT_NIL) == false))
 					{
 						add_item_tag(0, nitems_written(0)+j, d_length_tag_name, pmt::from_long(d_trigger_length));
 					}
