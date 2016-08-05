@@ -176,6 +176,8 @@ class Device():
         self._sample_rate = 0.0
         self._antenna = None
         self._last_error = None
+        self._clock_source = None
+        self._time_source = None
     def is_running(self):
         return self._running
     def last_error(self):
@@ -253,6 +255,20 @@ class Device():
         return self._antenna
     #def set_antenna(self, antenna):
     #    return True
+    def clock_sources(self):
+        return ["(Default)"]
+    def time_sources(self):
+        return ["(Default)"]
+    def clock_source(self, source=None):
+        if source is not None:
+            self._clock_source = source
+            return True
+        return self._clock_source
+    def time_source(self, source=None):
+        if source is not None:
+            self._time_source = source
+            return True
+        return self._time_source
 
 class NetworkTransport():
     def __init__(self, default_port=28888):
@@ -565,6 +581,34 @@ class GnuRadioDevice(Device, NetworkTransport):
                     return False
             return Device.antenna(self, antenna)
         return self._get_helper(['antenna', 'get_antenna'], lambda: Device.antenna(self))()
+    def clock_sources(self):
+        return self._get_helper(['clock_sources', 'get_clock_sources'], lambda: Device.clock_sources(self))(0)
+    def time_sources(self):
+        return self._get_helper(['time_sources', 'get_time_sources'], lambda: Device.time_sources(self))(0)
+    def clock_source(self, source=None):
+        if source is not None:
+            fn = self._get_helper('set_clock_source')
+            if fn:
+                try:
+                    res = fn(source)
+                    if res is not None and res == False:
+                        return False
+                except:
+                    return False
+            return Device.clock_source(self, source)
+        return self._get_helper(['clock_source', 'get_clock_source'], lambda: Device.clock_source(self))()
+    def time_source(self, source=None):
+        if source is not None:
+            fn = self._get_helper('set_time_source')
+            if fn:
+                try:
+                    res = fn(source)
+                    if res is not None and res == False:
+                        return False
+                except:
+                    return False
+            return Device.time_source(self, source)
+        return self._get_helper(['time_source', 'get_time_source'], lambda: Device.time_source(self))()
     # Network Transport
     def destination(self, dest=None):
         if dest is not None:
@@ -603,7 +647,7 @@ def _format_error(error, pad=True):
 def _format_device(device, transport):
     if device is None or transport is None:
         return "-"
-    return "%s|%f|%f|%f|%f|%d|%s|%s" % (
+    return "%s|%f|%f|%f|%f|%d|%s|%s|%s|%s" % (
         device.name(),
         device.gain_range().start,
         device.gain_range().stop,
@@ -612,7 +656,9 @@ def _format_device(device, transport):
         #device.samples_per_packet(),
         (transport.payload_size()/2/2),
         ",".join(device.antennas()),
-        device.serial()
+        device.serial(),
+        ",".join(device.clock_sources()),
+        ",".join(device.time_sources())
     )
 
 def _create_device(hint, options):
@@ -1042,6 +1088,24 @@ class ThreadedTCPRequestHandler(SocketServer.StreamRequestHandler): # BaseReques
                             result += " " + str(self.device.sample_rate())
                         else:
                             result = "FAIL" + _format_error(self.device.last_error())
+                else:
+                    result = "DEVICE"
+
+            elif command == "CLOCK_SRC":
+                if self.device:
+                    if data is None:
+                        result = self.device.clock_source()
+                    else:
+                        self.device.clock_source(data)
+                else:
+                    result = "DEVICE"
+
+            elif command == "TIME_SRC":
+                if self.device:
+                    if data is None:
+                        result = self.device.time_source()
+                    else:
+                        self.device.time_source(data)
                 else:
                     result = "DEVICE"
             
