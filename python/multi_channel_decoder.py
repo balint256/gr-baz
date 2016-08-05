@@ -31,7 +31,7 @@ class multi_channel_decoder(gr.hier_block2):
 		gr.hier_block2.__init__(self, "multi_channel_decoder",
 			gr.io_signature(1, 1, gr.sizeof_gr_complex),
 			gr.io_signature(0, 0, 0))
-		
+
 		self.msgq = msgq
 		self.decoder = decoder
 		self.decoder_args = decoder_args or ""
@@ -41,6 +41,8 @@ class multi_channel_decoder(gr.hier_block2):
 		
 		self.decoders = []
 		self.decoders_unused = []
+
+		self.message_port_register_hier_in("out")
 		
 		self.set_baseband_freq(baseband_freq)
 		
@@ -71,7 +73,16 @@ class multi_channel_decoder(gr.hier_block2):
 				print "==> Creating decoder:", decoder_factory, "with", combined_args
 				#d = decoder_factory(baseband_freq=self.baseband_freq, freq=f, **combined_args)
 				d = decoder_factory(**combined_args)
-				d._msgq_relay = message_relay.message_relay(self.msgq, d.msg_out.msgq())
+				if self.msgq is not None:
+					try:
+						d._msgq_relay = message_relay.message_relay(self.msgq, d.msg_out.msgq())
+					except Exception, e:
+						print "Exception while creating message relay:", e
+				else:
+					try:
+						self.msg_connect((d, 'out'), (self, 'out'))
+					except Exception, e:
+						print "Exception while connecting output message ports:", e
 				self.connect(self, d)
 				self.decoders += [d]
 		except Exception, e:
