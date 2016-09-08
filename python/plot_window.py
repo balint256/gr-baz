@@ -294,6 +294,9 @@ class plot_window(wx.Panel, pubsub.pubsub):
 		#initial update
 		self.update_grid()
 
+	def set_line(self,data):
+		self.plotter.set_line(data)
+
 	def get_exp(self,num):
 		"""
 		Get the exponent of the number in base 10.
