@@ -13,7 +13,11 @@
 	<import>from baz import multi_channel_decoder</import>
 	
 	<make>multi_channel_decoder.multi_channel_decoder(
+#if $gr_message_out()
 		msgq=$(id)_msgq_out,
+#else
+		msgq=None,
+#end if
 		baseband_freq=$baseband_freq,
 		frequencies=$freq_list,
 		decoder=$decoder,
@@ -70,7 +74,23 @@
 		<type>raw</type>
 		<hide>part</hide>
 	</param>
-	
+
+	<param>
+		<name>Use gr_message</name>
+		<key>gr_message_out</key>
+		<value>True</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
+	</param>
+
 	<!-- Must come before sink/source -->
 	<check>len("$decoder()") &gt; 0</check>
   
@@ -83,6 +103,13 @@
 	<source>
 		<name>out</name>
 		<type>msg</type>
+		<optional>1</optional>
+	</source>
+
+	<source>
+		<name>out</name>
+		<type>message</type>
+		<optional>1</optional>
 	</source>
 
 	<doc>Creates as many decoders as channels.</doc>

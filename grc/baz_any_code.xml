@@ -10,7 +10,11 @@
 	<make>#slurp
 if not hasattr(self, '_post_any_code_evaluators'):
 	self._post_any_code_evaluators = []
-	self.wxEVT_AnyCode = wxEVT_AnyCode = wx.NewEventType()
+	## FIXME: Better framework detection
+	try:
+		self.wxEVT_AnyCode = wxEVT_AnyCode = wx.NewEventType()
+	except:
+		self.wxEVT_AnyCode = None
 	##class DataEvent(wx.PyEvent):
 	##	def __init__(self, data):
 	##		wx.PyEvent.__init__(self)
@@ -46,6 +50,8 @@ if not hasattr(self, '_post_any_code_evaluators'):
 			pass
 		except AttributeError:	# FIXME
 			print "Cannot post message"
+		except NameError: # 'wx' not available
+			pass
 	self._run_evaluators_later = _run_evaluators_later
 	_run_evaluators_later()
 	##print "Posted post-evaluators message"
