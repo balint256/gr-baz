@@ -128,6 +128,8 @@ class plot_sink_f(gr.hier_block2, common.wxgui_hb):
 		self._sample_rate = rate
 	def sample_rate(self):
 		return self._sample_rate
+	def set_line(self, data):
+		self.win.set_line(data)
 
 # ----------------------------------------------------------------
 # Standalone test app
