@@ -55,7 +55,9 @@ namespace gr {
       ::boost::mutex d_mutex;
       ::uhd::rx_streamer::sptr m_rx_stream;
       size_t m_samps_per_packet;
-      std::vector<std::vector<std::complex<float> >* > m_data;
+      size_t m_buff_size;
+      size_t m_item_size;
+      std::vector<unsigned char* > m_data;
     };
 
   } // namespace baz

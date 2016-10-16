@@ -49,13 +49,26 @@ namespace gr {
         : m_dev(dev)
         , m_stream_args(stream_args)
         , m_samps_per_packet(0)
+        , m_buff_size(0)
     {
+        fprintf(stderr, "[usrp_acquire] CPU format: %s\n", stream_args.cpu_format.c_str());
+
+        if (stream_args.cpu_format == "fc32")
+            m_item_size = sizeof(std::complex<float>);
+        else if (stream_args.cpu_format == "sc16")
+            m_item_size = sizeof(std::complex<short>);
+        else if (stream_args.cpu_format == "sc8")
+            m_item_size = sizeof(std::complex<char>);
+        else
+            throw std::runtime_error("Unsupported CPU type: " + stream_args.cpu_format);
     }
     
     usrp_acquire::~usrp_acquire()
     {
+         fprintf(stderr, "[usrp_acquire] Freeing %ld buffers\n", m_data.size());
+
         for (size_t i = 0; i < m_data.size(); ++i)
-            delete m_data[i];
+            delete [] m_data[i];
         
         m_data.clear();
     }
@@ -76,22 +89,22 @@ namespace gr {
         
         size_t _nchan = m_stream_args.channels.size();
         
-        // create a multi-dimensional container to hold an array of sample buffers
-        //std::vector<std::vector<std::complex<float> > > samps(_nchan, std::vector<std::complex<float> >(nsamps));
-        
-        const size_t item_size = sizeof(std::complex<float>);
-        
         // load the void* vector of buffer pointers
         std::vector<void *> buffs(_nchan);
         for(size_t i = 0; i < _nchan; i++)
         {
             if (i >= m_data.size())
-                m_data.push_back(new std::vector<std::complex<float> >(nsamps));
-            else if (m_data[i]->size() != nsamps)
-                m_data[i]->resize(nsamps);
+                m_data.push_back(new unsigned char[nsamps * m_item_size]);
+            else if (m_buff_size != nsamps)
+            {
+                delete [] m_data[i];
+                m_data[i] = new unsigned char[nsamps * m_item_size];
+            }
             
-            buffs[i] = &(m_data[i]->front());
+            buffs[i] = m_data[i];
         }
+
+        m_buff_size = nsamps;
         
         // tell the device to stream a finite amount
         ::uhd::stream_cmd_t cmd(::uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE);
@@ -115,9 +128,8 @@ namespace gr {
         // resize the resulting sample buffers
         for(size_t i = 0; i < _nchan; i++)
         {
-            m_data[i]->resize(actual_num_samps);
-            size_t ptr = (size_t)&(m_data[i]->front());
-            ptr += (to_skip * item_size);
+            size_t ptr = (size_t)m_data[i];
+            ptr += (to_skip * m_item_size);
             res.push_back(ptr);
         }
         
