@@ -49,6 +49,8 @@ namespace gr {
     public:
       std::vector<size_t> finite_acquisition_v(const size_t nsamps, bool stream_now = true, double delay = 0.0, size_t skip = 0, double timeout = 1.0);
       void set_gpio_attr(const std::string &bank, const std::string &attr, const boost::uint32_t value, const boost::uint32_t mask, const size_t mboard = 0);
+      void reset(void);
+      size_t flush(void);
     private:
       ::uhd::usrp::multi_usrp::sptr m_dev;
       ::uhd::stream_args_t m_stream_args;

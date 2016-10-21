@@ -24,6 +24,7 @@
 
 #include <gnuradio/io_signature.h>
 #include <baz_usrp_acquire.h>
+#include <uhd/convert.hpp>
 
 namespace gr {
   namespace baz {
@@ -71,6 +72,44 @@ namespace gr {
             delete [] m_data[i];
         
         m_data.clear();
+    }
+
+    void usrp_acquire::reset(void)
+    {
+        if (m_rx_stream)
+        {
+            m_rx_stream = ::uhd::rx_streamer::sptr();
+        }
+    }
+
+    size_t usrp_acquire::flush(void)
+    {
+        if (!m_rx_stream)
+            return 0;
+
+        const size_t nbytes = 4096;
+        const size_t bpi = ::uhd::convert::get_bytes_per_item(m_stream_args.cpu_format);
+        const size_t _nchan = m_stream_args.channels.size();
+
+        gr_vector_void_star outputs;
+        std::vector<std::vector<char> > buffs(_nchan, std::vector<char>(nbytes));
+
+        for (size_t i = 0; i < _nchan; i++)
+            outputs.push_back(&buffs[i].front());
+
+        ::uhd::rx_metadata_t rx_metadata;
+
+        size_t recv_count = 0;
+
+        while (true)
+        {
+            recv_count += m_rx_stream->recv(outputs, (nbytes / bpi), rx_metadata, 0.0);
+
+            if(rx_metadata.error_code == ::uhd::rx_metadata_t::ERROR_CODE_TIMEOUT)
+                break;
+        }
+
+        return recv_count;
     }
     
     std::vector<size_t> usrp_acquire::finite_acquisition_v(const size_t nsamps, bool stream_now, double delay, size_t skip, double timeout)
