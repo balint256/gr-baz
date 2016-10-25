@@ -45,7 +45,7 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_time_keeper_sptr
-baz_make_time_keeper (int item_size, int sample_rate)
+baz_make_time_keeper (int item_size, float sample_rate)
 {
 	return baz_time_keeper_sptr (new baz_time_keeper (item_size, sample_rate));
 }
@@ -53,7 +53,7 @@ baz_make_time_keeper (int item_size, int sample_rate)
 /*
  * The private constructor
  */
-baz_time_keeper::baz_time_keeper (int item_size, int sample_rate)
+baz_time_keeper::baz_time_keeper (int item_size, float sample_rate)
 	: gr::sync_block ("baz_time_keeper",
 		gr::io_signature::make (1, 1, item_size),
 		gr::io_signature::make (0, 0, 0))
@@ -63,7 +63,7 @@ baz_time_keeper::baz_time_keeper (int item_size, int sample_rate)
 {
 	//memset(&d_last_time, 0x00, sizeof(uhd::time_spec_t));
 
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %d\n", name().c_str(), unique_id(), item_size, sample_rate);
+	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f\n", name().c_str(), unique_id(), item_size, sample_rate);
 
 	d_status_port_id = pmt::mp("status");
 	message_port_register_out(d_status_port_id);

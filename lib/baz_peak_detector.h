@@ -52,7 +52,7 @@ typedef boost::shared_ptr<baz_peak_detector> baz_peak_detector_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0, int look_ahead = 0);
+BAZ_API baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0, int look_ahead = 0, bool byte_output = false, bool verbose = false);
 
 /*!
  * \brief square2 a stream of floats.
@@ -60,15 +60,15 @@ BAZ_API baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int
  *
  * This uses the preferred technique: subclassing gr::sync_block.
  */
-class BAZ_API baz_peak_detector : public gr::sync_block
+class BAZ_API baz_peak_detector : public gr::block
 {
 private:
 	// The friend declaration allows howto_make_square2_ff to
 	// access the private constructor.
 
-	friend BAZ_API baz_peak_detector_sptr baz_make_peak_detector (float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead);
+	friend BAZ_API baz_peak_detector_sptr baz_make_peak_detector (float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead, bool byte_output, bool verbose);
 
-	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead);  	// private constructor
+	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead, bool byte_output, bool verbose);  	// private constructor
 
 	float d_min_diff;
 	int d_min_len;
@@ -76,6 +76,9 @@ private:
 	float d_drop;
 	float d_alpha;
 	int d_look_ahead;
+	volatile bool d_threshold_set;
+	float d_threshold;
+	bool d_byte_output;
 	
 	bool d_rising;
 	int d_rise_count;
@@ -85,16 +88,26 @@ private:
 	float d_peak;
 	int d_peak_idx;
 	int d_look_ahead_count;
+	int d_advance;
+	bool d_verbose;
+	int64_t d_last_peak_idx;
 
 	public:
 	~baz_peak_detector ();	// public destructor
 
-	//void set_exponent(float exponent);
+	void set_threshold(float threshold);
+	void unset_threshold();
 
-	//inline float exponent() const
-	//{ return d_exponent; }
+	inline float threshold() const
+	{ return d_threshold; }
 
-	int work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
+	inline float threshold_set() const
+	{ return d_threshold_set; }
+
+	//int work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
+
+	void forecast(int noutput_items, gr_vector_int &ninput_items_required);
+	int general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items);
 };
 
 #endif /* INCLUDED_BAZ_PEAK_DETECTOR_H */

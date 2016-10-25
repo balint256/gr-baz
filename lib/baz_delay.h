@@ -49,6 +49,8 @@ class BAZ_API baz_delay : public gr::block
 	boost::mutex d_mutex;
 	size_t d_itemsize;
 	int d_delay;
+	int d_new_delay;
+	bool d_update;
 
 public:
 	int delay () const { return d_delay; }

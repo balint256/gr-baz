@@ -55,6 +55,11 @@
 #include "baz_burst_buffer.h"
 #include "baz_additive_scrambler_bb.h"
 #include "baz_correlator.h"
+#include "baz_dpll_bb.h"
+#include "baz_fractional_resampler_cc.h"
+#include "baz_colouriser.h"
+#include "baz_swap.h"
+#include "baz_interleaver.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -493,12 +498,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,gate)
 
-baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false, const std::string& length_tag_name = "");
+baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false, const std::string& length_tag_name = "", bool complete_output = false, bool byte_trigger = false);
 
 class baz_gate : public gr::sync_block
 {
 private:
-  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name);  	// private constructor
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name, bool complete_output, bool byte_trigger);  	// private constructor
 public:
   void set_blocking(bool enable);
   void set_threshold(float threshold);
@@ -596,12 +601,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,time_keeper)
 
-baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rate);
+baz_time_keeper_sptr baz_make_time_keeper (int item_size, float sample_rate);
 
 class baz_time_keeper : public gr::sync_block
 {
 private:
-	baz_time_keeper (int item_size, int sample_rate);  	// private constructor
+	baz_time_keeper (int item_size, float sample_rate);  	// private constructor
 public:
 	double time(bool relative = false);
 	void ignore_next(bool ignore = true);
@@ -760,11 +765,11 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,overlap)
 
-baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap, int samp_rate);
+baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap);
 
 class baz_overlap : public gr::block
 {
-	baz_overlap (int item_size, int vlen, int overlap, int samp_rate);  	// private constructor
+	baz_overlap (int item_size, int vlen, int overlap);  	// private constructor
 public:
 	void set_overlap(int overlap);
 };
@@ -861,14 +866,18 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,peak_detector);
 
-baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0, int look_ahead = 0);
+baz_peak_detector_sptr baz_make_peak_detector (float min_diff = 0.0, int min_len = 1, int lockout = 0, float drop = 0.0, float alpha = 1.0, int look_ahead = 0, bool byte_output = false, bool verbose = false);
 
 class BAZ_API baz_peak_detector : public gr::block
 {
 protected:
-	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead);  	// private constructor
+	baz_peak_detector(float min_diff, int min_len, int lockout, float drop, float alpha, int look_ahead, bool byte_output, bool verbose);  	// private constructor
 public:
 	~baz_peak_detector ();
+	void set_threshold(float threshold);
+	void unset_threshold();
+	float threshold() const;
+	bool threshold_set() const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -898,7 +907,6 @@ public:
 GR_SWIG_BLOCK_MAGIC2(baz, additive_scrambler_bb);
 
 ////////////////////////////////////////////////////////////////////////////////
-
 
 GR_SWIG_BLOCK_MAGIC(baz,correlator);
 
@@ -933,6 +941,36 @@ protected:
 public:
 	~baz_correlator();
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_dpll_bb.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, dpll_bb);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_fractional_resampler_cc.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, fractional_resampler_cc);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_colouriser.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, colouriser);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_swap.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, swap);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_interleaver.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, interleaver);
 
 ////////////////////////////////////////////////////////////////////////////////
 

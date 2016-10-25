@@ -35,7 +35,7 @@ $(parent).GridAdd(self.$(id).win, $(', '.join(map(str, $grid_pos()))))
 		<name>Sample Rate</name>
 		<key>samp_rate</key>
 		<value>samp_rate</value>
-		<type>int</type>
+		<type>real</type>
 	</param>
 
 	<param>

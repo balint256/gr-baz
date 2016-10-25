@@ -42,9 +42,9 @@
  * Create a new instance of baz_peak_detector and return
  * a boost shared_ptr.  This is effectively the public constructor.
  */
-baz_peak_detector_sptr  baz_make_peak_detector (float min_diff /*= 0.0*/, int min_len /*= 1*/, int lockout /*= 0*/, float drop /*= 0.0*/, float alpha /*= 1.0*/, int look_ahead /*= 0*/)
+baz_peak_detector_sptr  baz_make_peak_detector (float min_diff /*= 0.0*/, int min_len /*= 1*/, int lockout /*= 0*/, float drop /*= 0.0*/, float alpha /*= 1.0*/, int look_ahead /*= 0*/, bool byte_output /*= false*/,bool verbose /*= false*/)
 {
-	return baz_peak_detector_sptr (new baz_peak_detector (min_diff, min_len, lockout, drop, alpha, look_ahead));
+	return baz_peak_detector_sptr (new baz_peak_detector (min_diff, min_len, lockout, drop, alpha, look_ahead, byte_output, verbose));
 }
 
 /*
@@ -59,15 +59,15 @@ baz_peak_detector_sptr  baz_make_peak_detector (float min_diff /*= 0.0*/, int mi
 static const int MIN_IN = 1;	// mininum number of input streams
 static const int MAX_IN = 1;	// maximum number of input streams
 static const int MIN_OUT = 1;	// minimum number of output streams
-static const int MAX_OUT = 1;	// maximum number of output streams
+static const int MAX_OUT = 2;	// maximum number of output streams
 
 /*
  * The private constructor
  */
-baz_peak_detector::baz_peak_detector (float min_diff /*= 0.0*/, int min_len /*= 1*/, int lockout /*= 0*/, float drop /*= 0.0*/, float alpha /*= 1.0*/, int look_ahead /*= 0*/)
-  : gr::sync_block ("peak_detector",
-		gr::io_signature::make (MIN_IN,  MAX_IN,  sizeof (float)),
-		gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float)))
+baz_peak_detector::baz_peak_detector (float min_diff /*= 0.0*/, int min_len /*= 1*/, int lockout /*= 0*/, float drop /*= 0.0*/, float alpha /*= 1.0*/, int look_ahead /*= 0*/, bool byte_output /*= false*/, bool verbose /*= false*/)
+  : gr::block ("peak_detector",
+		gr::io_signature::make (MIN_IN,  MAX_IN,  sizeof(float)),
+		gr::io_signature::make2 (MIN_OUT, MAX_OUT, (byte_output ? sizeof(char) : sizeof(float)), sizeof(int)))
 	, d_min_diff(min_diff)
 	, d_min_len(min_len)
 	, d_lockout(lockout)
@@ -82,10 +82,27 @@ baz_peak_detector::baz_peak_detector (float min_diff /*= 0.0*/, int min_len /*= 
 	, d_peak(0.0f)
 	, d_look_ahead_count(0)
 	, d_peak_idx(-1)
+	, d_advance(0)
+	, d_verbose(verbose)
+	, d_last_peak_idx(-1)
+	, d_threshold_set(false)
+	, d_threshold(0.0f)
+	, d_byte_output(byte_output)
 {
-	fprintf(stderr, "[%s<%i>] min diff: %f, min len: %d, lockout: %d, drop: %f, alpha: %f, look ahead: %d\n", name().c_str(), unique_id(), min_diff, min_len, lockout, drop, alpha, look_ahead);
+	fprintf(stderr, "[%s<%i>] min diff: %f, min len: %d, lockout: %d, drop: %f, alpha: %f, look ahead: %d, verbose: %s\n", name().c_str(), unique_id(), min_diff, min_len, lockout, drop, alpha, look_ahead, (verbose ? "yes" : "no"));
 	
 	set_history(1+1);
+
+	if (look_ahead > 0)
+	{
+		//set_min_noutput_items(look_ahead + 1);
+
+		//set_min_output_buffer(0, (look_ahead + 1));	// For when latest peak becomes first sample
+		//set_min_output_buffer(look_ahead + 1);
+		//fprintf(stderr, "Min outpur buffer size: %d\n", min_output_buffer(0));
+
+		set_output_multiple(look_ahead + 1 + 1);	// FIXME: Just +1
+	}
 }
 
 baz_peak_detector::~baz_peak_detector ()
@@ -97,17 +114,56 @@ void baz_peak_detector::set_exponent(float exponent)
   d_exponent = exponent;
 }
 */
-int baz_peak_detector::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
+void baz_peak_detector::forecast(int noutput_items, gr_vector_int &ninput_items_required)
+{
+	for (size_t i = 0; i < ninput_items_required.size(); ++i)
+	{
+		ninput_items_required[i] = noutput_items;
+		//ninput_items_required[i] = std::max(noutput_items, d_look_ahead_count);
+	}
+}
+
+void baz_peak_detector::set_threshold(float threshold)
+{
+	d_threshold = threshold;
+	d_threshold_set = true;
+}
+
+void baz_peak_detector::unset_threshold()
+{
+	d_threshold_set = false;
+}
+
+//int baz_peak_detector::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
+int baz_peak_detector::general_work(int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
 	const float *in = (const float *) input_items[0];
 	float *out = (float *) output_items[0];
-	
-	memset(out, 0x00, sizeof(float) * noutput_items);
-	
-	const int offset = 1;
-	for (int i = (0+offset); i < (noutput_items+offset); i++)
+	char *out_char = (char *) output_items[0];
+	int *idx_diff_out = NULL;
+	if (output_items.size() > 1)
 	{
-		d_ave = d_alpha * in[i-1] + (1.0f - d_alpha) * d_ave;
+		idx_diff_out = (int *) output_items[1];
+		memset(idx_diff_out, 0x00, sizeof(int) * noutput_items);
+	}
+	
+	memset(out, 0x00, (d_byte_output ? sizeof(char) : sizeof(float)) * noutput_items);
+
+	//fprintf(stderr, " %d ", noutput_items);
+
+	if ((d_look_ahead > 0) && (/*ninput_items[0]*/noutput_items < (d_look_ahead + 1 + 1)))
+	{
+		fprintf(stderr, "Too few items for lookahead: %d\n", /*ninput_items[0]*/noutput_items);
+		return 0;
+	}
+
+	int advance = d_advance;
+	d_advance = 0;
+	
+	const int offset = 1;	// From history
+	for (int i = (0+offset + d_advance); i < (noutput_items+offset); i++)
+	{
+		d_ave = d_alpha * in[i-1] + (1.0f - d_alpha) * d_ave;	// Updating average from previous sample (not this one!)
 		
 		if (d_lockout_count > 0)
 		{
@@ -117,8 +173,12 @@ int baz_peak_detector::work (int noutput_items, gr_vector_const_void_star &input
 				continue;
 		}
 		
-		if (in[i] > (/*in[i-1]*/d_ave - (/*in[i-1]*/d_ave * d_drop)))
+		if (((d_threshold_set == false) || (in[i] >= d_threshold)) &&
+			(in[i] > (/*in[i-1]*/d_ave - (/*in[i-1]*/d_ave * d_drop))))	// FIXME: Only apply drop factor if already in rise? Otherwise 0.0
+		//if (in[i] > in[i-1])
 		{
+			//if (!d_byte_output) out[i-offset] = 0.5f;
+
 			bool new_peak = false;
 			
 			if (d_rising == false)
@@ -140,47 +200,103 @@ int baz_peak_detector::work (int noutput_items, gr_vector_const_void_star &input
 			if (new_peak)
 			{
 				d_peak = in[i];
-				d_look_ahead_count = d_look_ahead;
 				d_peak_idx = i - offset;
-				
-				if (d_look_ahead_count > (noutput_items - (i - offset) + 1))
+
+				//if (!d_byte_output) out[d_peak_idx] = 0.5f;
+
+				if (d_look_ahead > 0)
 				{
-					if ((i - offset) == 0)
-					{
-						fprintf(stderr, "Too few items!\n");
-					}
+					d_look_ahead_count = d_look_ahead;
+
+					int to_consume = (i - offset);	// Before the current sample
+
+					//fprintf(stderr, "to_consume: %d\n", to_consume);
 					
-					return (i - offset) + 1;
+					if (d_look_ahead > (noutput_items - (to_consume + 1 + 1)))	// FIXME: Just +1
+					{
+						//if (d_peak_idx >= to_consume)
+						//	fprintf(stderr, " %d/%d ", d_peak_idx, to_consume);
+
+						d_peak_idx = 0;
+						d_advance = 1;
+
+						if (to_consume == 0)	// First iteration and we already don't have enough items
+						{
+							fprintf(stderr, "Too few items! (%d left)\n", (noutput_items - to_consume));
+						}
+
+						if (to_consume > 0)
+							consume(0, to_consume);
+						
+						return to_consume;
+					}
 				}
 			}
 			
 			++d_rise_count;
+
+			bool bContinue = true;
+
+			if (d_look_ahead_count > 0)
+			{
+				--d_look_ahead_count;
+
+				if (d_look_ahead_count == 0)
+				{
+					if (d_verbose) fprintf(stderr, "Look ahead finished while rising %d/%d\n", i, noutput_items);
+
+					bContinue = false;
+				}
+			}
 			
-			continue;
+			if (bContinue)
+				continue;
 		}
+
+		// Get here if no longer 'rising'
+
+		///////////////////////////////////////////////////////////////////////
 		
 		if (d_look_ahead_count > 0)
 		{
 			--d_look_ahead_count;
 			
-			if (d_look_ahead_count)
+			if (d_look_ahead_count > 0)
 			{
 				continue;
 			}
+
+			//fprintf(stderr, "Look ahead finished %d/%d\n", i, noutput_items);
 		}
 		
-		if (d_rising)
+		if (d_rising)	// If here, no longer rising
 		{
 			if (d_rise_count >= d_min_len)
 			{
-				//float diff = in[i] - d_first;
-				float diff = 0.0f;
-				if (d_first > 0.0f)
-					diff = in[i] / d_first;
+				// FIXME: Abs or ratio?
+				float diff = /*in[i]*/d_peak - d_first;
+				//float diff = 0.0f;
+				//if (d_first > 0.0f)
+				//	diff = /*in[i]*/d_peak / d_first;
 				
 				if ((d_min_diff == 0.0f) || (diff >= d_min_diff))
 				{
-					out[d_peak_idx] = 1.0f;
+					//fprintf(stderr, "Peak idx: %d, %f\n", d_peak_idx, d_peak);
+
+					if (d_byte_output)
+						out_char[d_peak_idx] = 1;
+					else
+						out[d_peak_idx] = 1.0f;
+
+					int64_t idx_diff = 0;
+					int64_t idx = nitems_written(0)+d_peak_idx;
+					if (d_last_peak_idx > -1)
+					{
+						int64_t idx_diff = idx - d_last_peak_idx;
+						if (idx_diff_out != NULL)
+							idx_diff_out[d_peak_idx] = (int)idx_diff;
+					}
+					d_last_peak_idx = idx;
 					
 					d_lockout_count = d_lockout;
 				}
@@ -189,6 +305,8 @@ int baz_peak_detector::work (int noutput_items, gr_vector_const_void_star &input
 			d_rising = false;
 		}
 	}
+
+	consume(0, noutput_items);
 
 	return noutput_items;
 }

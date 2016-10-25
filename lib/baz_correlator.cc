@@ -113,12 +113,17 @@ baz_correlator::baz_correlator(
     d_sync_window_length(sync_window_length),
 
     d_synced(false),
-    d_next_window_idx(0)
+    d_current_idx(0),
+    d_next_window_idx(0),
+    d_max_peak(0),
+    d_max_peak_idx(-1),
+    d_sync_window_idx(-1),
+    d_current_item_idx(0)
 {
 	const int alignment_multiple = volk_get_alignment() / sizeof(gr_complex);
     set_alignment(std::max(1, alignment_multiple));
 
-  	float relative_rate = (float)width / (samp_rate / symbol_rate * (float)window_length);
+  	float relative_rate = /*(float)width*/1.0f / (samp_rate / symbol_rate * (float)window_length);
 	set_relative_rate(relative_rate);
 
 	fprintf(stderr, "[%s<%ld>] sample rate: %f, symbole rate: %f, window length: %d, threshold: %f, width: %d, sync path: \"%s\", sync length: %d, sync offset: %d, sync window length: %d, relative rate: %f\n", name().c_str(), unique_id(),
@@ -145,12 +150,20 @@ baz_correlator::baz_correlator(
 		throw std::runtime_error(boost::str(boost::format("failed to open: \"%s\"") % sync_path));
 	f.seekg(sync_offset * item_size);
 	std::istream::streampos posStart = f.tellg();
+    // FIXME: Read into buffer from volk_malloc
 	f.read((char*)&d_sync[0], sync_length * item_size);
 	std::istream::streampos posEnd = f.tellg();
 	int samples_read = (posEnd - posStart) / item_size;
 	fprintf(stderr, "[%s<%ld>] read %d sync samples\n", name().c_str(), unique_id(), samples_read);
 
+    if (samples_read < sync_length)
+        throw std::runtime_error("not able to read all sync samples");
+
+    // FIXME: volk_malloc
 	d_conjmul_result.resize(sync_length);
+    //d_abs_result.resize(sync_length);
+
+    // FIXME: Msg port to restart search
 }
 
 /*
@@ -162,7 +175,15 @@ baz_correlator::~baz_correlator()
 
 std::complex<float> baz_correlator::correlate(const std::complex<float>* in, const std::complex<float>* sync)
 {
-  	volk_32fc_x2_multiply_conjugate_32fc(&d_conjmul_result[0], in, sync, d_conjmul_result.size());
+  	//volk_32fc_x2_multiply_conjugate_32fc(&d_conjmul_result[0], in, sync, d_conjmul_result.size());
+
+    std::complex<float> c(0,0);
+    for (size_t n = 0; n < d_sync.size(); ++n)
+    {
+        //d_conjmul_result[n] = in[n] * std::conj(sync[n]);   // FIXME: Pre-compute conj
+        //d_abs_result[n] = std::abs(d_conjmul_result[n]);
+        c += (in[n] * std::conj(sync[n]));
+    }
 
   	//volk_32fc_magnitude_32f
 
@@ -170,11 +191,11 @@ std::complex<float> baz_correlator::correlate(const std::complex<float>* in, con
 
   	//volk_32f_index_max_16u
 
-  	std::complex<float> c;
-  	for (size_t i = 0; i < d_conjmul_result.size(); i++)
-  		c += d_conjmul_result[i];
+  	//for (size_t i = 0; i < d_conjmul_result.size(); i++)
+  	//	c += d_conjmul_result[i];
 
-  	return c / (float)d_conjmul_result.size();
+  	//return c / (float)d_conjmul_result.size();
+    return c;
 }
 
 int baz_correlator::general_work(int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
@@ -192,10 +213,14 @@ int baz_correlator::general_work(int noutput_items, gr_vector_int &ninput_items,
 
   	if (d_synced == false)
   	{
-  		if ((in_items) < d_sync.size())
-  			return 0;	// Need more input
+        if (in_items < d_sync.size())
+            return 0;   // Need more inputs FIXME: forcast?
 
-  		for (size_t n = 0; n < (in_items - (d_sync.size() - 1)); n++)
+        int64_t sync_limit = (in_items - (d_sync.size() - 1));  // [0, limit)
+
+        size_t n = 0;
+
+  		for (; n < sync_limit; n++)
   		{
 			std::complex<float> c = correlate(in + n, &d_sync[0]);
 
@@ -207,13 +232,104 @@ int baz_correlator::general_work(int noutput_items, gr_vector_int &ninput_items,
 				++out_corr_produced;
 			}
 
-			//
+			if (f > d_threshold)
+            {
+                if (d_sync_window_idx == -1)
+                {
+                    d_sync_window_idx = d_sync_window_length;
+                    d_max_peak = 0;
+                    d_max_peak_idx = -1;
+                }
+            }
+
+            if (d_sync_window_idx > -1)
+            {
+                if (f > d_max_peak)
+                {
+                    d_max_peak = f;
+                    d_max_peak_idx = read + n;
+                }
+
+                --d_sync_window_idx;
+            }
+            
+            if ((d_sync_window_idx == -1) && (d_max_peak_idx > -1))
+            {
+                d_synced = true;
+                d_current_idx = d_max_peak_idx;
+                d_next_window_idx = d_max_peak_idx + d_window_length + (d_width / 2);
+                d_current_item_idx = 0;
+                d_max_peak_idx = -1;
+
+                ++n;
+                break;
+            }
 		}
 
+        consume(0, n);
   	}
   	else
   	{
-  		//
+        int64_t offset = d_next_window_idx - read;
+
+        if (offset <= 0)
+        {
+            if (in_items < d_sync.size())
+                return 0;   // Need more input FIXME: forcast?
+
+            int64_t sync_limit = (in_items - (d_sync.size() - 1));  // [0, limit)
+            int64_t width_limit = offset + (d_width - 1) + d_sync.size();
+
+            int64_t n = 0;
+
+            d_current_item_idx = -offset;
+
+            for (; n < std::min(std::min(sync_limit, width_limit), (int64_t)noutput_items); n++)
+            {
+                std::complex<float> c = correlate(in + n, &d_sync[0]);
+
+                out[n] = std::abs(c);
+
+                if (-offset == ((d_width / 2) - (d_sync_window_length / 2)))
+                {
+                    d_sync_window_idx = d_sync_window_length;
+                    d_max_peak = 0;
+                    d_max_peak_idx = -1;
+                }
+
+                if (d_sync_window_idx > -1)
+                {
+                    if (out[n] > d_max_peak)
+                    {
+                        d_max_peak = out[n];
+                        d_max_peak_idx = n;
+                    }
+
+                    --d_sync_window_idx;
+                }
+            }
+
+            produce(0, n);
+
+            if ((-offset + n) == d_width)
+            {
+                d_current_idx = d_next_window_idx;
+                d_next_window_idx += d_window_length;
+
+                if (true)
+                {
+                    int adj = d_max_peak_idx - (d_sync_window_length / 2);
+                    d_next_window_idx += adj;
+                }
+
+                d_current_item_idx = 0;
+                d_max_peak_idx = -1;
+            }
+        }
+        else
+        {
+            consume(0, std::min((int64_t)in_items, offset));
+        }
   	}
 
   	if (out_corr_produced > 0)

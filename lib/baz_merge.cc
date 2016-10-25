@@ -88,7 +88,7 @@ baz_merge::baz_merge (int item_size, float samp_rate, int additional_streams, bo
 	// FIXME: flush tag
 	, d_total_burst_count(0)
 {
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f, additional streams: %d: length tag: \'%s\', ignore tag: \'%s\'\n, verbose: %s", name().c_str(), unique_id(), item_size, samp_rate, additional_streams, length_tag, ignore_tag, (d_verbose ? "yes" : "no"));
+	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f, additional streams: %d: length tag: \'%s\', ignore tag: \'%s\', verbose: %s\n", name().c_str(), unique_id(), item_size, samp_rate, additional_streams, length_tag, ignore_tag, (d_verbose ? "yes" : "no"));
 	
 	//set_relative_rate(1);
 	

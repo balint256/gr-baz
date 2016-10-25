@@ -54,7 +54,7 @@ typedef boost::shared_ptr<baz_time_keeper> baz_time_keeper_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rate);
+BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, float sample_rate);
 
 /*!
  * \brief square2 a stream of floats.
@@ -68,15 +68,15 @@ private:
 	// The friend declaration allows baz_time_keeper to
 	// access the private constructor.
 
-	friend BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, int sample_rate);
+	friend BAZ_API baz_time_keeper_sptr baz_make_time_keeper (int item_size, float sample_rate);
 
-	baz_time_keeper (int item_size, int sample_rate);  	// private constructor
+	baz_time_keeper (int item_size, float sample_rate);  	// private constructor
 
 	int d_item_size;
 	uint64_t d_last_time_seconds, d_first_time_seconds;
 	double d_last_time_fractional_seconds, d_first_time_fractional_seconds;
 	uint64_t d_time_offset;
-	int d_sample_rate;
+	float d_sample_rate;
 	bool d_seen_time;
 	int d_update_count;
 	bool d_ignore_next;

@@ -52,7 +52,7 @@ typedef boost::shared_ptr<baz_overlap> baz_overlap_sptr;
  * constructor is private.  howto_make_square2_ff is the public
  * interface for creating new instances.
  */
-BAZ_API baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap, int samp_rate);
+BAZ_API baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap);
 
 /*!
  * \brief square2 a stream of floats.
@@ -66,14 +66,13 @@ private:
   // The friend declaration allows howto_make_square2_ff to
   // access the private constructor.
 
-  friend BAZ_API baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap, int samp_rate);
+  friend BAZ_API baz_overlap_sptr baz_make_overlap (int item_size, int vlen, int overlap);
 
-  baz_overlap (int item_size, int vlen, int overlap, int samp_rate);  	// private constructor
+  baz_overlap (int item_size, int vlen, int overlap);  	// private constructor
   
   int d_item_size;
   int d_vlen;
   int d_overlap;
-  int d_samp_rate;
 
  public:
   ~baz_overlap ();	// public destructor

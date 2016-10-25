@@ -44,9 +44,9 @@
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_overlap_sptr 
-baz_make_overlap (int item_size, int vlen, int overlap, int samp_rate)
+baz_make_overlap (int item_size, int vlen, int overlap)
 {
-  return baz_overlap_sptr (new baz_overlap (item_size, vlen, overlap, samp_rate));
+  return baz_overlap_sptr (new baz_overlap (item_size, vlen, overlap));
 }
 
 /*
@@ -66,22 +66,20 @@ static const int MAX_OUT = 1;	// maximum number of output streams
 /*
  * The private constructor
  */
-baz_overlap::baz_overlap (int item_size, int vlen, int overlap, int samp_rate)
+baz_overlap::baz_overlap (int item_size, int vlen, int overlap)
 	: gr::block ("overlap",
 		gr::io_signature::make(MIN_IN, MAX_IN, item_size),
 		gr::io_signature::make(MIN_OUT, MAX_OUT, item_size))
 	, d_item_size(item_size)
 	, d_vlen(vlen)
 	, d_overlap(overlap)
-	, d_samp_rate(samp_rate)
 {
-	float rate = (float)/*samp_rate*/vlen / (float)overlap;
+	float rate = (float)vlen / (float)overlap;
 	//set_relative_rate(rate);
 	//set_history(overlap);
 	set_output_multiple(d_vlen);
 	
-	fprintf(stderr, "[%s<%i>] item size: %d, vlen: %d, overlap: %d, sample rate: %d\n", name().c_str(), unique_id(), item_size, vlen, overlap, samp_rate);
-	fprintf(stderr, "[%s<%i>] rate: %f\n", name().c_str(), unique_id(), rate);
+	fprintf(stderr, "[%s<%i>] item size: %d, vlen: %d, overlap: %d, rate: %f\n", name().c_str(), unique_id(), item_size, vlen, overlap, rate);
 }
 
 /*

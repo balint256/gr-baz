@@ -130,7 +130,7 @@ baz_depuncture_ff::general_work (int noutput_items,
 
   int iIn = 0;
   for (int i = 0; i < noutput_items; i++) {
-	assert(iIn < ninput_items[0]);
+	//assert(iIn < ninput_items[0]);
 	char b = (m_pMatrix ? m_pMatrix[m_iIndex] : 1);
 	if (b)
 	{

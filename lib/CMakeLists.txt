@@ -50,6 +50,11 @@ SET(baz_headers
 	baz_burst_buffer.h
 	baz_additive_scrambler_bb.h
 	baz_correlator.h
+	baz_dpll_bb.h
+	baz_fractional_resampler_cc.h
+	baz_colouriser.h
+	baz_swap.h
+	baz_interleaver.h
 )
 
 if (LIBUSB_FOUND)
@@ -105,6 +110,11 @@ SET(baz_sources
 	baz_burst_buffer.cc
 	baz_additive_scrambler_bb.cc
 	baz_correlator.cc
+	baz_dpll_bb.cc
+	baz_fractional_resampler_cc.cc
+	baz_colouriser.cc
+	baz_swap.cc
+	baz_interleaver.cc
 )
 
 if (LIBUSB_FOUND)
@@ -144,6 +154,7 @@ list(APPEND baz_libs
 	${GNURADIO_PMT_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
 	${GNURADIO_DIGITAL_LIBRARIES}
+	${GNURADIO_FILTER_LIBRARIES}
 	${LIBUSB_LIBRARIES}
 	${UHD_LIBRARIES}
 	${ARMADILLO_LIBRARIES}

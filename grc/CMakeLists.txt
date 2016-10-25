@@ -80,6 +80,7 @@ SET(baz_blocks
 	baz_any_message.xml
 	fec_sync.xml
 	baz_additive_scrambler_bb.xml
+	baz_fractional_resampler_xx.xml
 )
 
 if (LIBUSB_FOUND)

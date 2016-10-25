@@ -116,9 +116,14 @@ private:
 
     std::vector<std::complex<float> > d_sync;
     bool d_synced;
-    uint64_t d_next_window_idx;
-    uint64_t d_current_idx;
+    int64_t d_next_window_idx;
+    int64_t d_current_idx;
     std::vector<std::complex<float> > d_conjmul_result;
+    //std::vector<float> d_abs_result;
+    float d_max_peak;
+    int d_max_peak_idx;
+    int d_sync_window_idx;
+    int d_current_item_idx;
 
     std::complex<float> correlate(const std::complex<float>* in, const std::complex<float>* sync);
 

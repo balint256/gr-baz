@@ -66,8 +66,36 @@ def main():
 		#print name, "=", sensor_value
 		#print sensor_value.name, "=", sensor_value.value
 		#print sensor_value.to_pp_string()
+
+	"""
+[date][1PPS Count][Fine DAC][UTC offset ns][Frequency Error Estimate][Sats Visible][Sats Tracked][Lock State][Health Status]
+Please see the SYNChronization? command for detailed information on how to decode the health status indicator values.
+Note: health status information is available with firmware versions 0.913 and later.
+The Lock State variable indicates one of the following states:
+0
+OCXO warmup
+1
+Holdover
+2
+Locking (OCXO training)
+4
+[Value not defined]
+5
+Holdover, but still phase locked (stays in this state for about 100s after GPS lock is lost)
+6
+Locked, and GPS active
+
+HEALTH STATUS |= 0x1;	If the OCXO coarse-DAC is maxed-out at 255
+HEALTH STATUS |= 0x2;	If the OCXO coarse-DAC is mined-out at 0
+HEALTH STATUS |= 0x4;	If the phase offset to UTC is >250ns
+HEALTH STATUS |= 0x8;	If the run-time is < 300 seconds
+HEALTH STATUS |= 0x10;	If the GPS is in holdover > 60s
+HEALTH STATUS |= 0x20;	If the Frequency Estimate is out of bounds
+HEALTH STATUS |= 0x100;	If the short-term-drift (ADEV @ 100s) > 100ns
+HEALTH STATUS |= 0x200;	For the first 3 minutes after a phase-reset, or a coarsedac change
+	"""
 	
-	nmea_sensors = ["gps_gpgga", "gps_gprmc"]
+	nmea_sensors = ["gps_gpgga", "gps_gprmc", "gps_servo"]
 	try:
 		while True:
 			for name in nmea_sensors:
