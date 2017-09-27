@@ -28,6 +28,7 @@
 #include <gnuradio/filter/mmse_fir_interpolator_cc.h>
 #include "baz_fractional_resampler_cc.h"
 #include <stdexcept>
+#include <iostream>
 
 namespace gr {
   namespace baz {
@@ -110,7 +111,7 @@ namespace gr {
       }
       catch (...)
       {
-        fprintf(stderr, "Failed to unpack PMT pair\n");
+        std::cerr << "Failed to unpack PMT pair" << std::endl;
       }
     }
 
@@ -143,6 +144,7 @@ namespace gr {
 
           if (d_update)
           {
+            std::cerr << "Updating ratio: " << d_mu_inc_update << std::endl;
             fprintf(stderr, "Updating ratio: %.25Lf\n", d_mu_inc_update);
             d_mu_inc = d_mu_inc_update;
             set_relative_rate(1.0 / d_mu_inc);
