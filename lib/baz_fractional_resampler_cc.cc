@@ -145,7 +145,7 @@ namespace gr {
           if (d_update)
           {
             std::cerr << "Updating ratio: " << d_mu_inc_update << std::endl;
-            fprintf(stderr, "Updating ratio: %.25Lf\n", d_mu_inc_update);
+            // fprintf(stderr, "Updating ratio: %.25Lf\n", d_mu_inc_update);
             d_mu_inc = d_mu_inc_update;
             set_relative_rate(1.0 / d_mu_inc);
             d_update = false;
