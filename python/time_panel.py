@@ -52,7 +52,7 @@ class time_panel(TimePanel):
 		whole_seconds = int(math.floor(t))
 		fractional_seconds = t - whole_seconds
 		
-		if self.mode == 'absolute' or ((self.mode == 'auto') and (abs(t - time.time()) > _FUZ)):
+		if self.mode == 'relative' or ((self.mode == 'auto') and (abs(t - time.time()) > _FUZ)):
 			seconds = whole_seconds % 60
 			minutes = ((whole_seconds - seconds) / 60) % 60
 			hours = ((((whole_seconds - seconds) / 60) - minutes) / 60) % 24
