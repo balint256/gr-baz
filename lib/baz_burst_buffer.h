@@ -34,7 +34,7 @@
 class BAZ_API baz_burst_buffer;
 typedef boost::shared_ptr<baz_burst_buffer> baz_burst_buffer_sptr;
 
-BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
+BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false, bool only_burst = false, bool strip_tags = true);
 
 /*!
  * \brief buffer bursts
@@ -42,9 +42,9 @@ BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_
  */
 class BAZ_API baz_burst_buffer : public gr::block
 {
-	friend BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length, const std::string& length_tag_name, bool verbose);
+	friend BAZ_API baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length, const std::string& length_tag_name, bool verbose, bool only_burst, bool strip_tags);
 
-	baz_burst_buffer (size_t itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
+	baz_burst_buffer (size_t itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false, bool only_burst = false, bool strip_tags = true);
 
 	//boost::mutex d_mutex;
 	size_t d_itemsize;
@@ -58,6 +58,9 @@ class BAZ_API baz_burst_buffer : public gr::block
 	bool d_verbose;
 	bool d_use_length_tag;
 	pmt::pmt_t d_length_tag_name;
+	bool d_strip_tags;
+	uint64_t d_sob_offset;
+	bool d_only_burst;
 
 public:
 	~baz_burst_buffer();

@@ -38,12 +38,14 @@
 
 using namespace std;
 
-baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length /*= 0*/, const std::string& length_tag_name/* = ""*/, bool verbose /*= false*/)
+// FIXME: 'strip_tags'
+
+baz_burst_buffer_sptr baz_make_burst_buffer (size_t itemsize, int flush_length /*= 0*/, const std::string& length_tag_name/* = ""*/, bool verbose/* = false*/, bool only_burst/* = false*/, bool strip_tags/* = true*/)
 {
-	return baz_burst_buffer_sptr (new baz_burst_buffer (itemsize, flush_length, length_tag_name, verbose));
+	return baz_burst_buffer_sptr (new baz_burst_buffer (itemsize, flush_length, length_tag_name, verbose, only_burst, strip_tags));
 }
 
-baz_burst_buffer::baz_burst_buffer (size_t itemsize, int flush_length /*= 0*/, const std::string& length_tag_name/* = ""*/, bool verbose /*= false*/)
+baz_burst_buffer::baz_burst_buffer (size_t itemsize, int flush_length /*= 0*/, const std::string& length_tag_name/* = ""*/, bool verbose/* = false*/, bool only_burst/* = false*/, bool strip_tags/* = true*/)
   : gr::block ("burst_buffer",
 		gr::io_signature::make (1, 1, itemsize),
 		gr::io_signature::make (1, 1, itemsize))
@@ -58,10 +60,13 @@ baz_burst_buffer::baz_burst_buffer (size_t itemsize, int flush_length /*= 0*/, c
 	, d_verbose(verbose)
 	, d_use_length_tag(false)
 	, d_length_tag_name(pmt::mp(length_tag_name))
+	, d_strip_tags(strip_tags)
+	, d_sob_offset(-1)
+	, d_only_burst(only_burst)
 {
 	set_tag_propagation_policy(block::TPP_DONT);
 	
-	fprintf(stderr, "[%s<%i>] item size: %d, flush length: %d, length tag name: %s\n", name().c_str(), unique_id(), itemsize, flush_length, length_tag_name.c_str());
+	fprintf(stderr, "[%s<%i>] item size: %d, flush length: %d, length tag name: %s, only burst: %s, strip tags: %s\n", name().c_str(), unique_id(), itemsize, flush_length, length_tag_name.c_str(), (only_burst ? "yes" : "no"), (strip_tags ? "yes": "no"));
 
 	d_use_length_tag = (length_tag_name.size() > 0);
 
@@ -131,6 +136,7 @@ void baz_burst_buffer::forecast(int noutput_items, gr_vector_int &ninput_items_r
 static const pmt::pmt_t SOB_KEY = pmt::string_to_symbol("tx_sob");
 static const pmt::pmt_t EOB_KEY = pmt::string_to_symbol("tx_eob");
 static const pmt::pmt_t IGNORE_KEY = pmt::string_to_symbol("ignore");
+static const pmt::pmt_t OFFSET_KEY = pmt::string_to_symbol("offset");
 
 int baz_burst_buffer::general_work (int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
@@ -157,6 +163,7 @@ int baz_burst_buffer::general_work (int noutput_items, gr_vector_int &ninput_ite
 			if (d_verbose) fprintf(stderr, "[%s<%i>] Adding SOB\n", name().c_str(), unique_id());
 			
 			add_item_tag(0, nitems_written(0), SOB_KEY, pmt::from_bool(true));
+			add_item_tag(0, nitems_written(0), OFFSET_KEY, pmt::from_long(d_sob_offset));
 
 			if (d_use_length_tag)
 				add_item_tag(0, nitems_written(0), d_length_tag_name, pmt::from_long(d_sample_count));
@@ -242,9 +249,12 @@ int baz_burst_buffer::general_work (int noutput_items, gr_vector_int &ninput_ite
 		
 		if (d_in_burst == false)
 		{
-			memcpy(out, in, d_itemsize * to_copy);
-			
-			produced = to_copy;
+			if (d_only_burst == false)
+			{
+				memcpy(out, in, d_itemsize * to_copy);
+				
+				produced = to_copy;
+			}
 		}
 		else
 		{
@@ -284,6 +294,7 @@ int baz_burst_buffer::general_work (int noutput_items, gr_vector_int &ninput_ite
 				assert(nread == tag.offset);	// Should always be first
 				
 				d_in_burst = true;
+				d_sob_offset = tag.offset;
 			}
 		}
 		else if (pmt::equal(tag.key, EOB_KEY))
