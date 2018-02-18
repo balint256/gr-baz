@@ -55,10 +55,17 @@ typedef ptrdiff_t ssize_t;
 class BAZ_API UDP_SOURCE_NAME;
 typedef boost::shared_ptr<UDP_SOURCE_NAME> UDP_SOURCE_SPTR;
 
+enum UDPProtocol {
+  UP_COMPAT = -1,
+  UP_RAW,
+  UP_BORIP,
+  UP_ATA
+};
+
 BAZ_API UDP_SOURCE_SPTR UDP_SOURCE_MAKER(size_t itemsize, const char *host, 
 						unsigned short port,
 						int payload_size=1472,
-						bool eof=true, bool wait=true, bool bor=false, bool verbose=false);
+						bool eof=true, bool wait=true, bool bor=false, bool verbose=false, size_t buf_size = 0, int mode = UP_COMPAT);
 
 /*! 
  * \brief Read stream from an UDP socket.
@@ -84,7 +91,7 @@ class BAZ_API UDP_SOURCE_NAME : public gr::sync_block
 					       const char *host, 
 					       unsigned short port,
 					       int payload_size,
-					       bool eof, bool wait, bool bor, bool verbose);
+					       bool eof, bool wait, bool bor, bool verbose, size_t buf_size, int mode);
 
  private:
   size_t	d_itemsize;
@@ -96,10 +103,11 @@ class BAZ_API UDP_SOURCE_NAME : public gr::sync_block
   ssize_t d_residual;   // hold information about number of bytes stored in the temp buffer
   size_t d_temp_offset; // point to temp buffer location offset
   bool			d_bor;
-  unsigned short d_bor_counter;
+  unsigned long d_bor_counter;
   bool			d_bor_first;
   bool			d_verbose;
   bool			d_eos;
+  UDPProtocol d_mode;
 
  protected:
   /*!
@@ -120,7 +128,7 @@ class BAZ_API UDP_SOURCE_NAME : public gr::sync_block
    * \param verbose      Output BorIP packet debug messages (helpful to judge packet loss)
    */
   UDP_SOURCE_NAME(size_t itemsize, const char *host, unsigned short port,
-		int payload_size, bool eof, bool wait, bool bor, bool verbose);
+		int payload_size, bool eof, bool wait, bool bor, bool verbose, size_t buf_size, int mode);
 
  public:
   ~UDP_SOURCE_NAME();

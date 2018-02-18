@@ -8,7 +8,14 @@
 	<name>UDP Source (Baz)</name>
 	<key>baz_udp_source</key>
 	<import>import baz</import>
-	<make>baz.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait, $borip, $verbose)</make>
+	<make>baz.udp_source($type.size*$vlen, $ipaddr, $port, $psize, $eof, $wait, $borip, $verbose#slurp
+#if $buf_size > 0 or $mode != 0
+, $buf_size#slurp
+#if $mode != 0
+, $mode#slurp
+#end if
+#end if
+)</make>
 	<callback>set_mtu($mtu)</callback>
 	<param>
 		<name>Output Type</name>
@@ -101,6 +108,45 @@
 		<option>
 			<name>Off</name>
 			<key>False</key>
+		</option>
+	</param>
+	<param>
+	    <name>Buffer Size</name>
+		<key>buf_size</key>
+		<value>0</value>
+		<type>raw</type>
+		<hide>#if $buf_size == 0 then 'part' else 'none'#</hide>
+		<option>
+			<name>Block Default</name>
+			<key>0</key>
+		</option>
+		<option>
+			<name>System Default</name>
+			<key>-1</key>
+		</option>
+	</param>
+	<param>
+	    <name>Mode</name>
+		<key>mode</key>
+		<value>-1</value>
+		<type>int</type>
+		<!--<hide>#if str($borip) == 'False' then 'full' else 'none'#</hide>-->
+		<hide>#if $mode == 0 then 'part' else 'none'#</hide>
+		<option>
+			<name>(use BorIP setting)</name>
+			<key>-1</key>
+		</option>
+		<option>
+			<name>Raw</name>
+			<key>0</key>
+		</option>
+		<option>
+			<name>BorIP</name>
+			<key>1</key>
+		</option>
+		<option>
+			<name>ATA</name>
+			<key>2</key>
 		</option>
 	</param>
 	<param>

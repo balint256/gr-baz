@@ -82,6 +82,37 @@ typedef struct BorPacket {
 	BYTE data[1];
 } BOR_PACKET, *PBOR_PACKET;
 
+typedef struct ATAPacket
+{
+  uint8_t group, version, bitsPerSample, binaryPoint;
+  uint32_t order;
+  uint8_t type, streams, polCode, hdrLen;
+  uint32_t src;
+  uint32_t chan;
+  uint32_t seq;
+  double freq;
+  double sampleRate;
+  float usableFraction;
+  float reserved;
+  uint64_t absTime;
+  uint32_t flags;
+  uint32_t len;
+} ATA_PACKET_HEADER, *PATA_PACKET_HEADER;
+
+// 00 01 08 00
+// ddccbbaa
+// 06 01 03 40
+// 00000000
+// 01000000
+// 5bc5bf1b
+// 000000008074c040
+// 2d431cebe2365a40
+// 0000303f
+// 00000000
+// e226ed544c45a359
+// 01000000
+// 00080000
+
 #pragma pack(pop)
 
 enum BorFlags
@@ -141,17 +172,22 @@ static void report_error( const char *msg1, const char *msg2 )
 
 UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host, 
 			     unsigned short port, int payload_size,
-			     bool eof, bool wait, bool bor, bool verbose)
+			     bool eof, bool wait, bool bor, bool verbose, size_t buf_size, int mode)
   : gr::sync_block ("udp_source",
 		   gr::io_signature::make(0, 0, 0),
 		   gr::io_signature::make(1, 1, itemsize)),
     d_itemsize(itemsize), d_payload_size(payload_size),
     d_eof(eof), d_wait(wait), d_socket(-1), d_residual(0), d_temp_offset(0),
-	d_bor(bor), d_bor_counter(0), d_bor_first(false),
-	d_eos(false)
+	d_bor(bor), d_verbose(verbose), d_bor_counter(0), d_bor_first(false),
+	d_eos(false), d_mode((UDPProtocol)mode)
 {
-  if (bor)
-	d_payload_size += sizeof(BOR_PACKET_HEADER);
+  if (d_mode == UP_COMPAT)
+    d_mode = (bor ? UP_BORIP : UP_RAW);
+
+  if (d_mode == UP_BORIP)
+    d_payload_size += sizeof(BOR_PACKET_HEADER);
+  else if (d_mode == UP_ATA)
+    d_payload_size += sizeof(ATA_PACKET_HEADER);
   
   int ret = 0;
 
@@ -224,24 +260,26 @@ UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host,
   }
 #endif // USE_RCV_TIMEO
 
-  int requested_recv_buff_size = 1024 * 1024;
-  if (setsockopt(d_socket, SOL_SOCKET,
+  if (buf_size != -1) {
+    int requested_recv_buff_size = ((buf_size > 0) ? buf_size : (1024 * 1024));
+    if (setsockopt(d_socket, SOL_SOCKET,
 #ifdef SO_RCVBUFFORCE
-	SO_RCVBUFFORCE
+	 SO_RCVBUFFORCE
 #else
-	SO_RCVBUF
+	 SO_RCVBUF
 #endif // SO_RCVBUFFORCE
-	, (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
-	if (d_verbose) {
-	  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_recv_buff_size);
-	}
-  }
-  else {
-	int recv_buff_size = 0;
-	socklen_t var_size = 0;
-	if ((getsockopt(d_socket, SOL_SOCKET, SO_RCVBUF, (optval_t)&recv_buff_size, &var_size) == 0) && (var_size == sizeof(int)) && (recv_buff_size != requested_recv_buff_size)) {
-	  fprintf(stderr, "BorUDP Source: successfully requested %i bytes buffer, but is still %i\n", requested_recv_buff_size, recv_buff_size);
-	}
+	 , (optval_t)&requested_recv_buff_size, sizeof(int)) == -1) {
+  	if (d_verbose) {
+  	  fprintf(stderr, "Failed to set receive buffer size: %d\n", requested_recv_buff_size);
+  	}
+    }
+    else {
+  	int recv_buff_size = 0;
+  	socklen_t var_size = 0;
+  	if ((getsockopt(d_socket, SOL_SOCKET, SO_RCVBUF, (optval_t)&recv_buff_size, &var_size) == 0) && (var_size == sizeof(int)) && (recv_buff_size != requested_recv_buff_size)) {
+  	  fprintf(stderr, "BorUDP Source: successfully requested %i bytes buffer, but is still %i\n", requested_recv_buff_size, recv_buff_size);
+  	}
+    }
   }
 
   // bind socket to an address and port number to listen on
@@ -254,10 +292,10 @@ UDP_SOURCE_NAME::UDP_SOURCE_NAME(size_t itemsize, const char *host,
 
 UDP_SOURCE_SPTR
 UDP_SOURCE_MAKER (size_t itemsize, const char *ipaddr, 
-		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose)
+		    unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose, size_t buf_size, int mode)
 {
   return gnuradio::get_initial_sptr(new UDP_SOURCE_NAME (itemsize, ipaddr, 
-						port, payload_size, eof, wait, bor, verbose));
+						port, payload_size, eof, wait, bor, verbose, buf_size, mode));
 }
 
 UDP_SOURCE_NAME::~UDP_SOURCE_NAME ()
@@ -360,9 +398,12 @@ UDP_SOURCE_NAME::work (int noutput_items,
     // If r > 0, round it down to a multiple of d_itemsize 
     // (If sender is broken, don't propagate problem)
     if (r > 0) {
-	  if (d_bor) {
+	  if (d_mode == UP_BORIP) {
 		r -= sizeof(BOR_PACKET_HEADER);
 	  }
+    else if (d_mode == UP_ATA) {
+      r -= sizeof(ATA_PACKET_HEADER);
+    }
 	  else {
 		r = (r/d_itemsize) * d_itemsize;
 	  }
@@ -405,8 +446,9 @@ UDP_SOURCE_NAME::work (int noutput_items,
       }
     }
     else {
+
 	  int offset = 0;
-	  if (d_bor) {
+	  if ((d_mode == UP_BORIP) || (d_mode == UP_ATA)) {
 		if (recvd != d_payload_size) {
 		  if (d_verbose)
 			fprintf(stderr, "Received size %d != payload %d\n", recvd, d_payload_size);
@@ -414,32 +456,77 @@ UDP_SOURCE_NAME::work (int noutput_items,
 			fprintf(stderr, "b!");
 		}
 		else {
-		  PBOR_PACKET_HEADER pHeader = (PBOR_PACKET_HEADER)d_temp_buff;
-		  if (pHeader->flags & BF_HARDWARE_OVERRUN) {
-			fprintf(stderr, "uO");
-		  }
-		  if (pHeader->flags & BF_STREAM_START) {
-			fprintf(stderr, "Stream start (%d)\n", (int)pHeader->idx);
-			if (d_bor_first)
-			  d_bor_first = false;
-		  }
-		  if (pHeader->idx != d_bor_counter) {
-			if (d_bor_first == false) {
-			  if ((pHeader->flags & BF_STREAM_START) == 0) {
-			    fprintf(stderr, "First packet (%d)\n", (int)pHeader->idx);
-			  }
-			  d_bor_first = true;
-			}
-			else {
-			  if (d_verbose)
-				fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (int)(pHeader->idx - d_bor_counter), (int)d_bor_counter, (int)pHeader->idx);
-			  else
-				fprintf(stderr, "bO");
-			}
-			d_bor_counter = pHeader->idx;
-		  }
-		  ++d_bor_counter;
-		  offset = sizeof(BOR_PACKET_HEADER);
+      if (d_mode == UP_BORIP) {
+  		  PBOR_PACKET_HEADER pHeader = (PBOR_PACKET_HEADER)d_temp_buff;
+  		  if (pHeader->flags & BF_HARDWARE_OVERRUN) {
+  			 fprintf(stderr, "uO");
+  		  }
+
+  		  if (pHeader->flags & BF_STREAM_START) {
+  			 fprintf(stderr, "Stream start (%d)\n", (int)pHeader->idx);
+  			if (d_bor_first)
+  			  d_bor_first = false;
+  		  }
+
+  		  if (pHeader->idx != d_bor_counter) {
+    			if (d_bor_first == false) {
+    			  if ((pHeader->flags & BF_STREAM_START) == 0) {
+    			    fprintf(stderr, "First packet (%d)\n", (int)pHeader->idx);
+    			  }
+    			  d_bor_first = true;
+    			}
+    			else {
+    			  if (d_verbose)
+    				  fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (int)(pHeader->idx - d_bor_counter), (int)d_bor_counter, (int)pHeader->idx);
+    			  else
+    				  fprintf(stderr, "bO");
+    			}
+
+    			d_bor_counter = pHeader->idx;
+  		  }
+
+  		  d_bor_counter = ((unsigned short)d_bor_counter) + 1;
+  		  offset = sizeof(BOR_PACKET_HEADER);
+      }
+      else if (d_mode == UP_ATA) {
+        PATA_PACKET_HEADER pHeader = (PATA_PACKET_HEADER)d_temp_buff;
+
+        if (pHeader->seq != d_bor_counter) {
+          if (d_bor_first == false) {
+            /*for (int i = 0; i < sizeof(ATA_PACKET_HEADER); ++i)
+              printf("%02x", (int)*((unsigned char*)pHeader + i));
+            printf("\n");*/
+            // For some reason anything after 'reserved' uses prior data in the struct, and so the wrong variables are printed
+            fprintf(stderr, "ATA: group: %d, version: %d, bitsPerSample: %d, binaryPoint: %d, order: %u, type: %d, streams: %d, polCode: %d, hdrLen: %d, src: %u, chan: %u, freq: %f, sampleRate: %f, usableFraction: %f, reserved: %f\n",//, flags: %x, len: %u\n",
+              (int)pHeader->group, (int)pHeader->version, (int)pHeader->bitsPerSample, (int)pHeader->binaryPoint,
+  pHeader->order,
+  (int)pHeader->type, (int)pHeader->streams, (int)pHeader->polCode, (int)pHeader->hdrLen,
+  pHeader->src,
+  pHeader->chan,
+  pHeader->seq,
+  pHeader->freq,
+  pHeader->sampleRate,
+  pHeader->usableFraction,
+  pHeader->reserved);/*,
+  (unsigned long long)pHeader->absTime,
+  pHeader->flags,
+  pHeader->len);*/
+            fprintf(stderr, "ATA: absTime: %llu, flags: %08x, len: %u\n", pHeader->absTime, pHeader->flags, pHeader->len);
+            d_bor_first = true;
+          }
+          else {
+            if (d_verbose)
+              fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (pHeader->seq - d_bor_counter), d_bor_counter, pHeader->seq);
+            else
+              fprintf(stderr, "bO");
+          }
+
+          d_bor_counter = pHeader->seq;
+        }
+
+        ++d_bor_counter;
+        offset = sizeof(ATA_PACKET_HEADER);
+      }
 		}
 	  }
 	  
