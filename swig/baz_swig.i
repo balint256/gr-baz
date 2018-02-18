@@ -57,9 +57,13 @@
 #include "baz_correlator.h"
 #include "baz_dpll_bb.h"
 #include "baz_fractional_resampler_cc.h"
+#include "baz_fractional_resampler_ff.h"
 #include "baz_colouriser.h"
 #include "baz_swap.h"
 #include "baz_interleaver.h"
+#include "baz_field_tracker.h"
+#include "baz_keep_one_in_n.h"
+#include "baz_file_source.h"
 
 #ifdef UHD_FOUND
 #include "baz_gate.h"
@@ -334,13 +338,13 @@ class gr_udp_source : public gr::sync_block
 baz_udp_source_sptr 
 baz_make_udp_source (size_t itemsize, const char *host, 
 		    unsigned short port, int payload_size=1472,
-		    bool eof=true, bool wait=true, bool bor=false, bool verbose=false) throw (std::runtime_error);
+		    bool eof=true, bool wait=true, bool bor=false, bool verbose=false, size_t buf_size = 0, int mode = -1) throw (std::runtime_error);
 
 class baz_udp_source : public gr::sync_block
 {
  protected:
   baz_udp_source (size_t itemsize, const char *host, 
-		 unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose) throw (std::runtime_error);
+		 unsigned short port, int payload_size, bool eof, bool wait, bool bor, bool verbose, size_t buf_size, int mode) throw (std::runtime_error);
 
  public:
   ~baz_udp_source ();
@@ -498,12 +502,12 @@ public:
 
 GR_SWIG_BLOCK_MAGIC(baz,gate)
 
-baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false, const std::string& length_tag_name = "", bool complete_output = false, bool byte_trigger = false);
+baz_gate_sptr baz_make_gate (int item_size, bool block = true, float threshold = 1.0, int trigger_length = 0, bool tag = false, double delay = 0.0, int sample_rate = 0, bool no_delay = false, bool verbose = true, bool retriggerable = false, const std::string& length_tag_name = "", bool complete_output = false, bool byte_trigger = false, const std::string& trigger_tag_name = "");
 
 class baz_gate : public gr::sync_block
 {
 private:
-  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name, bool complete_output, bool byte_trigger);  	// private constructor
+  baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name, bool complete_output, bool byte_trigger, const std::string& trigger_tag_name);  	// private constructor
 public:
   void set_blocking(bool enable);
   void set_threshold(float threshold);
@@ -890,12 +894,12 @@ GR_SWIG_BLOCK_MAGIC2(baz, burst_tagger);
 
 GR_SWIG_BLOCK_MAGIC(baz,burst_buffer);
 
-baz_burst_buffer_sptr baz_make_burst_buffer (int itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
+baz_burst_buffer_sptr baz_make_burst_buffer (int itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false, bool only_burst = false, bool strip_tags = true);
 
 class baz_burst_buffer : public gr::block
 {
 protected:
-	baz_burst_buffer (int itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false);
+	baz_burst_buffer (int itemsize, int flush_length = 0, const std::string& length_tag_name = "", bool verbose = false, bool only_burst = false, bool strip_tags = true);
 public:
 	~baz_burst_buffer();
 };
@@ -956,6 +960,12 @@ GR_SWIG_BLOCK_MAGIC2(baz, fractional_resampler_cc);
 
 ////////////////////////////////////////////////////////////////////////////////
 
+%include "baz_fractional_resampler_ff.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, fractional_resampler_ff);
+
+////////////////////////////////////////////////////////////////////////////////
+
 %include "baz_colouriser.h"
 
 GR_SWIG_BLOCK_MAGIC2(baz, colouriser);
@@ -971,6 +981,24 @@ GR_SWIG_BLOCK_MAGIC2(baz, swap);
 %include "baz_interleaver.h"
 
 GR_SWIG_BLOCK_MAGIC2(baz, interleaver);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_field_tracker.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, field_tracker);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_keep_one_in_n.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, keep_one_in_n);
+
+////////////////////////////////////////////////////////////////////////////////
+
+%include "baz_file_source.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, file_source);
 
 ////////////////////////////////////////////////////////////////////////////////
 

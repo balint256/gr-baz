@@ -52,9 +52,13 @@ SET(baz_headers
 	baz_correlator.h
 	baz_dpll_bb.h
 	baz_fractional_resampler_cc.h
+	baz_fractional_resampler_ff.h
 	baz_colouriser.h
 	baz_swap.h
 	baz_interleaver.h
+	baz_field_tracker.h
+	baz_keep_one_in_n.h
+	baz_file_source.h
 )
 
 if (LIBUSB_FOUND)
@@ -112,9 +116,13 @@ SET(baz_sources
 	baz_correlator.cc
 	baz_dpll_bb.cc
 	baz_fractional_resampler_cc.cc
+	baz_fractional_resampler_ff.cc
 	baz_colouriser.cc
 	baz_swap.cc
 	baz_interleaver.cc
+	baz_field_tracker.cc
+	baz_keep_one_in_n.cc
+	baz_file_source.cc
 )
 
 if (LIBUSB_FOUND)

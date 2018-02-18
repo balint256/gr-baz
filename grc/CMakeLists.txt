@@ -81,6 +81,7 @@ SET(baz_blocks
 	fec_sync.xml
 	baz_additive_scrambler_bb.xml
 	baz_fractional_resampler_xx.xml
+	baz_file_source.xml
 )
 
 if (LIBUSB_FOUND)
