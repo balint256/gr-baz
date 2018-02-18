@@ -52,4 +52,4 @@ namespace gr {
   } /* namespace baz */
 } /* namespace gr */
 
-#endif /* INCLUDED_BAZ_COLOURISER_H */
+#endif /* INCLUDED_BAZ_SWAP_H */

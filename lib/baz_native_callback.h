@@ -49,6 +49,7 @@ class BAZ_API baz_native_callback_target
 {
 public:
   virtual void callback(float f, unsigned long samples_processed)=0; // FIXME: Item size
+  virtual ~baz_native_callback_target() {};
 };
 
 //typedef boost::shared_ptr<baz_native_callback_target> baz_native_callback_target_sptr;

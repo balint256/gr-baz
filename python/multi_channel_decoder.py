@@ -49,6 +49,7 @@ class multi_channel_decoder(gr.hier_block2):
 		self.set_frequencies(frequencies, True)
 	
 	def set_frequencies(self, freq_list, skip_lock=False):	# FIXME: Filter duplicate frequencies / connect Null Sink if freq list is empty / Lock
+		# print "set_frequencies:", freq_list, "lock:", skip_lock
 		current_freqs = []
 		map_freqs = {}
 		for decoder in self.decoders:
@@ -56,13 +57,18 @@ class multi_channel_decoder(gr.hier_block2):
 			map_freqs[decoder.get_freq()] = decoder
 		create = [f for f in freq_list if f not in current_freqs]
 		remove = [f for f in current_freqs if f not in freq_list]
+		if len(create) == 0 and len(remove) == 0:
+			# print "No channels to create/remove"
+			return
 		if not skip_lock: self.lock()
 		try:
 			decoder_factory = self.decoder
 			if isinstance(self.decoder, str):
 				decoder_factory = eval(self.decoder)
 			#factory_eval_str = "decoder_factory(baseband_freq=%s,freq=%f,%s)" % (self.baseband_freq, f, self.decoder_args)
+			cnt = 0
 			for f in create:
+				cnt += 1
 				#d = eval(factory_eval_str)
 				combined_args = self.kwargs
 				combined_args['baseband_freq'] = self.baseband_freq
@@ -70,7 +76,7 @@ class multi_channel_decoder(gr.hier_block2):
 				if f in self.per_freq_params:
 					for k in self.per_freq_params[f].keys():
 						combined_args[k] = self.per_freq_params[f][k]
-				print "==> Creating decoder:", decoder_factory, "with", combined_args
+				print "==> Creating decoder {}/{}:".format(cnt, len(create)), decoder_factory, "with", combined_args
 				#d = decoder_factory(baseband_freq=self.baseband_freq, freq=f, **combined_args)
 				d = decoder_factory(**combined_args)
 				if self.msgq is not None:
@@ -81,6 +87,7 @@ class multi_channel_decoder(gr.hier_block2):
 				else:
 					try:
 						self.msg_connect((d, 'out'), (self, 'out'))
+						# print "Connected message ports (from: {})".format(d)
 					except Exception, e:
 						print "Exception while connecting output message ports:", e
 				self.connect(self, d)
