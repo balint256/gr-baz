@@ -42,21 +42,22 @@
 //#include <typeinfo>
 
 // FIXME: float samp_rate
+// FIXME: don't need 'uhd' here (just need to do the math)
 
 /*
  * Create a new instance of baz_gate and return
  * a boost shared_ptr.  This is effectively the public constructor.
  */
 baz_gate_sptr
-baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, int trigger_length /*= 0*/, bool tag /*= false*/, double delay /*= 0.0*/, int sample_rate /*= 0*/, bool no_delay /*= false*/, bool verbose /*= true*/, bool retriggerable /*= false*/, const std::string& length_tag_name /*= ""*/, bool complete_output /*= false*/, bool byte_trigger /*= false*/)
+baz_make_gate (int item_size, bool block /*= true*/, float threshold /*= 0.0*/, int trigger_length /*= 0*/, bool tag /*= false*/, double delay /*= 0.0*/, int sample_rate /*= 0*/, bool no_delay /*= false*/, bool verbose /*= true*/, bool retriggerable /*= false*/, const std::string& length_tag_name /*= ""*/, bool complete_output /*= false*/, bool byte_trigger /*= false*/, const std::string& trigger_tag_name/* = ""*/)
 {
-  return baz_gate_sptr (new baz_gate (item_size, block, threshold, trigger_length, tag, delay, sample_rate, no_delay, verbose, retriggerable, length_tag_name, complete_output, byte_trigger));
+  return baz_gate_sptr (new baz_gate (item_size, block, threshold, trigger_length, tag, delay, sample_rate, no_delay, verbose, retriggerable, length_tag_name, complete_output, byte_trigger, trigger_tag_name));
 }
 
 /*
  * The private constructor
  */
-baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name, bool complete_output, bool byte_trigger)
+baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_length, bool tag, double delay, int sample_rate, bool no_delay, bool verbose, bool retriggerable, const std::string& length_tag_name, bool complete_output, bool byte_trigger, const std::string& trigger_tag_name)
 	: gr::block ("gate",
 		gr::io_signature::make3 (2, 4, item_size, (byte_trigger ? sizeof(char) : sizeof(float)), item_size),
 		gr::io_signature::make2 (1, 2, item_size, item_size))
@@ -72,6 +73,9 @@ baz_gate::baz_gate (int item_size, bool block, float threshold, int trigger_leng
 
   if (length_tag_name.size() > 0)
   	d_length_tag_name = pmt::mp(length_tag_name);
+
+  if (trigger_tag_name.size() > 0)
+  	d_trigger_tag_name = pmt::mp(trigger_tag_name);
 }
 
 /*
@@ -136,7 +140,7 @@ void baz_gate::set_sample_rate(int sample_rate)
 
 void baz_gate::set_no_delay(bool no_delay)
 {
-  fprintf(stderr, "[%s<%ld>] Delay: %.6f\n", name().c_str(), unique_id(), (no_delay ? "yes" : "no"));
+  fprintf(stderr, "[%s<%ld>] Delay: %s\n", name().c_str(), unique_id(), (no_delay ? "yes" : "no"));
   d_no_delay = no_delay;
 }
 
@@ -145,6 +149,7 @@ static const pmt::pmt_t EOB_KEY = pmt::string_to_symbol("tx_eob");
 static const pmt::pmt_t TX_TIME_KEY = pmt::string_to_symbol("tx_time");
 static const pmt::pmt_t RX_TIME_KEY = pmt::string_to_symbol("rx_time");
 static const pmt::pmt_t IGNORE_KEY = pmt::string_to_symbol("ignore");
+static const pmt::pmt_t OFFSET_KEY = pmt::string_to_symbol("offset");
 
 static bool _first = true;
 static gr_complex _first_c = gr_complex(-1,-1);
@@ -244,6 +249,8 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 
 	// FIXME: Read 'period' tag from gate channel and update 'd_trigger_length'
 
+	const uint64_t nread0 = nitems_read(0);
+
 	int tag_channel = ((ninput_items.size() >= 3) ? 2 : 1);
 	const uint64_t nread = nitems_read(tag_channel);
 	std::vector<gr::tag_t> tags;
@@ -262,13 +269,21 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 
 //fprintf(stderr, "[%s] Work %d, %d, %d\n", name().c_str(), noutput_items, ninput_items[0], ninput_items[1]);
 
+	std::vector<gr::tag_t> trigger_tags;
+	if ((d_trigger_tag_name) && (pmt::eq(d_trigger_tag_name, pmt::PMT_NIL) == false))
+	{
+		get_tags_in_range(trigger_tags, 0, nread0, nread0 + noutput_items, d_trigger_tag_name);
+		std::sort(trigger_tags.begin(), trigger_tags.end(), gr::tag_t::offset_compare);
+	}
+	int trigger_tag_idx = 0;
+
 	int noutput = 0, j = 0;
 	for (int i = 0; i < noutput_items; i++) {
 
 	////////////////////////////////////////////////////////////////////////////
 
-		if (next_tag_offset == (nitems_read(tag_channel) + i)) {
-			gr::tag_t tag = tags[tag_index_offset++];	// Initially -1, so will start at 0
+		if (next_tag_offset == (nread + i)) {
+			gr::tag_t& tag = tags[tag_index_offset++];	// Initially -1, so will start at 0
 
 			uint64_t _next = -1;
 			if (tag_index_offset < tags.size())
@@ -288,9 +303,20 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 	////////////////////////////////////////////////////////////////////////////
 //		gr_complex* c = (gr_complex*)(in + (i * d_item_size));
 //fprintf(stderr, "[%s] Sample %.1f, %.1f\n, level %.1f", name().c_str(), c->real(), c->imag(), level[i]);
-		if ((d_byte_trigger ? (level_byte[i] >= (unsigned char)d_threshold) : (level[i] >= d_threshold)) ||
-				((d_trigger_count > 0) ||
-				((d_burst_sample_count > 0) && (d_trigger_count == 0)))) {	// For case when first conditional section is entered below (e.g. retriggerable & > threshold OR 'd_trigger_count' is 1) and 'd_burst_sample_count' has not been reset
+		bool above_level = (d_byte_trigger ? (level_byte[i] >= (unsigned char)d_threshold) : (level[i] >= d_threshold));
+		if ((above_level == false) && (trigger_tag_idx < trigger_tags.size()))
+		{
+			gr::tag_t& tag = trigger_tags[trigger_tag_idx];
+			if (tag.offset == (nread0 + i))
+			{
+				above_level = true;
+				++trigger_tag_idx;
+			}
+		}
+		if ((above_level) ||
+			((d_trigger_count > 0) ||
+			((d_burst_sample_count > 0) && (d_trigger_count == 0))))	// For case when first conditional section is entered below (e.g. retriggerable & > threshold OR 'd_trigger_count' is 1) and 'd_burst_sample_count' has not been reset
+		{
 			bool was_in_burst = d_in_burst;
 /*
 			tags.clear();
@@ -306,7 +332,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 			if (d_trigger_count > 0)
 				--d_trigger_count;
 			
-			if ((((d_trigger_count == 0) && (d_in_burst == false)) || (d_retriggerable)) && (d_byte_trigger ? (level_byte[i] >= (unsigned char)d_threshold) : (level[i] >= d_threshold))) { // 'else' to avoid double trigger and offset in incoming repeating vector
+			if ((((d_trigger_count == 0) && (d_in_burst == false)) || (d_retriggerable)) && (above_level)) { // 'else' to avoid double trigger and offset in incoming repeating vector
 				if (d_verbose && ((d_retriggerable == false) || (d_burst_sample_count == 0))) {
 					fprintf(stderr, "[%s<%ld>] Triggered: %.1f, current count: %d\n", name().c_str(), unique_id(), (d_byte_trigger ? (float)level_byte[i] : level[i]), d_trigger_count);
 				}
@@ -350,6 +376,9 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 
 					if (d_tag) {
 						add_item_tag(0, nitems_written(0)+j, SOB_KEY, pmt::from_bool(true));
+						if (/*d_block*/true) {
+							add_item_tag(0, nitems_written(0)+j, OFFSET_KEY, pmt::from_long(nitems_read(0) + i));
+						}
 						if (d_no_delay == false) {
 							uhd::time_spec_t next = (d_last_time + uhd::time_spec_t(0, d_time_offset, d_sample_rate)) + uhd::time_spec_t(d_delay);
 							add_item_tag(0, nitems_written(0)+j, TX_TIME_KEY, pmt::make_tuple(pmt::from_uint64(next.get_full_secs()), pmt::from_double(next.get_frac_secs())));
@@ -378,7 +407,7 @@ for (int k = 0; k < min(10,ninput_items[0]); ++k) {
 				if (d_in_burst) {
 					if (d_tag) {
 						if (d_verbose) {
-							fprintf(stderr, "[%s<%ld>] EOB %d + %d (%d total)\n", name().c_str(), unique_id(), nitems_written(0), j, d_burst_sample_count);
+							fprintf(stderr, "[%s<%ld>] EOB %llu + %d (%d total)\n", name().c_str(), unique_id(), nitems_written(0), j, d_burst_sample_count);
 						}
 						add_item_tag(0, nitems_written(0)+j, EOB_KEY, pmt::from_bool(true));
 						++work_eob_count;
