@@ -74,13 +74,21 @@ def __evalutate_$(id)(*args, **kwds):
 		__post_evalutate_$(id)()
 	except Exception, e:
 		print "Exception while evaluating $(id):", e
+def __skip_evalutate_$(id)(*args, **kwds): pass
 self._evalutate_$(id) = __evalutate_$(id)
+self._skip_evalutate_$(id) = __skip_evalutate_$(id)
 self.__post_evalutate_$(id) = __post_evalutate_$(id)
 #if $first_eval() == 'inline'
 self._evalutate_$(id)(**$deps)
 $(id) = self.$(id)
 #elif $first_eval() == 'post'
 self.__post_evalutate_$(id)()
+#elif $first_eval() == 'local'
+#if $injection() == 'variable'
+self.$(id) = $(id) = $code()
+#elif $injection() == 'plain'
+$code()
+#end if
 #end if
 ##if not hasattr(self, '_post_any_code_evaluators'):
 ##	self._post_any_code_evaluators = []
@@ -95,6 +103,8 @@ self.__post_evalutate_$(id)()
 self._evalutate_$(id)(**$deps)
 #elif $callback_mode() == 'post'
 self._run_evaluators_later(('$(id)', lambda: self._evalutate_$(id)(**$deps)))
+#else
+self._skip_evalutate_$(id)(**$deps)
 #end if</callback>
 	
 	<!--
@@ -154,6 +164,10 @@ self._run_evaluators_later(('$(id)', lambda: self._evalutate_$(id)(**$deps)))
 		<option>
 			<name>Post</name>
 			<key>post</key>
+		</option>
+		<option>
+			<name>Local</name>
+			<key>local</key>
 		</option>
 		<option>
 			<name>None</name>
