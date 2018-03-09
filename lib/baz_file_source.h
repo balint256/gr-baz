@@ -55,7 +55,7 @@ namespace gr {
        * \param filename	name of the file to source from
        * \param repeat	repeat file from start
        */
-      static sptr make(size_t itemsize, const char *filename, bool repeat = false, long offset = 0, const char *timing_filename = NULL, bool pad = false, double rate = 0.0);
+      static sptr make(size_t itemsize, const char *filename, bool repeat = false, long offset = 0, const char *timing_filename = NULL, bool pad = false, double rate = 0.0, bool auto_load = true, const std::vector<std::string>& files = std::vector<std::string>());
 
       /*!
        * \brief seek file to \p seek_point relative to \p whence
@@ -72,7 +72,7 @@ namespace gr {
        * \param filename	name of the file to source from
        * \param repeat	repeat file from start
        */
-      virtual void open(const char *filename, bool repeat = false, long offset = 0, const char *timing_filename = NULL, bool pad = false, double rate = 0.0) = 0;
+      virtual void open(const char *filename, bool repeat = false, long offset = 0, const char *timing_filename = NULL, bool pad = false, double rate = 0.0, bool auto_load = true, const std::vector<std::string>& files = std::vector<std::string>()) = 0;
 
       /*!
        * \brief Close the file handle.
@@ -82,6 +82,12 @@ namespace gr {
       virtual size_t offset() = 0;
       virtual size_t file_offset() = 0;
       virtual double time(bool relative = false, bool raw = false) = 0;
+      virtual double sample_rate() = 0;
+      virtual double sample_count(bool raw = false) = 0;
+      virtual double duration() = 0;
+      virtual size_t file_index() = 0;
+      virtual std::string file_path() = 0;
+      virtual std::vector<std::string> files() = 0;
     };
 
   } /* namespace baz */

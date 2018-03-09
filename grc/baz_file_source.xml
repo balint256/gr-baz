@@ -8,7 +8,7 @@
 	<name>File Source (Baz)</name>
 	<key>baz_file_source</key>
 	<import>import baz</import>
-	<make>baz.file_source($type.size*$vlen, $file, $repeat, $offset, $timing_file, $pad, $samp_rate)</make>
+	<make>baz.file_source(($item_size if $item_size > 0 else $type.size)*$vlen, $file, $repeat, $offset, $timing_file, $pad, $samp_rate, $auto_load, $files)</make>
 	<callback>open($file, $repeat)</callback>
 
 	<param>
@@ -23,6 +23,13 @@
 		<key>timing_file</key>
 		<value></value>
 		<type>file_open</type>
+	</param>
+
+	<param>
+		<name>Files</name>
+		<key>files</key>
+		<value>[]</value>
+		<type>raw</type>
 	</param>
 
 	<param>
@@ -57,6 +64,17 @@
 	</param>
 
 	<param>
+        <name>Item size</name>
+        <key>item_size</key>
+        <value>0</value>
+        <type>int</type>
+        <option>
+			<name>From Output Type</name>
+			<key>0</key>
+		</option>
+    </param>
+
+	<param>
 		<name>Repeat</name>
 		<key>repeat</key>
 		<value>True</value>
@@ -87,10 +105,25 @@
 	</param>
 
 	<param>
+        <name>Auto-load</name>
+        <key>auto_load</key>
+        <value>True</value>
+        <type>raw</type>
+        <option>
+			<name>Enabled</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Disabled</name>
+			<key>False</key>
+		</option>
+    </param>
+
+	<param>
         <name>Sample Rate</name>
         <key>samp_rate</key>
         <value>0</value>
-        <type>raw</type>
+        <type>real</type>
         <option>
 			<name>From timing file</name>
 			<key>0</key>
