@@ -497,13 +497,14 @@ UDP_SOURCE_NAME::work (int noutput_items,
               printf("%02x", (int)*((unsigned char*)pHeader + i));
             printf("\n");*/
             // For some reason anything after 'reserved' uses prior data in the struct, and so the wrong variables are printed
+            // FIXME: Accidentally left 'seq' in 'fprintf' valist - was this the cause?! Need to re-test...
             fprintf(stderr, "ATA: group: %d, version: %d, bitsPerSample: %d, binaryPoint: %d, order: %u, type: %d, streams: %d, polCode: %d, hdrLen: %d, src: %u, chan: %u, freq: %f, sampleRate: %f, usableFraction: %f, reserved: %f\n",//, flags: %x, len: %u\n",
               (int)pHeader->group, (int)pHeader->version, (int)pHeader->bitsPerSample, (int)pHeader->binaryPoint,
   pHeader->order,
   (int)pHeader->type, (int)pHeader->streams, (int)pHeader->polCode, (int)pHeader->hdrLen,
   pHeader->src,
   pHeader->chan,
-  pHeader->seq,
+  // pHeader->seq, // Not printed above
   pHeader->freq,
   pHeader->sampleRate,
   pHeader->usableFraction,
@@ -516,7 +517,7 @@ UDP_SOURCE_NAME::work (int noutput_items,
           }
           else {
             if (d_verbose)
-              fprintf(stderr, "Dropped %03d packets: %05d -> %05d\n", (pHeader->seq - d_bor_counter), d_bor_counter, pHeader->seq);
+              fprintf(stderr, "Dropped %03lu packets: %05lu -> %05u\n", (pHeader->seq - d_bor_counter), d_bor_counter, pHeader->seq);
             else
               fprintf(stderr, "bO");
           }
