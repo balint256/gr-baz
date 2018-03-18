@@ -25,4 +25,5 @@
 #cmakedefine UHD_FOUND 1
 #cmakedefine LIBUSB_FOUND 1
 #cmakedefine ARMADILLO_FOUND 1
-
+#cmakedefine SDL_FOUND 1
+#cmakedefine SDL_TTF_FOUND 1

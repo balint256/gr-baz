@@ -75,6 +75,10 @@
 #include "baz_music_doa.h"
 #endif // ARMADILLO_FOUND
 
+#ifdef SDL_FOUND
+#include "baz_sdl_sink_uc.h"
+#endif // SDL_FOUND
+
 #endif // GR_BAZ_WITH_CMAKE
 
 // Somehow SWIG is missing this, and refuses to include pycontainer.swg
@@ -999,6 +1003,16 @@ GR_SWIG_BLOCK_MAGIC2(baz, keep_one_in_n);
 %include "baz_file_source.h"
 
 GR_SWIG_BLOCK_MAGIC2(baz, file_source);
+
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef SDL_FOUND
+
+%include "baz_sdl_sink_uc.h"
+
+GR_SWIG_BLOCK_MAGIC2(baz, sdl_sink_uc);
+
+#endif // SDL_FOUND
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -69,6 +69,10 @@ if (UHD_FOUND)
 	list(APPEND baz_headers baz_gate.h baz_usrp_acquire.h baz_hopper.h)
 endif ()
 
+if (SDL_FOUND)
+	list(APPEND baz_headers baz_sdl_sink_uc.h)
+endif ()
+
 install(FILES
     ${baz_headers}
     DESTINATION include/baz
@@ -149,7 +153,17 @@ endif ()
 if (ARMADILLO_FOUND)
 	LIST(APPEND baz_sources baz_music_doa.cc)
 else ()
-	set(ARMADILLO_LIBRARIES)
+	set(ARMADILLO_LIBRARIES "")
+endif ()
+
+if (SDL_FOUND)
+	LIST(APPEND baz_sources baz_sdl_sink_uc.cc)
+else ()
+	set(SDL_LIBRARY "")
+endif ()
+
+if (NOT SDL_TTF_FOUND)
+	set(SDL_TTF_LIBRARY "")
 endif ()
 
 add_library(gnuradio-baz SHARED
@@ -166,6 +180,8 @@ list(APPEND baz_libs
 	${LIBUSB_LIBRARIES}
 	${UHD_LIBRARIES}
 	${ARMADILLO_LIBRARIES}
+	${SDL_LIBRARY}
+	${SDL_TTF_LIBRARY}
 	${VOLK_LIBRARIES}
 )
 
@@ -173,7 +189,7 @@ if(MSVC)
 	CHECK_INCLUDE_FILE_CXX(windows.h HAVE_WINDOWS_H)
 	IF(HAVE_WINDOWS_H)
 		ADD_DEFINITIONS(-DHAVE_WINDOWS_H -DUSING_WINSOCK)
-		MESSAGE(STATUS "Adding windows libs to gr baz libs...")
+		MESSAGE(STATUS "Adding windows libs to gr-baz libs...")
 		LIST(APPEND baz_libs WS2_32.lib WSock32.lib)
 	ENDIF(HAVE_WINDOWS_H)
 endif()
