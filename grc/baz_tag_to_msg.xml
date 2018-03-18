@@ -7,7 +7,7 @@
 <block>
 	<name>Tag to Message</name>
 	<key>baz_tag_to_msg</key>
-	<category>Message Tools</category>
+	<!--<category>Message Tools</category>-->
 	<import>import baz</import>
 
 	<make>baz.tag_to_msg($type.size, $(id)_msgq_out, $append)</make><!--, initial_buffer_size-->

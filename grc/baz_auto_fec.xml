@@ -2,7 +2,7 @@
 <block>
     <name>Auto FEC</name>
     <key>auto_fec</key>
-    <category>Error Correction</category>
+    <!--<category>Error Correction</category>-->
     <import>from gnuradio import gr</import>
 	<import>from baz import auto_fec</import>
     <make>auto_fec.auto_fec(

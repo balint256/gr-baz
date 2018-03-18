@@ -7,7 +7,7 @@
 <block>
 	<name>FasTrak Decoder</name>
 	<key>baz_fastrak_decoder</key>
-	<category>FasTrak</category>
+	<!--<category>FasTrak</category>-->
 	<import>import baz</import>
 
 	<make>baz.fastrak_decoder(sample_rate=$sample_rate)

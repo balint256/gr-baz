@@ -7,7 +7,7 @@
 <block>
 	<name>RTL2832 Source</name>
 	<key>rtl2832_source</key>
-	<category>Sources</category>
+	<!--<category>Sources</category>-->
 	<import>import baz</import>
 	
 	<make>baz.rtl_source_c(defer_creation=True, output_size=$type.size)

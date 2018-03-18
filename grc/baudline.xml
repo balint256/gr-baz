@@ -2,7 +2,7 @@
 <block>
 	<name>Baudline Sink</name>
 	<key>baudline_sink</key>
-	<category>Graphical Sinks</category>
+	<!--<category>Graphical Sinks</category>-->
 	<import>from baz import baudline</import>
 	<import>from gnuradio import gr</import>
 	<make>baudline.baudline_sink(

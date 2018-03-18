@@ -2,7 +2,7 @@
 <block>
     <name>Eye Diagram</name>
     <key>eye</key>
-    <category>Graphical Sinks</category>
+    <!--<category>Graphical Sinks</category>-->
     <import>from baz import eye</import>
     <import>from gnuradio import gr</import>
     <make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'

@@ -8,7 +8,7 @@
 <block>
 	<name>WX GUI Static Text (Baz)</name>
 	<key>variable_baz_static_text</key>
-	<category>GUI Widgets/WX</category>
+	<!--<category>GUI Widgets/WX</category>-->
 	<!--<import>from gnuradio.wxgui import forms</import>-->
 	<import>from baz import static_text</import>
 	<import>import wx</import>

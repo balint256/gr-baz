@@ -2,7 +2,7 @@
 <block>
 	<name>OP25 Decoder (Simple)</name>
 	<key>op25_decoder_simple</key>
-	<category>Audio</category>
+	<!--<category>Audio</category>-->
 	<import>from baz import baz_op25</import>
 	<make>baz_op25.op25_decoder_simple(key=$key,key_map=$key_map,idle_silence=$idle_silence,verbose=$verbose,#slurp
 #if $traffic_out()

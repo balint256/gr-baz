@@ -3,7 +3,7 @@
 	<name>Any Code</name>
 	<!-- Must begin with 'variable' -->
 	<key>variable_any_code</key>
-	<category>Misc</category>
+	<!--<category>Misc</category>-->
 	<import>from gnuradio import gr</import>
 	<!-- Must have 'value' variable -->
 	<var_make>self.$(id) = $(id) = $value</var_make>

@@ -7,7 +7,7 @@
 <block>
 	<name>Multi-channel decoder</name>
 	<key>multi_channel_decoder</key>
-	<category>Misc</category>
+	<!--<category>Misc</category>-->
 	
 	<!--<import>from gnuradio import gr</import>-->
 	<import>from baz import multi_channel_decoder</import>

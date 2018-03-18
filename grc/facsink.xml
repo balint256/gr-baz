@@ -2,7 +2,7 @@
 <block>
     <name>Fast AutoCorrelation Sink</name>
     <key>facsink</key>
-    <category>Graphical Sinks</category>
+    <!--<category>Graphical Sinks</category>-->
     <import>from baz import facsink</import>
     <import>from gnuradio import gr</import>
     <make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'

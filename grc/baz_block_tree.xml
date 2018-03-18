@@ -148,7 +148,11 @@
         <block>op25_fsk4</block>
       </cat>
 
-      <block>baz_fastrak_decoder</block>
+      <cat>
+        <name>FasTrak</name>
+        <block>baz_fastrak_decoder</block>
+      </cat>
+
       <block>missile_launcher</block>
     </cat>
 

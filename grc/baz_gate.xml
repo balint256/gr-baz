@@ -2,7 +2,7 @@
 <block>
     <name>Gate</name>
     <key>gate</key>
-    <category>Misc</category>
+    <!--<category>Misc</category>-->
     <import>from gnuradio import gr</import>
     <import>import baz</import>
     <make>baz.gate(item_size=$(type.size), block=$block, threshold=$threshold, trigger_length=$trigger_length, tag=$tag, delay=$delay, sample_rate=$sample_rate, no_delay=$no_delay, verbose=$verbose, retriggerable=$retriggerable,#slurp

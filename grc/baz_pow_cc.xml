@@ -2,7 +2,7 @@
 <block>
     <name>Power</name>
     <key>pow_cc</key>
-    <category>Operators</category>
+    <!--<category>Operators</category>-->
     <import>from gnuradio import gr</import>
 	<import>import baz</import>
     <make>baz.pow_cc($exponent, $div_exp)</make>

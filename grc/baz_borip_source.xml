@@ -7,7 +7,7 @@
 <block>
 	<name>BorIP Source</name>
 	<key>borip_source</key>
-	<category>Sources</category>
+	<!--<category>Sources</category>-->
 	<import>from baz import borip</import>
 	
 	<make>borip.remote_usrp(address=$address, which=$hint, decim_rate=1, packet_size=$packet_size, reconnect_attempts=$reconnect_attempts, format="$type")

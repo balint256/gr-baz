@@ -8,7 +8,7 @@
 
 	<name>DPLL (Baz)</name>
 	<key>baz_dpll_bb</key>
-	<category>Synchronisers</category>
+	<!--<category>Synchronisers</category>-->
 
 	<import>import baz</import>
 	<make>baz.dpll_bb($period, $gain, $relative_limit, $ignore_limit, $length_tag, $verbose, $unlocked)</make>

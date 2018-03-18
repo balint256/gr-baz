@@ -7,7 +7,7 @@
 <block>
     <name>Missile Launcher</name>
     <key>missile_launcher</key>
-    <category>Misc</category>
+    <!--<category>Misc</category>-->
     <import>from baz import missile_launcher</import>
     <make>missile_launcher.async_missile_launcher(azimuth=$az, elevation=$el, threshold=$thresh, recal_threshold=$recal_threshold)</make>
     <callback>set_azimuth($az)</callback>

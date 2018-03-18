@@ -7,7 +7,7 @@
 <block>
 	<name>Burster</name>
 	<key>baz_burster</key>
-	<category>Stream Operators</category>
+	<!--<category>Stream Operators</category>-->
 	<import>import baz</import>
 
 <!--

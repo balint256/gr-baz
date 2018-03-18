@@ -2,7 +2,7 @@
 <block>
     <name>Puncture</name>
     <key>puncture_bb</key>
-    <category>Error Correction</category>
+    <!--<category>Error Correction</category>-->
     <import>from gnuradio import gr</import>
 	<import>import baz</import>
     <make>baz.puncture_bb($matrix)</make>

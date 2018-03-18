@@ -3,7 +3,7 @@
 	<name>Run Remote</name>
 	<!-- Must begin with 'variable' -->
 	<key>variable_run_remote</key>
-	<category>Misc</category>
+	<!--<category>Misc</category>-->
 	<import>exec("try:\n\timport sys; import run_remote;\n\tif run_remote.run_remote('$remote_host()', ['gnuradio-companion'], $screen, $x_forwarding, '$shell()') == True: sys.exit(0)\nexcept Exception, e: pass")</import>
 	<!-- Must have 'value' variable -->
 	<var_make>self.$(id) = $(id) = $value</var_make>

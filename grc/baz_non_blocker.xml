@@ -7,7 +7,7 @@
 <block>
 	<name>Non-blocker</name>
 	<key>baz_non_blocker</key>
-	<category>Misc</category>
+	<!--<category>Misc</category>-->
 	<import>import baz</import>
 
 	<make>baz.non_blocker($(type.size), $block)</make>

@@ -7,7 +7,7 @@
 <block>
 	<name>OP25 Traffic Pane</name>
 	<key>op25_traffic_pane</key>
-	<category>Instrumentation/WX</category>
+	<!--<category>Instrumentation/WX</category>-->
 	<import>from baz import op25_traffic_pane</import>
 	<make>#set $parent = $notebook() and 'self.%s.GetPage(%s)'%$notebook() or 'self'
 op25_traffic_pane.TrafficPane(parent=$(parent).GetWin(), msgq=$(id)_msgq_in)

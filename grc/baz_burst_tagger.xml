@@ -2,7 +2,7 @@
 <block>
   <name>Burst Tagger (Baz)</name>
   <key>baz_burst_tagger</key>
-  <category>Stream Tag Tools</category>
+  <!--<category>Stream Tag Tools</category>-->
   <import>import pmt</import>
   <import>import baz</import>
   <make>baz.burst_tagger($tag_name, $mult, $pad_front, $pad_rear, $drop_residue, $verbose)</make>

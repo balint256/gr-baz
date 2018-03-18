@@ -2,7 +2,7 @@
 <block>
     <name>Test Counter</name>
     <key>test_counter_cc</key>
-    <category>Misc</category>
+    <!--<category>Misc</category>-->
     <import>from gnuradio import gr</import>
 	<import>import baz</import>
     <make>baz.test_counter_cc()</make>

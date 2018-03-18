@@ -2,7 +2,7 @@
 <block>
 	<name>UHD: Async Msg Printer</name>
 	<key>uhd_async_msg_printer</key>
-	<category>UHD</category>
+	<!--<category>UHD</category>-->
 	<import>from gnuradio import gr</import>
 	<import>from gnuradio import gru</import>
 	<import>from gnuradio import uhd</import>

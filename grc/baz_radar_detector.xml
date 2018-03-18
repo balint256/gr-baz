@@ -7,7 +7,7 @@
 <block>
 	<name>RADAR Detector</name>
 	<key>baz_radar_detector</key>
-	<category>Misc</category>
+	<!--<category>Misc</category>-->
 	<import>import baz</import>
 
 	<make>baz.radar_detector(sample_rate=$sample_rate, msgq=$(id)_msgq_out)

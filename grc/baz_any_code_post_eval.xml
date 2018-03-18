@@ -2,7 +2,7 @@
 <block>
 	<name>Any Code Post-Evaluator</name>
 	<key>variable_any_code_post_eval</key>
-	<category>Misc</category>
+	<!--<category>Misc</category>-->
 	<import>from gnuradio import gr</import>
 	<!--<var_make>self.$(id) = $(id) = None</var_make>-->
 	<make>wxEVT_$(id) = wx.NewEventType()

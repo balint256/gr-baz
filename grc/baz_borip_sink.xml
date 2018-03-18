@@ -7,7 +7,7 @@
 <block>
 	<name>BorIP Sink</name>
 	<key>borip_sink</key>
-	<category>Sinks</category>
+	<!--<category>Sinks</category>-->
 	<import>from baz import borip_server</import>
 	
 	<!-- *$vlen, $ipaddr, $port, $psize, $eof, $borip -->

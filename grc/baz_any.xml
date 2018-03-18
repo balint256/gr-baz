@@ -2,7 +2,7 @@
 <block>
     <name>Any Block</name>
     <key>any</key>
-    <category>Misc</category>
+    <!--<category>Misc</category>-->
     <import>from gnuradio import gr</import>
 <!--<import>
 #if $block_import

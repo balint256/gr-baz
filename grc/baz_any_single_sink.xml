@@ -2,7 +2,7 @@
 <block>
     <name>Any Block Single Sink</name>
     <key>any_single_sink</key>
-    <category>Sinks</category>
+    <!--<category>Sinks</category>-->
 	<import>from gnuradio import gr</import>
 <!--<import>
 #if $block_import

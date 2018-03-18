@@ -2,7 +2,7 @@
 <block>
     <name>Depuncture</name>
     <key>depuncture_ff</key>
-    <category>Error Correction</category>
+    <!--<category>Error Correction</category>-->
     <import>from gnuradio import gr</import>
 	<import>import baz</import>
     <make>baz.depuncture_ff($matrix)</make>

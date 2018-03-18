@@ -7,7 +7,7 @@
 <block>
 	<name>ACARS Decoder</name>
 	<key>baz_acars_decoder</key>
-	<category>ACARS</category>
+	<!--<category>ACARS</category>-->
 	<import>import baz</import>
 
 	<make>baz.acars_decoder($(id)_msgq_out)

@@ -7,7 +7,7 @@
 <block>
 	<name>Waterfall Sink (Baz)</name>
 	<key>baz_waterfall_sink</key>
-	<category>WX GUI Widgets</category>
+	<!--<category>WX GUI Widgets</category>-->
 	<!--<import>from gnuradio.fft import window</import>-->
     <import>from gnuradio import wxgui</import>
 	<import>from baz import waterfall_sink</import>
