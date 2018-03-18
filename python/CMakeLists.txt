@@ -74,6 +74,7 @@ GR_PYTHON_INSTALL(
 	fec_sync.py
 	usrp_agc.py
 	freq_hopper.py
+	wx_flipper.py
 
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
