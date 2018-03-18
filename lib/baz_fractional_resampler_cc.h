@@ -45,13 +45,16 @@ namespace gr {
        * \param resamp_ratio The resampling ratio = input_rate / output_rate.
        */
       static sptr make(/*long */double phase_shift,
-                       /*long */double resamp_ratio);
+                       /*long */double resamp_ratio,
+                       unsigned long long resamp_ratio_num = 0,
+                       unsigned long long resamp_ratio_denom = 0);
 
       virtual long double mu() const = 0;
       virtual long double resamp_ratio() const = 0;
       virtual void set_mu (long double mu) = 0;
       virtual void set_resamp_ratio(long double resamp_ratio) = 0;
       virtual void set_resamp_ratio(double resamp_ratio) = 0;
+      virtual void set_resamp_ratio(unsigned long long resamp_ratio_num, unsigned long long resamp_ratio_denom) = 0;
     };
 
   } /* namespace baz */

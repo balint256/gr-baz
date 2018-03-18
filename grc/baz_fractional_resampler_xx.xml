@@ -8,8 +8,13 @@
 	<name>Fractional Resampler (Baz)</name>
 	<key>baz_fractional_resampler_xx</key>
 	<import>import baz</import>
-	<make>baz.fractional_resampler_$(type.fcn)($phase_shift, $resamp_ratio)</make>
+	<make>baz.fractional_resampler_$(type.fcn)($phase_shift, $resamp_ratio#slurp
+#if $resamp_ratio_denom() != 0 and $resamp_ratio_num() != 0
+, $resamp_ratio_num, $resamp_ratio_denom#slurp
+#end if
+)</make>
 	<callback>set_resamp_ratio($resamp_ratio)</callback>
+	<callback>set_resamp_ratio($resamp_ratio_num, $resamp_ratio_denom)</callback>
 	<param>
 		<name>Type</name>
 		<key>type</key>
@@ -35,6 +40,18 @@
 		<key>resamp_ratio</key>
 		<type>real</type>
 	</param>
+	<param>
+		<name>Resampling Ratio (Num)</name>
+		<key>resamp_ratio_num</key>
+		<value>0</value>
+		<type>int</type>
+	</param>
+	<param>
+		<name>Resampling Ratio (Denom)</name>
+		<key>resamp_ratio_denom</key>
+		<value>0</value>
+		<type>int</type>
+	</param>
 	<sink>
 		<name>in</name>
 		<type>$type</type>
@@ -42,7 +59,7 @@
 	<sink>
 		<name>rate</name>
 		<type>float</type>
-                <optional>1</optional>
+        <optional>1</optional>
 	</sink>
     <sink>
         <name>msg</name>
