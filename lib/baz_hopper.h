@@ -86,6 +86,7 @@ class BAZ_API baz_hopper : public gr::block
 	uint64_t d_last_time_seconds;
 	double d_last_time_fractional_seconds;
 	uint64_t d_time_offset;
+	::gr::uhd::usrp_source::sptr d_usrp_src;
 	::uhd::usrp::multi_usrp::sptr d_dev;
 	bool d_seen_time;
 	std::deque<uint64_t> d_scheduled;
@@ -96,6 +97,7 @@ class BAZ_API baz_hopper : public gr::block
 	int d_freq_idx;
 	int d_zero_counter;
 	bool d_reset;
+	uint64_t d_skip;
 
 public:
 	~baz_hopper();

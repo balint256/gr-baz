@@ -85,21 +85,23 @@ baz_hopper::baz_hopper(
 	, d_freqs(freqs), d_verbose(verbose)
 	, d_last_time_seconds(0), d_last_time_fractional_seconds(0)
 	, d_time_offset(-1), d_seen_time(false)
-	, d_chunk_counter(0), d_freq_idx(0), d_zero_counter(0), d_reset(false)
+	, d_chunk_counter(0), d_freq_idx(0), d_zero_counter(0), d_reset(false), d_skip(0)
 {
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %d, chunk length: %d, drop length: %d, # freq sets: %d\n", name().c_str(), unique_id(),
+	fprintf(stderr, "[%s<%li>] item size: %lu, sample rate: %d, chunk length: %d, drop length: %d, # freq sets: %lu\n", name().c_str(), unique_id(),
 		item_size,
 		sample_rate,
 		chunk_length,
 		drop_length,
 		freqs.size()
 	);
+
+	//set_output_multiple(chunk_length);
 	
-	::gr::uhd::usrp_source::sptr usrp_src = boost::dynamic_pointer_cast< ::gr::uhd::usrp_source>(source);
-	if (not usrp_src)
+	d_usrp_src = boost::dynamic_pointer_cast< ::gr::uhd::usrp_source>(source);
+	if (not d_usrp_src)
 		throw std::runtime_error("Could not dynamic cast to USRP source");
-	
-	d_dev = usrp_src->get_device();
+
+	d_dev = d_usrp_src->get_device();
 	
 	for (size_t i = 0; i < freqs.size(); ++i)
 	{
@@ -142,6 +144,16 @@ void baz_hopper::forecast(int noutput_items, gr_vector_int &ninput_items_require
 
 int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
 {
+	//fprintf(stderr, "%d/", noutput_items);
+
+	if (d_skip > 0)
+	{
+		uint64_t to_consume = std::min(d_skip, (uint64_t)noutput_items);
+		d_skip -= to_consume;
+		consume_each(to_consume);
+		return 0;
+	}
+
 	const int max_noutput_items = noutput_items;
 	
 	////////////////////////////////////////////////////////////////////////////
@@ -158,7 +170,7 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 		{
 			d_scheduled.pop_front();
 			d_dest.erase(scheduled);
-			fprintf(stderr, "[%s<%i>] Finished zeroing %lld\n", name().c_str(), unique_id(), scheduled);
+			fprintf(stderr, "[%s<%li>] Finished zeroing %lld\n", name().c_str(), unique_id(), scheduled);
 		}
 		return WORK_CALLED_PRODUCE;
 	}
@@ -180,7 +192,7 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 	
 	if ((tags.size() == 0) && (d_seen_time == false))
 	{
-		fprintf(stderr, "[%s<%i>] not seen time; dropping incoming samples (after %llu items)\n", name().c_str(), unique_id(), nread);
+		fprintf(stderr, "[%s<%li>] not seen time; dropping incoming samples (after %llu items)\n", name().c_str(), unique_id(), nread);
 		consume_each(noutput_items);
 		return 0;
 	}
@@ -199,7 +211,7 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 		
 		offset = tags[i].offset - nread;
 		
-		fprintf(stderr, "[%s<%i>] Tag #%d @ sample %llu (offset: %d): %s\n", name().c_str(), unique_id(), i, tags[i].offset, offset, pmt::write_string(tag.key).c_str());
+		if (d_verbose) fprintf(stderr, "[%s<%li>] Tag #%d @ sample %llu (offset: %d): %s\n", name().c_str(), unique_id(), i, tags[i].offset, offset, pmt::write_string(tag.key).c_str());
 		
 		if (offset == 0)
 		{
@@ -220,7 +232,10 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 	{
 		const gr::tag_t& tag = tags[1];
 		noutput_items = tag.offset - nread;
-		fprintf(stderr, "[%s<%i>] Another tag @ %llu (noutput_items now: %d): %s\n", name().c_str(), unique_id(), tag.offset, noutput_items, pmt::write_string(tag.key).c_str());
+		if (d_verbose) fprintf(stderr, "[%s<%li>] Another tag @ %llu (noutput_items now: %d): %s\n", name().c_str(), unique_id(), tag.offset, noutput_items, pmt::write_string(tag.key).c_str());
+
+		consume_each(noutput_items);
+		return 0;
 	}
 	
 	////////////////////////////////////////////////////////////////////////////
@@ -229,7 +244,7 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 	{
 		noutput_items = offset;
 		
-		fprintf(stderr, "[%s<%i>] Offset tag @ %d (noutput_items now: %d)\n", name().c_str(), unique_id(), offset, noutput_items);
+		if (d_verbose) fprintf(stderr, "[%s<%li>] Offset tag @ %d (noutput_items now: %d)\n", name().c_str(), unique_id(), offset, noutput_items);
 		
 		if (d_seen_time == false)
 		{
@@ -249,6 +264,8 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 	uint64_t time_end = time_begin + noutput_items;
 	
 	////////////////////////////////////
+
+	bool cleared = false;
 	
 	bool hop_time_reset = false;
 	//if ((seen_time == false) && (d_seen_time))
@@ -278,7 +295,7 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 				uint64_t last_hop_ticks = d_last_hop.to_ticks(d_sample_rate);
 				if (last_scheduled > last_hop_ticks)
 				{
-					fprintf(stderr, "[%s<%i>] Re-scheduling base hop time (ahead: %lld)\n", name().c_str(), unique_id(), (last_scheduled - last_hop_ticks));
+					if (d_verbose) fprintf(stderr, "[%s<%li>] Re-scheduling base hop time (ahead: %lld)\n", name().c_str(), unique_id(), (last_scheduled - last_hop_ticks));
 					d_last_hop = uhd::time_spec_t::from_ticks(last_scheduled, d_sample_rate) + uhd::time_spec_t(ahead_s);	// MAGIC (could smaller - total tune transaction process time)
 				}
 				
@@ -290,7 +307,11 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 				if (d_freq_idx < 0)
 					d_freq_idx = (int)d_freq_dest.size() + d_freq_idx;
 				
-				fprintf(stderr, "[%s<%i>] Cleared %d times (idx: %d)\n", name().c_str(), unique_id(), currently_scheduled_count, d_freq_idx);
+				if (d_verbose) fprintf(stderr, "[%s<%li>] Cleared %d times (idx: %d)\n", name().c_str(), unique_id(), currently_scheduled_count, d_freq_idx);
+
+				//d_skip = (uint64_t)((double)d_sample_rate * ahead_s);
+
+				cleared = true;
 			}
 		}
 	}
@@ -310,10 +331,14 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 		if (hop_time_reset == false)
 			next_hop += uhd::time_spec_t::from_ticks((d_drop_length + d_chunk_length), d_sample_rate);
 		
+		{
+		//boost::recursive_mutex::scoped_lock lock(d_usrp_src->get_lock());
 		d_dev->set_command_time(next_hop);
-		uhd::tune_request_t tune_request = uhd::tune_request_t(freq);
+		const double lo_offset = (d_sample_rate * 0.0) / 2.0;
+		uhd::tune_request_t tune_request = uhd::tune_request_t(freq, lo_offset);
 		d_dev->set_rx_freq(tune_request);
 		d_dev->clear_command_time();
+		}
 		
 		uint64_t scheduled = next_hop.to_ticks(d_sample_rate);
 		
@@ -322,6 +347,11 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 		hop_time_reset = false;
 		d_last_hop = next_hop;
 	}
+
+	/*if (cleared)
+	{
+		fprintf(stderr, "[%s<%i>] Scheduled %d after clearing\n", name().c_str(), unique_id(), d_scheduled.size());
+	}*/
 	
 	////////////////////////////////////
 	
@@ -336,9 +366,9 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 			{
 				//d_scheduled.pop_front();
 				//d_dest.erase(scheduled);
-				fprintf(stderr, "[%s<%i>] Too late for %lld (begin: %lld, diff: %lld)\n", name().c_str(), unique_id(), scheduled, time_begin, (time_begin - scheduled));
+				if (d_verbose) fprintf(stderr, "[%s<%li>] Too late for %lld (begin: %lld, diff: %lld)\n", name().c_str(), unique_id(), scheduled, time_begin, (time_begin - scheduled));
 				//noutput_items = 0;
-				d_reset = true;	// Will cause it to be removed
+				d_reset = true;	// Will cause it to be removed (need this)
 				break;
 			}
 			else if (scheduled >= time_end)	// In the future
@@ -400,16 +430,26 @@ int baz_hopper::general_work(int noutput_items, gr_vector_int &ninput_items, gr_
 		else
 		{
 			if (d_chunk_counter < d_chunk_length)	// Re-try if we're still dropping
+			{
 				d_zero_counter = d_chunk_counter;
-			//d_zero_counter = std::min(d_chunk_counter, d_chunk_length);	// Shows it on the waterfall
+				//d_zero_counter = std::min(d_chunk_counter, d_chunk_length);	// Shows it on the waterfall
+				noutput_items = 0;	// FIXME: Check this
+			}
 			
-			fprintf(stderr, "[%s<%i>] Time jump for %lld: %lld (begin: %lld, done: %d, zeroing: %d)\n", name().c_str(), unique_id(), scheduled, current_time, time_begin, done, d_zero_counter);
+			if (d_verbose) fprintf(stderr, "[%s<%li>] Time jump for %lld: %lld (begin: %lld, done: %d, zeroing: %d)\n", name().c_str(), unique_id(), scheduled, current_time, time_begin, done, d_zero_counter);
 			d_chunk_counter = 0;
-			noutput_items = 0;
+			//noutput_items = 0;
 		}
 	}
 	
 	////////////////////////////////////////////////////////////////////////////
+
+	/*if (cleared)
+	{
+		fprintf(stderr, "[%s<%i>] Scheduled %d after clearing\n", name().c_str(), unique_id(), d_scheduled.size());
+	}*/
+
+	//fprintf(stderr, "%d ", noutput_items);
 	
 	d_time_offset += noutput_items;
 	consume_each(noutput_items);
