@@ -37,6 +37,7 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <arpa/inet.h>
 
 // win32 (mingw/msvc) specific
 #ifdef HAVE_IO_H
