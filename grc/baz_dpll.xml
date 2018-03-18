@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Digital PLL
+###################################################
+-->
+<block>
+
+	<name>DPLL (Baz)</name>
+	<key>baz_dpll_bb</key>
+	<category>Synchronisers</category>
+
+	<import>import baz</import>
+	<make>baz.dpll_bb($period, $gain, $relative_limit, $ignore_limit, $length_tag, $verbose, $unlocked)</make>
+
+	<callback>set_gain($gain)</callback>
+	<callback>set_decision_threshold($decision_threshold)</callback>
+
+	<param>
+		<name>Period</name>
+		<key>period</key>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Gain</name>
+		<key>gain</key>
+		<value>1e-1</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Relative Limit</name>
+		<key>relative_limit</key>
+		<value>1.0</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Ignore Limit</name>
+		<key>ignore_limit</key>
+		<value>1.0</value>
+		<type>real</type>
+	</param>
+
+	<param>
+		<name>Length Tag</name>
+		<key>length_tag</key>
+		<value></value>
+		<type>string</type>
+	</param>
+
+	<param>
+        <name>Unlocked</name>
+        <key>unlocked</key>
+        <value>False</value>
+        <type>raw</type>
+        <option>
+			<name>Enabled</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Disabled</name>
+			<key>False</key>
+		</option>
+    </param>
+
+	<param>
+        <name>Verbose</name>
+        <key>verbose</key>
+        <value>False</value>
+        <type>raw</type>
+        <option>
+			<name>Enabled</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>Disabled</name>
+			<key>False</key>
+		</option>
+    </param>
+
+	<sink>
+		<name>in</name>
+		<type>byte</type>
+	</sink>
+
+	<source>
+		<name>out</name>
+		<type>byte</type>
+	</source>
+
+	<source>
+		<name>out</name>
+		<type>message</type>
+		<optional>1</optional>
+	</source>
+
+</block>

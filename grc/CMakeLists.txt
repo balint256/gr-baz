@@ -82,6 +82,11 @@ SET(baz_blocks
 	baz_additive_scrambler_bb.xml
 	baz_fractional_resampler_xx.xml
 	baz_file_source.xml
+
+	baz_block_tree.xml
+
+	baz_dpll.xml
+	baz_sdl_sink.xml
 )
 
 if (LIBUSB_FOUND)

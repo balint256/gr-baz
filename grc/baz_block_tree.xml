@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+## Block Tree for gr-baz blocks.
+###################################################
+-->
+
+<cat>
+  <name>[gr-baz]</name>
+    <cat>
+      <name>Sources</name>
+      <block>baz_file_source</block>
+      <block>rtl2832_source</block>
+    </cat>
+
+    <cat>
+      <name>Sinks</name>
+      <block>baudline_sink</block>
+    </cat>
+
+    <cat>
+      <name>Networking</name>
+      <block>borip_source</block>
+      <block>borip_sink</block>
+      <block>baz_tcp_sink</block>
+      <block>baz_tcp_source</block>
+      <block>baz_udp_sink</block>
+      <block>baz_udp_source</block>
+      <block>baz_xmlrpc_server</block>
+    </cat>
+
+    <cat>
+      <name>GUI</name>
+
+      <cat>
+        <name>WX</name>
+        <block>baz_plot_sink</block>
+        <block>variable_baz_static_text</block>
+        <block>baz_time_panel</block>
+        <block>baz_waterfall_sink</block>
+        <block>doa_compass</block>
+        <block>eye</block>
+        <block>facsink</block>
+        <block>op25_traffic_pane</block>
+      </cat>
+
+      <cat>
+        <name>SDL</name>
+        <block>baz_sdl_sink</block>
+      </cat>
+    </cat>
+
+    <cat>
+      <name>Any Blocks</name>
+      <block>any</block>
+      <block>variable_any_code</block>
+      <block>any_message</block>
+      <block>any_source</block>
+      <block>any_single_source</block>
+      <block>any_sink</block>
+      <block>any_single_sink</block>
+      <block>any_single</block>
+      <block>variable_any_code_post_eval</block>
+    </cat>
+
+    <cat>
+      <name>Basics</name>
+      <block>baz_delay</block>
+      <block>gate</block>
+      <block>baz_non_blocker</block>
+      <block>swap_ff</block>
+    </cat>
+
+    <cat>
+      <name>Analog</name>
+      <block>baz_agc_xx</block>
+    </cat>
+
+    <cat>
+      <name>Digital</name>
+      <block>baz_additive_scrambler_bb</block>
+      <block>auto_fec</block>
+      <block>depuncture_ff</block>
+      <block>puncture_bb</block>
+      <block>baz_fec_sync</block>
+    </cat>
+
+    <cat>
+      <name>Math</name>
+      <block>pow_cc</block>
+    </cat>
+
+    <cat>
+      <name>Burst Management</name>
+      <block>baz_burst_tagger</block>
+      <block>baz_burster</block>
+    </cat>
+
+    <cat>
+      <name>Synchronisers</name>
+      <block>baz_dpll_bb</block>
+      <block>baz_fractional_resampler_xx</block>
+    </cat>
+
+    <cat>
+      <name>State</name>
+      <block>baz_block_status</block>
+      <block>variable_run_remote</block>
+    </cat>
+
+    <cat>
+      <name>Messaging</name>
+      <block>baz_message_callback</block>
+      <block>baz_message_relay</block>
+      <block>baz_message_server</block>
+      <block>baz_tag_to_msg</block>
+    </cat>
+
+    <cat>
+      <name>Multi-channel</name>
+      <block>multi_channel_decoder</block>
+    </cat>
+
+    <cat>
+      <name>Applications</name>
+
+      <cat>
+        <name>RADAR</name>
+        <block>baz_radar_detector</block>
+        <block>baz_radar_server</block>
+      </cat>
+
+      <cat>
+        <name>ACARS</name>
+        <block>baz_acars_decoder</block>
+        <block>baz_acars_printer</block>
+      </cat>
+
+      <cat>
+        <name>DOA</name>
+        <block>baz_music_doa</block>
+      </cat>
+
+      <cat>
+        <name>P25</name>
+        <block>op25_decoder</block>
+        <block>op25_decoder_simple</block>
+        <block>op25_fsk4</block>
+      </cat>
+
+      <block>baz_fastrak_decoder</block>
+      <block>missile_launcher</block>
+    </cat>
+
+    <cat>
+      <name>Legacy</name>
+      <block>gr_mpsk_receiver_debug_cc</block>
+      <block>usrp_simple_source_x</block>
+    </cat>
+
+    <cat>
+      <name>Testing</name>
+      <block>test_counter_cc</block>
+      <block>uhd_async_msg_printer</block>
+    </cat>
+</cat>

@@ -1,0 +1,155 @@
+<?xml version='1.0'?>
+<block>
+    <name>SDL Sink</name>
+    <key>baz_sdl_sink</key>
+
+    <import>import baz</import>
+    <make>baz.sdl_sink_$(type.fcn)($fps, $width, $height, #slurp
+#if str($mode) == 'True'
+0x52474241#slurp
+#else
+0#slurp
+#end if
+, $display_width, $display_height#slurp
+#if $filename()
+, filename=$filename#slurp
+#end if
+#if str($manual_flip) == 'True'
+, manual_flip=$manual_flip#slurp
+#end if
+#if $font_path()
+, font_path=$font_path
+#end if
+)</make>
+
+    <param>
+        <name>Input Type</name>
+        <key>type</key>
+        <type>enum</type>
+        <option>
+            <name>Byte</name>
+            <key>byte</key>
+            <opt>fcn:uc</opt>
+        </option>
+        <!--<option>
+            <name>Short</name>
+            <key>short</key>
+            <opt>fcn:s</opt>
+        </option>-->
+    </param>
+
+    <param>
+        <name>Input Width</name>
+        <key>width</key>
+        <value>640</value>
+        <type>int</type>
+    </param>
+
+    <param>
+        <name>Input Height</name>
+        <key>height</key>
+        <value>480</value>
+        <type>int</type>
+    </param>
+
+    <param>
+        <name>Display Width</name>
+        <key>display_width</key>
+        <value>640</value>
+        <type>int</type>
+    </param>
+
+    <param>
+        <name>Display Height</name>
+        <key>display_height</key>
+        <value>480</value>
+        <type>int</type>
+    </param>
+
+    <param>
+        <name>Framerate</name>
+        <key>fps</key>
+        <value>0</value>
+        <type>float</type>
+    </param>
+
+    <param>
+        <name>Mode</name>
+        <key>mode</key>
+        <type>enum</type>
+        <option>
+            <name>YUV</name>
+            <key>False</key>
+        </option>
+        <option>
+            <name>RGB</name>
+            <key>True</key>
+        </option>
+    </param>
+
+    <param>
+        <name>Channels</name>
+        <key>num_channels</key>
+        <type>enum</type>
+        <hide>#if str($mode) == 'True' then 'all' else 'none'#</hide>
+        <option>
+            <name>1 (Grayscale)</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 (Y, alternating pixels U and V)</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>3 (YUV)</name>
+            <key>3</key>
+        </option>
+    </param>
+
+    <param>
+        <name>BMP Filename</name>
+        <key>filename</key>
+        <value></value>
+        <type>string</type>
+    </param>
+
+    <param>
+        <name>Font Path</name>
+        <key>font_path</key>
+        <value></value>
+        <type>string</type>
+    </param>
+
+    <param>
+        <name>Flip</name>
+        <key>manual_flip</key>
+        <type>enum</type>
+        <option>
+            <name>Auto</name>
+            <key>False</key>
+        </option>
+        <option>
+            <name>Manual</name>
+            <key>True</key>
+        </option>
+    </param>
+
+    <sink>
+        <name>in</name>
+        <type>$type</type>
+        <vlen>1</vlen>
+        <nports>$num_channels</nports>
+    </sink>
+
+    <doc>
+Provides a rudimentary on-screen video display using libsdl.
+
+A framerate of zero means video will be displayed as quickly as possible.
+
+In 1-channel mode, input data is assumed to be grayscale, with each input item mapping to a single pixel.
+
+In 2-channel mode, the first channel is Y for every pixel while the second channel alternates between pixels values for U and V.
+
+In 3-channel mode, input channels are assumed to be matching triples of YUV values, one byte per pixel, per channel.
+    </doc>
+</block>
