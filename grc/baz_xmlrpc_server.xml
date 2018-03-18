@@ -9,10 +9,16 @@
 	<key>baz_xmlrpc_server</key>
 	<import>from baz import introspective_xmlrpc_server</import>
 	<import>import threading</import>
-	<make>introspective_xmlrpc_server.IntrospectiveXMLRPCServer(($addr, $port), allow_none=True, signatures=$sigs)
+	<make>introspective_xmlrpc_server.IntrospectiveXMLRPCServer(($addr, $port), allow_none=True, signatures=$sigs#slurp
+#if str($logRequests) == 'False'
+, logRequests=$logRequests#slurp
+#end if
+)
 self.$(id).register_instance(self)
 self.$(id).register_introspection_functions()
-threading.Thread(target=self.$(id).serve_forever).start()</make>
+self.$(id)_thread = threading.Thread(target=self.$(id).serve_forever)
+self.$(id)_thread.setDaemon(True)
+self.$(id)_thread.start()</make>
 	<param>
 		<name>Address</name>
 		<key>addr</key>
@@ -30,6 +36,20 @@ threading.Thread(target=self.$(id).serve_forever).start()</make>
 		<key>sigs</key>
 		<value>{}</value>
 		<type>raw</type>
+	</param>
+	<param>
+		<name>Log Requests</name>
+		<key>logRequests</key>
+		<value>True</value>
+		<type>raw</type>
+		<option>
+			<name>Yes</name>
+			<key>True</key>
+		</option>
+		<option>
+			<name>No</name>
+			<key>False</key>
+		</option>
 	</param>
 	<doc>
 This block will start an XMLRPC server. \

@@ -27,9 +27,9 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 import inspect
 
 class IntrospectiveXMLRPCServer(SimpleXMLRPCServer):
-	def __init__(self, address, signatures={}, *kargs, **kwargs):
+	def __init__(self, address, signatures={}, logRequests=True, *kargs, **kwargs):
 		self.signatures = signatures
-		SimpleXMLRPCServer.__init__(self, address, *kargs, **kwargs)
+		SimpleXMLRPCServer.__init__(self, address, logRequests=logRequests, *kargs, **kwargs)
 		#print "Init"
 	def system_methodSignature(self, method_name):
 		try:
