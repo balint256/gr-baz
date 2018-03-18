@@ -139,46 +139,15 @@ endif()
 find_package(Volk)
 
 ########################################################################
-# Optional req UHD
-########################################################################
-find_package(UHD)
-
-if (UHD_FOUND)
-    include_directories(${UHD_INCLUDE_DIRS})
-    link_directories(${UHD_LIBRARY_DIRS})
-	message(STATUS "UHD found - compiling UHD-aware blocks")
-else ()
-	message(STATUS "UHD NOT found! NOT compiling UHD-aware blocks")
-endif ()
-
-find_package(USB)
-
-if (LIBUSB_FOUND)
-	include_directories(${LIBUSB_INCLUDE_DIR})
-	message(STATUS "libusb found - compiling RTL2832U source block")
-else ()
-	message(STATUS "libusb NOT found! NOT compiling RTL2832U source block")
-endif ()
-
-find_package(Armadillo)
-
-if (ARMADILLO_FOUND)
-	include_directories(${ARMADILLO_INCLUDE_DIRS})
-	message(STATUS "Armadillo found - compiling MUSIC DOA estimator block")
-else ()
-	message(STATUS "Armadillo NOT found! NOT compiling MUSIC DOA estimator block")
-endif ()
-
-########################################################################
 # Setup the include and linker paths
 ########################################################################
 include_directories(
     #${CMAKE_CURRENT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}
 	${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${Boost_INCLUDE_DIRS}
     # ${GRUEL_INCLUDE_DIRS}
     ${GNURADIO_RUNTIME_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -187,7 +156,57 @@ link_directories(
     ${GNURADIO_CORE_LIBRARY_DIRS}
 )
 
+########################################################################
+# Optional reqs
+########################################################################
+find_package(UHD)
+
+if (UHD_FOUND)
+    include_directories(${UHD_INCLUDE_DIRS})
+    link_directories(${UHD_LIBRARY_DIRS})
+    message(STATUS "UHD found - compiling UHD-aware blocks")
+else ()
+    message(STATUS "UHD NOT found! NOT compiling UHD-aware blocks")
+endif ()
+
+find_package(USB)
+
+if (LIBUSB_FOUND)
+    include_directories(${LIBUSB_INCLUDE_DIR})
+    message(STATUS "libusb found - compiling RTL2832U source block")
+else ()
+    message(STATUS "libusb NOT found! NOT compiling RTL2832U source block")
+endif ()
+
+find_package(Armadillo)
+
+if (ARMADILLO_FOUND)
+    include_directories(${ARMADILLO_INCLUDE_DIRS})
+    message(STATUS "Armadillo found - compiling MUSIC DOA estimator block")
+else ()
+    message(STATUS "Armadillo NOT found! NOT compiling MUSIC DOA estimator block")
+endif ()
+
+find_package(SDL)
+if (SDL_FOUND)
+    include_directories(${SDL_INCLUDE_DIRS})
+    message(STATUS "SDL found - compiling SDL sink block")
+
+    find_package(SDL_TTF)
+    if (SDL_TTF_FOUND)
+        include_directories(${SDL_TTF_INCLUDE_DIRS})
+        message(STATUS "SDL TTF found - SDL sink block will have text")
+    else ()
+        message(STATUS "SDL TTF NOT found! SDL sink block will not have text")
+    endif ()
+
+else ()
+    message(STATUS "SDL NOT found! NOT compiling SDL sink block")
+endif ()
+
+########################################################################
 # Set component parameters
+########################################################################
 #set(GR_BAZ_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)
 set(GR_BAZ_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/lib CACHE INTERNAL "" FORCE)
 set(GR_BAZ_SWIG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/swig CACHE INTERNAL "" FORCE)
@@ -236,4 +255,3 @@ add_subdirectory(python)
 add_subdirectory(grc)
 add_subdirectory(apps)
 add_subdirectory(docs)
-
