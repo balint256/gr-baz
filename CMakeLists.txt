@@ -194,7 +194,7 @@ if (SDL_FOUND)
     include_directories(${SDL_INCLUDE_DIRS})
     message(STATUS "SDL found - compiling SDL sink block")
 
-    find_package(SDL_TTF)
+    find_package(SDL_ttf)
     if (SDL_TTF_FOUND)
         include_directories(${SDL_TTF_INCLUDE_DIRS})
         message(STATUS "SDL TTF found - SDL sink block will have text")
