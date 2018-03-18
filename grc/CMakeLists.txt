@@ -86,7 +86,6 @@ SET(baz_blocks
 	baz_block_tree.xml
 
 	baz_dpll.xml
-	baz_sdl_sink.xml
 )
 
 if (LIBUSB_FOUND)
@@ -95,6 +94,10 @@ endif ()
 
 if (UHD_FOUND)
 	LIST(APPEND baz_blocks baz_gate.xml)
+endif ()
+
+if (SDL_FOUND)
+	LIST(APPEND baz_blocks baz_sdl_sink.xml)
 endif ()
 
 install(FILES
