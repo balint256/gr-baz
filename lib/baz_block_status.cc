@@ -72,7 +72,7 @@ baz_block_status::baz_block_status (int size, gr::msg_queue::sptr queue, unsigne
 		   gr::io_signature::make (MIN_OUT, MAX_OUT, size))
   , d_size(size), d_queue(queue), d_work_iterations(work_iterations), d_samples_processed(samples_processed)
 {
-  fprintf(stderr, "[%s] Size: %d, work iterations: %d, samples processed: %d\n", name().c_str(), size, work_iterations, samples_processed);
+  fprintf(stderr, "[%s] Size: %d, work iterations: %lu, samples processed: %lu\n", name().c_str(), size, work_iterations, samples_processed);
 }
 
 /*

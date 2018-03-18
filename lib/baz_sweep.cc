@@ -83,7 +83,7 @@ baz_sweep::baz_sweep (float samp_rate, float sweep_rate, bool is_duration)
 	, d_start_sample(0)
 	, d_start_freq(0.0)
 {
-	fprintf(stderr, "[%s<%i>] sample rate: %f, default sweep rate: %f, is duration: %s\n", name().c_str(), unique_id(), samp_rate, sweep_rate, (is_duration ? "yes" : "no"));
+	fprintf(stderr, "[%s<%li>] sample rate: %f, default sweep rate: %f, is duration: %s\n", name().c_str(), unique_id(), samp_rate, sweep_rate, (is_duration ? "yes" : "no"));
 }
 
 /*
@@ -109,19 +109,19 @@ void baz_sweep::sweep(float freq, float rate /*= -1.0f*/, bool is_duration /*= f
 	//if (rate == 0.0)
 	//	return;
 	
-	fprintf(stderr, "[%s<%i>] beginning sweep to %f at %f\n", name().c_str(), unique_id(), freq, rate);
+	fprintf(stderr, "[%s<%li>] beginning sweep to %f at %f\n", name().c_str(), unique_id(), freq, rate);
 	
 	boost::mutex::scoped_lock lock(d_mutex);
 	
 	if ((d_sweep_rate == 0.0) && (d_last_output == freq))
 	{
-		fprintf(stderr, "[%s<%i>] already at %f\n", name().c_str(), unique_id(), freq);
+		fprintf(stderr, "[%s<%li>] already at %f\n", name().c_str(), unique_id(), freq);
 		return;
 	}
 	
 	if (d_sweep_rate != 0.0)
 	{
-		fprintf(stderr, "[%s<%i>] sweep already in progress (to %f at %f while asking for %s at %s\n", name().c_str(), unique_id(), d_target, d_sweep_rate, freq, rate);
+		fprintf(stderr, "[%s<%li>] sweep already in progress (to %f at %f while asking for %f at %f\n", name().c_str(), unique_id(), d_target, d_sweep_rate, freq, rate);
 		
 		d_sweep_done.notify_all();
 		
@@ -130,7 +130,7 @@ void baz_sweep::sweep(float freq, float rate /*= -1.0f*/, bool is_duration /*= f
 	
 	if (rate == 0.0)
 	{
-		fprintf(stderr, "[%s<%i>] jumped to %f\n", name().c_str(), unique_id(), freq);
+		fprintf(stderr, "[%s<%li>] jumped to %f\n", name().c_str(), unique_id(), freq);
 		
 		d_last_output = freq;
 		
@@ -150,11 +150,11 @@ void baz_sweep::sweep(float freq, float rate /*= -1.0f*/, bool is_duration /*= f
 	if (block == false)
 		return;
 	
-	fprintf(stderr, "[%s<%i>] waiting for sweep to %f at %f (starting at %lld)\n", name().c_str(), unique_id(), freq, rate, d_start_sample);
+	fprintf(stderr, "[%s<%li>] waiting for sweep to %f at %f (starting at %lld)\n", name().c_str(), unique_id(), freq, rate, d_start_sample);
 	
 	d_sweep_done.wait(lock);
 	
-	fprintf(stderr, "[%s<%i>] completed sweep to %f at %f\n", name().c_str(), unique_id(), freq, rate);
+	fprintf(stderr, "[%s<%li>] completed sweep to %f at %f\n", name().c_str(), unique_id(), freq, rate);
 }
 
 int baz_sweep::work (int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items)
@@ -185,7 +185,7 @@ int baz_sweep::work (int noutput_items, gr_vector_const_void_star &input_items, 
 				d_last_output = d_target;
 				d_sweep_rate = 0.0;
 				
-				fprintf(stderr, "[%s<%i>] sweep complete in work\n", name().c_str(), unique_id());
+				fprintf(stderr, "[%s<%li>] sweep complete in work\n", name().c_str(), unique_id());
 				
 				d_sweep_done.notify_all();
 			}

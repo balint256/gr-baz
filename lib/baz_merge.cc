@@ -88,7 +88,7 @@ baz_merge::baz_merge (int item_size, float samp_rate, int additional_streams, bo
 	// FIXME: flush tag
 	, d_total_burst_count(0)
 {
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f, additional streams: %d: length tag: \'%s\', ignore tag: \'%s\', verbose: %s\n", name().c_str(), unique_id(), item_size, samp_rate, additional_streams, length_tag, ignore_tag, (d_verbose ? "yes" : "no"));
+	fprintf(stderr, "[%s<%li>] item size: %d, sample rate: %f, additional streams: %d: length tag: \'%s\', ignore tag: \'%s\', verbose: %s\n", name().c_str(), unique_id(), item_size, samp_rate, additional_streams, length_tag, ignore_tag, (d_verbose ? "yes" : "no"));
 	
 	//set_relative_rate(1);
 	
@@ -193,7 +193,7 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 		{
 			if (d_ignore_current)
 			{
-				if (d_verbose) fprintf(stderr, "[%s<%i>] no samples for burst %llu on sample %llu\n", name().c_str(), unique_id(), d_total_burst_count, nread);
+				if (d_verbose) fprintf(stderr, "[%s<%li>] no samples for burst %llu on sample %llu\n", name().c_str(), unique_id(), d_total_burst_count, nread);
 				
 				d_selected_input = 0;
 				d_ignore_current = false;
@@ -272,7 +272,7 @@ int baz_merge::general_work(int noutput_items, gr_vector_int &ninput_items, gr_v
 					break;
 				}
 				
-				if (d_verbose) fprintf(stderr, "[%s<%i>] beginning burst %llu of length %d at sample %llu on input %d (ignoring: %s)\n", name().c_str(), unique_id(), d_total_burst_count, d_items_to_copy, nread, d_selected_input, (d_ignore_current ? "yes" : "no"));
+				if (d_verbose) fprintf(stderr, "[%s<%li>] beginning burst %llu of length %d at sample %llu on input %d (ignoring: %s)\n", name().c_str(), unique_id(), d_total_burst_count, d_items_to_copy, nread, d_selected_input, (d_ignore_current ? "yes" : "no"));
 				
 				return 0;
 			}

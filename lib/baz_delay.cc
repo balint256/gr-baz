@@ -52,7 +52,7 @@ baz_delay::baz_delay (size_t itemsize, int delay)
 	, d_new_delay(0)
 	, d_update(false)
 {
-	fprintf(stderr, "[%s<%i>] item size: %d, delay: %d\n", name().c_str(), unique_id(), itemsize, delay);
+	fprintf(stderr, "[%s<%li>] item size: %lu, delay: %d\n", name().c_str(), unique_id(), itemsize, delay);
 
 	// Anything greater than this will cause the scheduler to stall (default max is 64k)
 	// FIXME: Limit arg, or default to 2x

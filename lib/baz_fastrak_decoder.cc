@@ -70,7 +70,7 @@ baz_fastrak_decoder::baz_fastrak_decoder(int sample_rate)
 	const int fastrak_rate = 300000;
 	d_oversampling = sample_rate / fastrak_rate;
 	
-	fprintf(stderr, "[%s<%i>] sample rate: %d, oversampling: %d\n", name().c_str(), unique_id(), sample_rate, d_oversampling);
+	fprintf(stderr, "[%s<%li>] sample rate: %d, oversampling: %d\n", name().c_str(), unique_id(), sample_rate, d_oversampling);
 	
 	d_type_length_map[PT_ID] = 32;
 }
@@ -84,7 +84,7 @@ baz_fastrak_decoder::~baz_fastrak_decoder()
 
 void baz_fastrak_decoder::set_sync_threshold(float threshold)
 {
-	fprintf(stderr, "[%s<%i>] sync threshold: %f (was: %f)\n", name().c_str(), unique_id(), threshold, d_sync_threshold);
+	fprintf(stderr, "[%s<%li>] sync threshold: %f (was: %f)\n", name().c_str(), unique_id(), threshold, d_sync_threshold);
 	
 	d_sync_threshold = threshold;
 }
@@ -261,6 +261,9 @@ int baz_fastrak_decoder::work(int noutput_items, gr_vector_const_void_star &inpu
 								}*/
 								d_id = d_bit_buffer;
 								break;
+
+							default:
+								break;
 						}
 						
 						enter_state(STATE_CRC);
@@ -313,6 +316,9 @@ int baz_fastrak_decoder::work(int noutput_items, gr_vector_const_void_star &inpu
 						
 						d_last_id = d_id;
 						d_last_id_string = str(boost::format("%d") % d_id);
+						break;
+
+					default:
 						break;
 				}
 				--i;

@@ -127,8 +127,8 @@ baz_auto_ber_bf::baz_auto_ber_bf (int degree, int sync_bits, int sync_decim)
 		}
 	}
 	
-	fprintf(stderr, "Sync map count: %d\n", d_sync_map.size());
-	fprintf(stderr, "Dupe map count: %d\n", d_dupe_map.size());
+	fprintf(stderr, "Sync map count: %lu\n", d_sync_map.size());
+	fprintf(stderr, "Dupe map count: %lu\n", d_dupe_map.size());
 	
 	if (bit_count > 0)
 	{

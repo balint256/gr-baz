@@ -49,7 +49,7 @@ baz_music_doa::baz_music_doa(unsigned int m, unsigned int n, unsigned int nsampl
 	assert(array_response.size() == resolution);
 	assert(array_response[0].size() == m);
 	
-	fprintf(stderr, "[%s<%i>] MUSIC DOA: M: %d, N: %d, # samples: %d, angular resolution: %d\n", name().c_str(), unique_id(), m, n, nsamples, resolution);
+	fprintf(stderr, "[%s<%li>] MUSIC DOA: M: %d, N: %d, # samples: %d, angular resolution: %d\n", name().c_str(), unique_id(), m, n, nsamples, resolution);
 }
 
 baz_music_doa::~baz_music_doa ()
@@ -62,7 +62,7 @@ void baz_music_doa::set_array_response(const array_response_t& array_response)
 	assert(array_response.size() == d_resolution);
 	assert(array_response[0].size() == d_m);
 	
-	fprintf(stderr, "[%s<%i>] Updating array response\n", name().c_str(), unique_id());
+	fprintf(stderr, "[%s<%li>] Updating array response\n", name().c_str(), unique_id());
 	
 	gr::thread::scoped_lock guard(d_mutex);
 	

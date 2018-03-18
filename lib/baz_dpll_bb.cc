@@ -100,7 +100,7 @@ namespace gr {
         if (d_verbose) fprintf(stderr, "[%s<%ld>] History: %d\n", name().c_str(), unique_id(), history());
         //set_output_multiple(int(ceil(period / 2.0)));
         //set_min_output_buffer(int(ceil(period/* / 2.0*/)));
-        if (d_verbose) fprintf(stderr, "[%s<%ld>] Min output buffer: %d\n", name().c_str(), unique_id(), min_output_buffer(0));
+        if (d_verbose) fprintf(stderr, "[%s<%ld>] Min output buffer: %ld\n", name().c_str(), unique_id(), min_output_buffer(0));
         //set_min_noutput_items(int(ceil(period / 2.0)));
         if (d_verbose) fprintf(stderr, "[%s<%ld>] Min noutput items: %d\n", name().c_str(), unique_id(), min_noutput_items());
       }

@@ -123,7 +123,7 @@ int baz_tag_to_msg::work (int noutput_items,
 			value_str = pmt::write_string(tag.value);
 			
 			//if (key_str == "squelch")
-			//fprintf(stderr, "[%s] Tag #%d %s %s %s %s\n", name().c_str(), i, id_str.c_str(), key_str.c_str(), value_str.c_str(), d_appended.c_str());
+			fprintf(stderr, "[%s<%ld>] Tag #%llu [#%d] %s %s %s %s\n", name().c_str(), unique_id(), tag.offset, i, id_str.c_str(), key_str.c_str(), value_str.c_str(), d_appended.c_str());
 
 			int message_data_length =
 				sizeof(uint64_t) +
@@ -157,11 +157,11 @@ int baz_tag_to_msg::work (int noutput_items,
 			memcpy(msg->msg() + data_index, d_appended.c_str(), d_appended.size() + 1);
 			data_index += (d_appended.size() + 1);
 			
-			if (d_msgq->full_p())
-			{
-				//fprintf(stderr, "[tag_to_msg] Queue full!\n");
-			}
-			else
+			// if (d_msgq->full_p())
+			// {
+			// 	fprintf(stderr, "[tag_to_msg] Queue full!\n");
+			// }
+			// else
 			{
 				//fprintf(stderr, "[tag_to_msg] Handling message (%i/%i in queue)\n", d_msgq->count(), d_msgq->limit());
 				d_msgq->/*insert_tail*/handle(msg);	// 'handle' blocks too

@@ -210,7 +210,7 @@ namespace gr {
 
             assert(d_trigger_idx == 0);
 
-            if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04d Switched to read-in\n", name().c_str(), unique_id(), d_read_out_count);
+            if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04lu Switched to read-in\n", name().c_str(), unique_id(), d_read_out_count);
 
             ++d_read_out_count;
 
@@ -244,7 +244,7 @@ namespace gr {
 
         int to_consume = std::min(diff, i); // So we can complete the next read-out cycle
 
-        if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04d Work: i: %d, noutput_items: %d, ninput_items: %d, out_trigger: %d, diff: %d, to_consume: %d, trigger_idx: %d\n", 
+        if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04lu Work: i: %d, noutput_items: %d, ninput_items: %d, out_trigger: %d, diff: %d, to_consume: %d, trigger_idx: %d\n", 
           name().c_str(), unique_id(), d_read_out_count, i, noutput_items, ninput_items[0], out_trigger, diff, to_consume, d_trigger_idx);
 
         assert((d_vector_in == false) || ((to_consume % d_vlen_in) == 0));
@@ -254,7 +254,7 @@ namespace gr {
 
         d_trigger_idx += to_consume;
 
-        if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04d Trigger idx now: %d\n", name().c_str(), unique_id(), d_read_out_count, d_trigger_idx);
+        if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04lu Trigger idx now: %d\n", name().c_str(), unique_id(), d_read_out_count, d_trigger_idx);
 
         assert(d_trigger_idx <= out_trigger);
 
@@ -265,7 +265,7 @@ namespace gr {
           d_trigger_idx = 0;
           d_reading_out = true;
 
-          if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04d Switched to read-out\n", name().c_str(), unique_id(), d_read_out_count);
+          if (d_verbose) fprintf(stderr, "[%s<%ld>] #%04lu Switched to read-out\n", name().c_str(), unique_id(), d_read_out_count);
 
           //++d_read_out_count;
         }

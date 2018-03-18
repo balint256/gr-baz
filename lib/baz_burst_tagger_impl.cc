@@ -53,7 +53,7 @@ burst_tagger_impl::burst_tagger_impl(const std::string& tag_name /*= "length"*/,
 	if(d_mult <= 0)
 		throw std::out_of_range("multiplier must be > 0");
 	
-	fprintf(stderr, "<%s[%d]> tag name: %s, multiplier: %f, tag front: %d, tag rear: %d, drop residue: %s, verbose: %s\n", name().c_str(), unique_id(), tag_name.c_str(), mult, pad_front, pad_rear, (drop_residue ? "yes" : "no"), (verbose ? "yes" : "no"));
+	fprintf(stderr, "<%s[%li]> tag name: %s, multiplier: %f, tag front: %d, tag rear: %d, drop residue: %s, verbose: %s\n", name().c_str(), unique_id(), tag_name.c_str(), mult, pad_front, pad_rear, (drop_residue ? "yes" : "no"), (verbose ? "yes" : "no"));
 	
 	set_relative_rate(1);
 	set_tag_propagation_policy(block::TPP_DONT);
@@ -335,7 +335,7 @@ int burst_tagger_impl::general_work(int noutput_items, gr_vector_int& ninput_ite
 				return 0;
 			}
 			
-			if (d_verbose) fprintf(stderr, "Copied %lu items outside burst (after #%llu, work with no tags)\n", noutput_items, d_count);
+			if (d_verbose) fprintf(stderr, "Copied %d items outside burst (after #%llu, work with no tags)\n", noutput_items, d_count);
 		}
 		
 		std::memcpy(out, in, noutput_items * sizeof(gr_complex));

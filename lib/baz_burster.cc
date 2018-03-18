@@ -53,7 +53,7 @@ baz_burster::baz_burster (const baz_burster_config& config)
 	//, d_last_burst_time(-1)
 	//, d_samples_since_last_time_tag(-1)
 {
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %d, interval type: %s\n", name().c_str(), unique_id(), config.item_size, config.sample_rate, (d_config.sample_interval ? "samples" : "seconds"));
+	fprintf(stderr, "[%s<%li>] item size: %d, sample rate: %d, interval type: %s\n", name().c_str(), unique_id(), config.item_size, config.sample_rate, (d_config.sample_interval ? "samples" : "seconds"));
 	
 	memset(&d_dummy_zero_first, 0x00, offsetof(baz_burster,d_dummy_zero_last) - offsetof(baz_burster,d_dummy_zero_first));
 	
@@ -76,7 +76,7 @@ void baz_burster::set_burst_length(int length)
 	else
 		d_message_buffer = (char*)realloc(d_message_buffer, d_message_buffer_length);
 	d_config.burst_length = length;
-fprintf(stderr, "[%s<%i>] burst length: %i (%i bytes)\n", name().c_str(), unique_id(), length, d_message_buffer_length);
+fprintf(stderr, "[%s<%li>] burst length: %i (%i bytes)\n", name().c_str(), unique_id(), length, d_message_buffer_length);
 }
 
 baz_burster::~baz_burster ()
@@ -182,7 +182,7 @@ int baz_burster::general_work (int noutput_items, gr_vector_int &ninput_items, g
 				d_stream_time.seconds = pmt::to_uint64(pmt::tuple_ref(tag.value, 0));
 				d_stream_time.fractional_seconds = pmt::to_double(pmt::tuple_ref(tag.value, 1));
 				d_stream_time.sample_offset = 0;
-fprintf(stderr, "[%s<%i>] updated time\n", name().c_str(), unique_id());
+fprintf(stderr, "[%s<%li>] updated time\n", name().c_str(), unique_id());
 				//time_tag_sample_offset = tag.offset - read_before_this_work;
 				
 				++next_time_tag_index;
@@ -251,7 +251,7 @@ fprintf(stderr, "[%s<%i>] updated time\n", name().c_str(), unique_id());
 		if ((start_burst) && (d_in_burst))	// Can only happen if settings are changed, or overlaping trigger tags, or conflict b/w simultaneous interval timing & trigger tag
 		{
 			// FIXME: Configurable drop current, send now (even if not finished) or finish (ignore current trigger, or immediately queue afterward).
-fprintf(stderr, "[%s<%i>] already in burst #%i\n", name().c_str(), unique_id(), d_burst_count);
+fprintf(stderr, "[%s<%li>] already in burst #%i\n", name().c_str(), unique_id(), d_burst_count);
 			d_in_burst = false;	// Start a new one (drop the current)
 		}
 		

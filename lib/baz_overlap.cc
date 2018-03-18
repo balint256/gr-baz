@@ -79,7 +79,7 @@ baz_overlap::baz_overlap (int item_size, int vlen, int overlap)
 	//set_history(overlap);
 	set_output_multiple(d_vlen);
 	
-	fprintf(stderr, "[%s<%i>] item size: %d, vlen: %d, overlap: %d, rate: %f\n", name().c_str(), unique_id(), item_size, vlen, overlap, rate);
+	fprintf(stderr, "[%s<%li>] item size: %d, vlen: %d, overlap: %d, rate: %f\n", name().c_str(), unique_id(), item_size, vlen, overlap, rate);
 }
 
 /*
@@ -117,7 +117,7 @@ int baz_overlap::general_work(int noutput_items, gr_vector_int &ninput_items, gr
 	
 	if (noutput_items < d_vlen)
 	{
-		fprintf(stderr, "[%s<%i>] not enough for work: noutput_items: %d\n", name().c_str(), unique_id(), noutput_items);
+		fprintf(stderr, "[%s<%li>] not enough for work: noutput_items: %d\n", name().c_str(), unique_id(), noutput_items);
 		return 0;
 	}
 	

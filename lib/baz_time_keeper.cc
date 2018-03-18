@@ -63,7 +63,7 @@ baz_time_keeper::baz_time_keeper (int item_size, float sample_rate)
 {
 	//memset(&d_last_time, 0x00, sizeof(uhd::time_spec_t));
 
-	fprintf(stderr, "[%s<%i>] item size: %d, sample rate: %f\n", name().c_str(), unique_id(), item_size, sample_rate);
+	fprintf(stderr, "[%s<%li>] item size: %d, sample rate: %f\n", name().c_str(), unique_id(), item_size, sample_rate);
 
 	d_status_port_id = pmt::mp("status");
 	message_port_register_out(d_status_port_id);

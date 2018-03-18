@@ -74,7 +74,7 @@ baz_manchester_decode_bb::baz_manchester_decode_bb (bool original, int threshold
   , d_original(original), d_threshold(threshold), d_window(window), d_verbose(verbose), d_show_bits(show_bits)
   , d_current_window(0), d_violation_count(0), d_offset(0), d_violation_total_count(0)
 {
-	fprintf(stderr, "[%s<%i>] original: %s, threshold: %d, window: %d\n", name().c_str(), unique_id(), (original ? "yes" : "no"), threshold, window);
+	fprintf(stderr, "[%s<%li>] original: %s, threshold: %d, window: %d\n", name().c_str(), unique_id(), (original ? "yes" : "no"), threshold, window);
 	
 	set_history(1+1);
 	set_relative_rate(0.5);
@@ -173,7 +173,7 @@ int baz_manchester_decode_bb::general_work (int noutput_items, gr_vector_int &ni
 				{
 					if (d_show_bits)
 						fprintf(stderr, "\n");
-					fprintf(stderr, "[%s<%i>] violation threshold exceeded (# %d)\n", name().c_str(), unique_id(), d_violation_total_count);
+					fprintf(stderr, "[%s<%li>] violation threshold exceeded (# %d)\n", name().c_str(), unique_id(), d_violation_total_count);
 				}
 			}
 		}

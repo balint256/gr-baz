@@ -83,7 +83,7 @@ baz_radar_detector::baz_radar_detector (int sample_rate, gr::msg_queue::sptr msg
 	, d_pulse_plateau(1.0)
 	, d_last(0.0)
 {
-	fprintf(stderr, "[%s<%i>] sample rate: %i\n", name().c_str(), unique_id(), sample_rate);
+	fprintf(stderr, "[%s<%li>] sample rate: %i\n", name().c_str(), unique_id(), sample_rate);
 }
 
 /*
@@ -102,19 +102,19 @@ void baz_radar_detector::set_threshold(float threshold)
 {
 	d_threshold = pow(10.0f, (threshold / 10.0f));
 	
-	fprintf(stderr, "[%s<%i>] threshold %f\n", name().c_str(), unique_id(), d_threshold);
+	fprintf(stderr, "[%s<%li>] threshold %f\n", name().c_str(), unique_id(), d_threshold);
 }
 
 void baz_radar_detector::set_pulse_plateau(float level)
 {
 	d_pulse_plateau = pow(10.0f, (level / 10.0f));
 	
-	fprintf(stderr, "[%s<%i>] pulse plateau %f\n", name().c_str(), unique_id(), d_pulse_plateau);
+	fprintf(stderr, "[%s<%li>] pulse plateau %f\n", name().c_str(), unique_id(), d_pulse_plateau);
 }
 
 bool baz_radar_detector::set_param(const std::string& param, float value)
 {
-	fprintf(stderr, "[%s<%i>] setting parameter \"%s\" to: %f\n", name().c_str(), unique_id(), param.c_str(), value);
+	fprintf(stderr, "[%s<%li>] setting parameter \"%s\" to: %f\n", name().c_str(), unique_id(), param.c_str(), value);
 	
 	if (param == "FIRPWR")
 	{
@@ -137,7 +137,7 @@ bool baz_radar_detector::set_param(const std::string& param, float value)
 
 void baz_radar_detector::skip(int skip)
 {
-	fprintf(stderr, "[%s<%i>] skip %i\n", name().c_str(), unique_id(), skip);
+	fprintf(stderr, "[%s<%li>] skip %i\n", name().c_str(), unique_id(), skip);
 	
 	d_skip = skip;
 }

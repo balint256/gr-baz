@@ -131,7 +131,7 @@ baz_native_mux::general_work (int noutput_items,
       unsigned long next_time = d_switch_time[j];
       if (next_time < d_samples_processed)
       {
-        fprintf(stderr, "[%s] Late %d (processed: %d, next time: %d)\n", name().c_str(), ((int)d_samples_processed - (int)next_time), d_samples_processed, next_time);
+        fprintf(stderr, "[%s] Late %d (processed: %lu, next time: %lu)\n", name().c_str(), ((int)d_samples_processed - (int)next_time), d_samples_processed, next_time);
         d_switch_time.erase(d_switch_time.begin());
         --j;
         continue;

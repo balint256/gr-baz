@@ -89,7 +89,7 @@ baz_peak_detector::baz_peak_detector (float min_diff /*= 0.0*/, int min_len /*= 
 	, d_threshold(0.0f)
 	, d_byte_output(byte_output)
 {
-	fprintf(stderr, "[%s<%i>] min diff: %f, min len: %d, lockout: %d, drop: %f, alpha: %f, look ahead: %d, verbose: %s\n", name().c_str(), unique_id(), min_diff, min_len, lockout, drop, alpha, look_ahead, (verbose ? "yes" : "no"));
+	fprintf(stderr, "[%s<%li>] min diff: %f, min len: %d, lockout: %d, drop: %f, alpha: %f, look ahead: %d, verbose: %s\n", name().c_str(), unique_id(), min_diff, min_len, lockout, drop, alpha, look_ahead, (verbose ? "yes" : "no"));
 	
 	set_history(1+1);
 

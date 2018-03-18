@@ -101,7 +101,7 @@ int baz_agc_cc::work (int noutput_items, gr_vector_const_void_star &input_items,
     
     continue;
 ///////////////////////////////////////////////////////////////////////////////
-    if (!finite(mag2) || boost::math::isnan(mag2) || boost::math::isinf(mag2)) {
+    if (!/*finite*/boost::math::isfinite(mag2) || boost::math::isnan(mag2) || boost::math::isinf(mag2)) {
 	  if (_gain == _max_gain) {
 fprintf(stderr, "[%05i] + %f,%f -> %f,%f (%f) %f %f\n", i, in[i].real(), in[i].imag(), /*output.real()*/d[0], /*output.imag()*/d[1], _gain, _reference, _rate);
 		out[i] = /*in[i]*//*0*/gr_complex(0, 0);

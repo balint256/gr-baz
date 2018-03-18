@@ -178,7 +178,7 @@ baz_tcp_source::baz_tcp_source(size_t itemsize, const char *host, unsigned short
 	if (buffer_size <= 0)
 		buffer_size = DEFAULT_BUFFER_SIZE;
 	
-	fprintf(stderr, "[%s<%i>] item size: %d, host: %s, port: %hu, buffer size: %d, verbose: %s\n", name().c_str(), unique_id(), itemsize, host, port, buffer_size, (verbose ? "yes" : "no"));
+	fprintf(stderr, "[%s<%li>] item size: %lu, host: %s, port: %hu, buffer size: %d, verbose: %s\n", name().c_str(), unique_id(), itemsize, host, port, buffer_size, (verbose ? "yes" : "no"));
 	
 	int ret = 0;
 
@@ -473,7 +473,7 @@ int baz_tcp_source::work (int noutput_items, gr_vector_const_void_star &input_it
 			return 0;
 		}
 		
-		fprintf(stderr, "[%s<%i>] accepted connection (socket: %d)\n", name().c_str(), unique_id(), d_client_socket);
+		fprintf(stderr, "[%s<%li>] accepted connection (socket: %d)\n", name().c_str(), unique_id(), d_client_socket);
 #endif // USE_SELECT
 	}
 
@@ -538,7 +538,7 @@ int baz_tcp_source::work (int noutput_items, gr_vector_const_void_star &input_it
 		else if (r == 0)
 		{
 //fprintf(stderr, "!"); fflush(stderr);
-			fprintf(stderr, "[%s<%i>] recv returned 0 - disconnecting client\n", name().c_str(), unique_id());
+			fprintf(stderr, "[%s<%li>] recv returned 0 - disconnecting client\n", name().c_str(), unique_id());
 			
 			disconnect_client();
 			

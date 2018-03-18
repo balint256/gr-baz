@@ -44,7 +44,7 @@ namespace gr {
       float d_ref_lvl, d_dyn_rng;
       std::vector<uint32_t> d_lut;
       int d_vlen_in;
-      const int BPP = 4;
+      static const int BPP = 4;
 
     public:
       colouriser_impl(float ref_lvl = 1.0, float dyn_rng = 1.0, int vlen_in = 1, bool verbose = false);
@@ -125,7 +125,7 @@ namespace gr {
         d_lut.push_back(c);
       }
 
-      fprintf(stderr, "[%s<%ld>] ref level: %f, dyn range: %f, vlen_in: %d, verbose: %s, gradient size: %d\n", name().c_str(), unique_id(), ref_lvl, dyn_rng, vlen_in, (verbose ? "yes" : "no"), d_lut.size());
+      fprintf(stderr, "[%s<%ld>] ref level: %f, dyn range: %f, vlen_in: %d, verbose: %s, gradient size: %lu\n", name().c_str(), unique_id(), ref_lvl, dyn_rng, vlen_in, (verbose ? "yes" : "no"), d_lut.size());
 
       set_relative_rate((double)(BPP * vlen_in));
     }
