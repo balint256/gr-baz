@@ -23,7 +23,6 @@
 #ifndef INCLUDED_BAZ_SDL_SINK_UC_H
 #define INCLUDED_BAZ_SDL_SINK_UC_H
 
-#include <gnuradio/video_sdl/api.h>
 #include <gnuradio/sync_block.h>
 
 namespace gr {

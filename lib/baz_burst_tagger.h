@@ -22,7 +22,6 @@
 #ifndef INCLUDED_BAZ_BURST_TAGGER_H
 #define INCLUDED_BAZ_BURST_TAGGER_H
 
-//#include <baz/api.h>
 #include <gnuradio/sync_block.h>
 
 namespace gr {

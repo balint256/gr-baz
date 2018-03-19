@@ -24,7 +24,6 @@
 #ifndef INCLUDED_BAZ_KEEP_ONE_IN_N_H
 #define INCLUDED_BAZ_KEEP_ONE_IN_N_H
 
-#include <gnuradio/blocks/api.h>
 #include <gnuradio/block.h>
 
 namespace gr {

@@ -23,7 +23,6 @@
 #ifndef INCLUDED_BAZ_FILE_SOURCE_H
 #define INCLUDED_BAZ_FILE_SOURCE_H
 
-#include <gnuradio/blocks/api.h>
 #include <gnuradio/sync_block.h>
 
 namespace gr {
