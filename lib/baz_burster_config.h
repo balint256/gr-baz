@@ -33,7 +33,7 @@ typedef struct baz_burster_config_t
 	int sample_rate;		// Hz
 	int item_size;			// bytes
 	int burst_length;		// # items (= vlen)
-	double interval;		// seconds|samples
+	uint64_t interval;		// seconds|samples
 	bool sample_interval;	// false: interval is seconds, true: interval is # samples
 	bool relative_time;		// false: absolute time (calculate from absolute burst time), true: calculate from when last burst was transmitted
 	bool drop_current;		// false: hold current message until queue can accept, true: drop current and try with future burst
