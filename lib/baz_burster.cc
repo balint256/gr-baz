@@ -215,14 +215,14 @@ fprintf(stderr, "[%s<%li>] updated time\n", name().c_str(), unique_id());
 					//boost::int64_t ticks = diff.ticks();
 					//double d = (double)diff.ticks() / (double)d_system_time_ticks_per_second;
 					
-					double limit = d_config.interval;
+					uint64_t limit = d_config.interval;
 					
 					if (limit > 0)
 					{
 						if (d_config.sample_interval)
-							limit /= (double)d_config.sample_rate;
+							limit /= (uint64_t)d_config.sample_rate;
 						
-						if (diff >= boost::posix_time::microseconds(limit * 1e6))
+						if (diff >= boost::posix_time::microseconds((uint64_t)(limit * 1e6)))
 						//if (d >= limit)
 						{
 //fprintf(stderr, "[%s<%i>] host elapsed %f\n", name().c_str(), unique_id(), ((float)diff.ticks() / (float)d_system_time_ticks_per_second));
@@ -235,9 +235,9 @@ fprintf(stderr, "[%s<%li>] updated time\n", name().c_str(), unique_id());
 			{
 				burst_time diff = burst_time_difference(d_stream_time, d_last_burst_time);
 				
-				double limit = d_config.interval;
+				uint64_t limit = d_config.interval;
 				if (d_config.sample_interval == false)
-					limit *= (double)d_config.sample_rate;
+					limit *= (uint64_t)d_config.sample_rate;
 				
 				if (diff.sample_offset >= ((uint64_t)limit))
 				{
