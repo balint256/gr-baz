@@ -112,7 +112,7 @@ namespace gr {
         return recv_count;
     }
     
-    std::vector<size_t> usrp_acquire::finite_acquisition_v(const size_t nsamps, bool stream_now, double delay, size_t skip, double timeout)
+    std::vector<size_t> usrp_acquire::finite_acquisition_v(const size_t nsamps, bool stream_now, double delay, size_t skip, double timeout, bool loop/* = false*/)
     {
         boost::mutex::scoped_lock lock(d_mutex);
         
@@ -126,7 +126,8 @@ namespace gr {
             m_samps_per_packet = m_rx_stream->get_max_num_samps();
         }
         
-        size_t _nchan = m_stream_args.channels.size();
+        // const size_t bpi = ::uhd::convert::get_bytes_per_item(m_stream_args.cpu_format);
+        const size_t _nchan = m_stream_args.channels.size();
         
         // load the void* vector of buffer pointers
         std::vector<void *> buffs(_nchan);
@@ -157,7 +158,21 @@ namespace gr {
         ::uhd::rx_metadata_t rx_metadata;
         
         // receive samples until timeout
-        const size_t actual_num_samps = m_rx_stream->recv(buffs, nsamps, rx_metadata, timeout);
+        size_t actual_num_samps = 0;
+
+        while (actual_num_samps < nsamps)
+        {
+            size_t _actual_num_samps = m_rx_stream->recv(buffs, (nsamps - actual_num_samps), rx_metadata, timeout);
+            actual_num_samps += actual_num_samps;
+
+            if ((loop == false) || (_actual_num_samps == 0))
+                break;
+
+            for (size_t i = 0; i < _nchan; i++)
+            {
+                buffs[i] = m_data[i] + (actual_num_samps * /*bpi*/m_item_size);
+            }
+        }
         
         std::vector<size_t> res;
         
