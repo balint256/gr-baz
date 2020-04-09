@@ -163,7 +163,7 @@ namespace gr {
         while (actual_num_samps < nsamps)
         {
             size_t _actual_num_samps = m_rx_stream->recv(buffs, (nsamps - actual_num_samps), rx_metadata, timeout);
-            actual_num_samps += actual_num_samps;
+            actual_num_samps += _actual_num_samps;
 
             if ((loop == false) || (_actual_num_samps == 0))
                 break;
