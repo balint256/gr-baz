@@ -1,1 +1,1 @@
-CMakeLists-3.8.txt
+CMakeLists-3.7.txt
