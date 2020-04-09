@@ -22,6 +22,8 @@
 #  
 #  
 
+from __future__ import print_function
+
 # le32f	- 1 Msps
 # le16	- 4 Msps
 # Pipe mode kill works, FIFO doesn't
@@ -53,11 +55,11 @@ class baudline_sink(gr.hier_block2):
 			fifo_name = 'baudline_fifo'
 			self.tmpdir = tempfile.mkdtemp()
 			self.filename = os.path.join(self.tmpdir, fifo_name)
-			print self.filename
+			print(self.filename)
 			try:
 				os.mkfifo(self.filename)
-			except OSError, e:
-				print "Failed to create FIFO: %s" % e
+			except OSError as e:
+				print("Failed to create FIFO: %s" % e)
 				raise
 		
 		baudline_exec = [
@@ -141,7 +143,7 @@ class baudline_sink(gr.hier_block2):
 		#res = 0
 		try:
 			#res = subprocess.call(gp_exec)
-			print baudline_exec
+			print(baudline_exec)
 			if mode == 'pipe':
 				self.p = subprocess.Popen(baudline_exec, stdin=subprocess.PIPE)	# , stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=16384 or -1
 			elif mode == 'fifo':
@@ -152,8 +154,8 @@ class baudline_sink(gr.hier_block2):
 			#self.p.wait()
 		#except KeyboardInterrupt:
 		#	print "Caught CTRL+C"
-		except Exception, e:
-			print e
+		except Exception as e:
+			print(e)
 			raise
 		#if self.p is not None and not self.p.returncode == 0:
 		#	print "Failed to run subprocess (result: %d)" % (self.p.returncode)
@@ -161,7 +163,7 @@ class baudline_sink(gr.hier_block2):
 		#	print "Failed to run subprocess (result: %d)" % (res)
 		
 		if mode == 'pipe':
-			print "==> Using FD:", self.p.stdin.fileno()
+			print("==> Using FD:", self.p.stdin.fileno())
 			self.file_sink = blocks.file_descriptor_sink(item_size, self.p.stdin.fileno())	# os.dup
 		elif mode == 'fifo':
 			self.file_sink = blocks.file_sink(item_size, self.filename)	# os.dup
@@ -174,18 +176,18 @@ class baudline_sink(gr.hier_block2):
 		
 		if self.p is not None:	# Won't work in FIFO mode as it blocks
 			if self.kill_on_del:
-				print "==> Killing baudline..."
+				print("==> Killing baudline...")
 				#self.p.kill()
 				#self.p.terminate()
 				os.kill(self.p.pid, signal.SIGTERM)
 		
 		if self.mode == 'fifo':
 			try:
-				print "==> Deleting:", self.filename
+				print("==> Deleting:", self.filename)
 				os.unlink(self.filename)
 				os.rmdir(self.tmpdir)
-			except OSError, e:
-				print "Failed to delete FIFO: %s" % e
+			except OSError as e:
+				print("Failed to delete FIFO: %s" % e)
 				raise
 
 def main():

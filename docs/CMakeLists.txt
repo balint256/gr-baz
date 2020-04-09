@@ -17,6 +17,8 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+# GR 3.7 & 3.8 compat
+
 ########################################################################
 # Setup dependencies
 ########################################################################
@@ -25,12 +27,13 @@ find_package(Doxygen)
 ########################################################################
 # Begin conditional configuration
 ########################################################################
-if(DOXYGEN_FOUND)
+#if(DOXYGEN_FOUND)
+if(ENABLE_DOXYGEN)
 
 ########################################################################
 # Add subdirectories
 ########################################################################
 add_subdirectory(doxygen)
 
-endif(DOXYGEN_FOUND)
-
+endif(ENABLE_DOXYGEN)
+#endif(DOXYGEN_FOUND)

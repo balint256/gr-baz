@@ -10,6 +10,9 @@
 #undef BAZ_API
 #define BAZ_API
 
+//load generated python docstrings
+%include "baz_swig_doc.i"
+
 %{
 #ifdef HAVE_CONFIG_H
 #include "config.h"

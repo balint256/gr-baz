@@ -1,0 +1,89 @@
+'[baz]':
+  - Sources:
+    - baz_file_source
+    - rtl2832_source
+  - Sinks:
+    - baudline_sink
+  - Networking:
+    - borip_source
+    - borip_sink
+    - baz_tcp_sink
+    - baz_tcp_source
+    - baz_udp_sink
+    - baz_udp_source
+    - baz_xmlrpc_server
+  - GUI:
+    # - WX:
+    #   - baz_plot_sink
+    #   - variable_baz_static_text
+    #   - baz_time_panel
+    #   - baz_waterfall_sink
+    #   - doa_compass
+    #   - eye
+    #   - facsink
+    #   - op25_traffic_pane
+    - SDL:
+      - baz_sdl_sink
+  - Any Blocks:
+    - any
+    - variable_any_code
+    - any_message
+    - any_source
+    - any_single_source
+    - any_sink
+    - any_single_sink
+    - any_single
+    - variable_any_code_post_eval
+  - Basics:
+    - baz_delay
+    - gate
+    - baz_non_blocker
+    - swap_ff
+  - Analog:
+    - baz_agc_xx
+  - Digital:
+    - baz_additive_scrambler_bb
+    - auto_fec
+    - depuncture_ff
+    - puncture_bb
+    - baz_fec_sync
+  - Math:
+    - pow_cc
+  - Burst Management:
+    - baz_burst_tagger
+    - baz_burster
+  - Synchronisers:
+    - baz_dpll_bb
+    - baz_fractional_resampler_xx
+  - State:
+    - baz_block_status
+    - variable_run_remote
+  - Messaging:
+    - baz_message_callback
+    - baz_message_relay
+    - baz_message_server
+    - baz_tag_to_msg
+  - Multi-channel:
+    - multi_channel_decoder
+  - Applications:
+    - RADAR:
+      - baz_radar_detector
+      - baz_radar_server
+    - ACARS:
+      - baz_acars_decoder
+      - baz_acars_printer
+    - DOA:
+      - baz_music_doa
+    - P25:
+      - op25_decoder
+      - op25_decoder_simple
+      - op25_fsk4  
+    - FasTrak:
+      - baz_fastrak_decoder
+    - missile_launcher
+  - Legacy:
+    - gr_mpsk_receiver_debug_cc
+    - usrp_simple_source_x
+  - Testing:
+    - test_counter_cc
+    - uhd_async_msg_printer

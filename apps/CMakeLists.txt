@@ -17,7 +17,11 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+# GR 3.7 & 3.8 compat
+
 include(GrPython)
+
+# Not installing anything in 'bin'
 
 #GR_PYTHON_INSTALL(
 #    PROGRAMS
@@ -26,4 +30,3 @@ include(GrPython)
 #    borip_server
 #    DESTINATION bin
 #)
-

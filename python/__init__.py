@@ -18,32 +18,54 @@
 
 # The presence of this file turns this directory into a Python package
 
-# ----------------------------------------------------------------
-# Temporary workaround for ticket:181 (swig+python problem)
-import sys
-_RTLD_GLOBAL = 0
-try:
-    from dl import RTLD_GLOBAL as _RTLD_GLOBAL
-except ImportError:
-    try:
-	from DLFCN import RTLD_GLOBAL as _RTLD_GLOBAL
-    except ImportError:
-	pass
+# Old code:
+# # ----------------------------------------------------------------
+# # Temporary workaround for ticket:181 (swig+python problem)
+# import sys
+# _RTLD_GLOBAL = 0
+# try:
+#     from dl import RTLD_GLOBAL as _RTLD_GLOBAL
+# except ImportError:
+#     try:
+# 	from DLFCN import RTLD_GLOBAL as _RTLD_GLOBAL
+#     except ImportError:
+# 	pass
     
-if _RTLD_GLOBAL != 0:
-    _dlopenflags = sys.getdlopenflags()
-    sys.setdlopenflags(_dlopenflags|_RTLD_GLOBAL)
+# if _RTLD_GLOBAL != 0:
+#     _dlopenflags = sys.getdlopenflags()
+#     sys.setdlopenflags(_dlopenflags|_RTLD_GLOBAL)
+# # ----------------------------------------------------------------
+
+
+# # import swig generated symbols into the baz namespace
+# from baz_swig import *
+
+# # import any pure python here
+# #
+
+# # ----------------------------------------------------------------
+# # Tail of workaround
+# if _RTLD_GLOBAL != 0:
+#     sys.setdlopenflags(_dlopenflags)      # Restore original flags
 # ----------------------------------------------------------------
 
+# New code:
+from __future__ import unicode_literals
+
+try:
+	_ = ModuleNotFoundError
+except NameError:
+	ModuleNotFoundError = ImportError
 
 # import swig generated symbols into the baz namespace
-from baz_swig import *
+try:
+    # this might fail if the module is python-only
+    from . baz_swig import *
+except ModuleNotFoundError as e:
+	if e == ImportError:
+		if not e.message.startswith("No module named"):
+			raise
+except ImportError:
+    raise
 
 # import any pure python here
-#
-
-# ----------------------------------------------------------------
-# Tail of workaround
-if _RTLD_GLOBAL != 0:
-    sys.setdlopenflags(_dlopenflags)      # Restore original flags
-# ----------------------------------------------------------------

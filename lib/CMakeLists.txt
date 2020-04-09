@@ -17,10 +17,13 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+# GR 3.7 & 3.8 compat
+
 ########################################################################
 # Install public header files
 ########################################################################
 SET(baz_headers
+	api.h
 	baz_print_char.h
 	baz_unpacked_to_packed_bb.h
 	baz_pow_cc.h
@@ -83,7 +86,15 @@ install(FILES
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
 
-SET(baz_sources
+SET(baz_sources)
+
+if (IN_GR_BAZ_3_8)
+
+# No C++ for now
+
+else ()
+
+LIST(APPEND baz_sources
 	baz_print_char.cc
 	baz_unpacked_to_packed_bb.cc
 	baz_pow_cc.cc
@@ -129,6 +140,8 @@ SET(baz_sources
 	baz_file_source.cc
 )
 
+endif ()
+
 if (LIBUSB_FOUND)
 	LIST(APPEND baz_sources
 		baz_rtl_source_c.cc
@@ -166,13 +179,35 @@ if (NOT SDL_TTF_FOUND)
 	set(SDL_TTF_LIBRARY "")
 endif ()
 
-add_library(gnuradio-baz SHARED
-	${baz_sources}
+#######################################
+
+set(baz_sources "${baz_sources}" PARENT_SCOPE)
+if(NOT baz_sources)
+    MESSAGE(STATUS "No C++ sources... skipping lib/")
+    return()
+endif(NOT baz_sources)
+
+add_library(gnuradio-baz SHARED ${baz_sources})
+
+SET(baz_libs
+	${Boost_LIBRARIES}
 )
 
+if (IN_GR_BAZ_3_8)
+
 list(APPEND baz_libs
-	${Boost_LIBRARIES}
+	gnuradio::gnuradio-runtime
+)
+
+else ()
+
+list(APPEND baz_libs
 	${GNURADIO_RUNTIME_LIBRARIES}
+)
+
+endif ()
+
+list(APPEND baz_libs
 	${GNURADIO_PMT_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
 	${GNURADIO_DIGITAL_LIBRARIES}
@@ -195,11 +230,35 @@ if(MSVC)
 endif()
 
 target_link_libraries(gnuradio-baz ${baz_libs})
+
+if (IN_GR_BAZ_3_8)
+
+target_include_directories(gnuradio-baz
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    PUBLIC $<INSTALL_INTERFACE:include>
+  )
+
+endif ()
+
 set_target_properties(gnuradio-baz PROPERTIES DEFINE_SYMBOL "gnuradio_baz_EXPORTS;RTL2832_EXPORTS")
+
+if(APPLE)
+    set_target_properties(gnuradio-baz PROPERTIES
+        INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib"
+    )
+endif(APPLE)
 
 ########################################################################
 # Install built library files
 ########################################################################
+
+if (IN_GR_BAZ_3_8)
+
+include(GrMiscUtils)
+GR_LIBRARY_FOO(gnuradio-baz)
+
+else ()
+
 if(ENABLE_GR_BAZ)
     GR_LIBRARY_FOO(gnuradio-baz RUNTIME_COMPONENT "baz_runtime" DEVEL_COMPONENT "baz_devel")
 else()
@@ -210,9 +269,43 @@ else()
     )
 endif()
 
+endif ()
+
+########################################################################
+# Print summary
+########################################################################
+message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
+
 ########################################################################
 # Build and register unit test
 ########################################################################
+
+if (IN_GR_BAZ_3_8)
+
+include(GrTest)
+
+# If your unit tests require special include paths, add them here
+#include_directories()
+# List all files that contain Boost.UTF unit tests here
+list(APPEND test_baz_sources
+)
+# Anything we need to link to for the unit tests go here
+list(APPEND GR_TEST_TARGET_DEPS gnuradio-baz)
+
+if(NOT test_baz_sources)
+    MESSAGE(STATUS "No C++ unit tests... skipping")
+    return()
+endif(NOT test_baz_sources)
+
+foreach(qa_file ${test_baz_sources})
+    GR_ADD_CPP_TEST("baz_${qa_file}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/${qa_file}
+    )
+endforeach(qa_file)
+
+else ()
+
 #find_package(Boost COMPONENTS unit_test_framework)
 
 #include(GrTest)
@@ -228,3 +321,4 @@ endif()
 #target_link_libraries(qa_howto_square2_ff gnuradio-howto ${Boost_LIBRARIES})
 #GR_ADD_TEST(qa_howto_square2_ff qa_howto_square2_ff)
 
+endif ()

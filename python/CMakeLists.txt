@@ -17,6 +17,8 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+# GR 3.7 & 3.8 compat
+
 ########################################################################
 # Include python install macros
 ########################################################################
@@ -28,9 +30,18 @@ endif()
 ########################################################################
 # Install python sources
 ########################################################################
-GR_PYTHON_INSTALL(
-    FILES
-    __init__.py
+SET(baz_python_sources
+	__init__.py
+	baudline.py
+)
+
+if (IN_GR_BAZ_3_8)
+
+# No other Py until made Py3.7 compat
+
+else ()
+
+LIST(APPEND baz_python_sources
 	borip.py
 	facsink.py
 	eye.py
@@ -55,7 +66,6 @@ GR_PYTHON_INSTALL(
 	missile_launcher.py
 	doa_compass_plotter.py
 	doa_compass_control.py
-	baudline.py
 	message_server.py
 	radar_server.py
 	colours.py
@@ -76,7 +86,13 @@ GR_PYTHON_INSTALL(
 	freq_hopper.py
 	wx_flipper.py
 	rate_synchroniser.py
+)
 
+endif ()
+
+GR_PYTHON_INSTALL(
+    FILES
+    ${baz_python_sources}
     DESTINATION ${GR_PYTHON_DIR}/baz
 )
 
@@ -88,4 +104,3 @@ GR_PYTHON_INSTALL(
 #set(GR_TEST_TARGET_DEPS gnuradio-baz)
 #set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
 #GR_ADD_TEST(qa_baz ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_baz.py)
-

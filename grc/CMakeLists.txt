@@ -17,6 +17,17 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+# GR 3.7 & 3.8 compat
+
+if (IN_GR_BAZ_3_8)
+
+SET(baz_blocks
+	baz.tree.yml
+	baudline.block.yml
+)
+
+else ()
+
 SET(baz_blocks
 	baz_any.xml
 	baz_any_source.xml
@@ -98,6 +109,8 @@ endif ()
 
 if (SDL_FOUND)
 	LIST(APPEND baz_blocks baz_sdl_sink.xml)
+endif ()
+
 endif ()
 
 install(FILES
