@@ -22,6 +22,9 @@
 #  
 #  
 
+# FIXME:
+# - Detect/track sample count over long period for when tick count is off by one in one direction, and then balances in next tick (in other direction)
+
 import time, datetime
 from optparse import OptionParser
 from gnuradio import uhd
@@ -33,7 +36,8 @@ def main():
 	parser.add_option("-t", "--timeout", type="float", default="2.0", help="PPS timeout [default=%default]")
 	parser.add_option("-w", "--wait", type="float", default="0.0", help="PPS timeout [default=%default]")
 	parser.add_option("-e", "--epsilon", type="float", default="0.001", help="tolerance [default=%default]")
-	parser.add_option("-r", "--ref", type="string", default="external", help="reference selection [default=%default]")
+	parser.add_option("-r", "--ref", type="string", default="external", help="clock reference selection [default=%default]")
+	parser.add_option("-R", "--ref-time", type="string", default=None, help="time reference selection [default=%default]")
 	parser.add_option("-s", "--sensor", type="string", default="ref_locked", help="reference lock sensor name [default=%default]")
 	parser.add_option("-l", "--lock-time", type="float", default="0.1", help="reference lock wait time [default=%default]")
 	parser.add_option("-L", "--lock-timeout", type="float", default="5.0", help="reference lock wait time [default=%default]")
@@ -58,9 +62,13 @@ def main():
 		print "Master clock rate:", master_clock_rate
 		
 		print
+
+		if options.ref_time is None:
+			options.ref_time = options.ref
 		
 		usrp.set_clock_source(options.ref)
-		usrp.set_time_source(options.ref)
+		if len(options.ref_time) > 0:
+			usrp.set_time_source(options.ref_time)
 		
 		if options.lock_time > 0:
 			print "Sleeping for lock..."
