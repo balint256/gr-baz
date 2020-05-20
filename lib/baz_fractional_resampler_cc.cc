@@ -24,6 +24,8 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
+
 #include <gnuradio/io_signature.h>
 #include <gnuradio/filter/mmse_fir_interpolator_cc.h>
 #include "baz_fractional_resampler_cc.h"
