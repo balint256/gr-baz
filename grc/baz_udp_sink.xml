@@ -7,6 +7,7 @@
 <block>
 	<name>UDP Sink (Baz)</name>
 	<key>baz_udp_sink</key>
+	<category>Networking Tools</category>
 	<import>import baz</import>
 	<make>baz.udp_sink($type.size*$vlen, $ipaddr, $port, $psize, $eof, $borip)
 #if $status_in()
