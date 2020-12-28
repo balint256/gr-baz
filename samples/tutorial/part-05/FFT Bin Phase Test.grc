@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='ASCII'?>
 <flow_graph>
-  <timestamp>Mon Jun 11 00:28:01 2012</timestamp>
+  <timestamp>Thu May  8 10:14:31 2014</timestamp>
   <block>
     <key>options</key>
     <param>
@@ -44,12 +44,108 @@
       <value>True</value>
     </param>
     <param>
+      <key>max_nouts</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>realtime_scheduling</key>
       <value></value>
     </param>
     <param>
       <key>_coordinate</key>
       <value>(10, 10)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>id</key>
+      <value>fft_size</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>65536*7*0+fft_width</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(486, 832)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>id</key>
+      <value>f</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>(1.0*samp_rate/fft_width)*fft_offset</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(11, 241)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>id</key>
+      <value>fft_offset</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>400/4</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(11, 61)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>id</key>
+      <value>fft_width</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>1024</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(11, 121)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -80,10 +176,10 @@
     </param>
   </block>
   <block>
-    <key>gr_stream_to_vector</key>
+    <key>blocks_stream_to_vector</key>
     <param>
       <key>id</key>
-      <value>gr_stream_to_vector_1</value>
+      <value>blocks_stream_to_vector_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -102,6 +198,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(1123, 872)</value>
     </param>
@@ -111,10 +219,10 @@
     </param>
   </block>
   <block>
-    <key>gr_vector_to_stream</key>
+    <key>blocks_vector_to_stream</key>
     <param>
       <key>id</key>
-      <value>gr_vector_to_stream_1</value>
+      <value>blocks_vector_to_stream_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -133,6 +241,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(344, 447)</value>
     </param>
@@ -142,10 +262,10 @@
     </param>
   </block>
   <block>
-    <key>gr_complex_to_arg</key>
+    <key>blocks_complex_to_arg</key>
     <param>
       <key>id</key>
-      <value>gr_complex_to_arg_0_0</value>
+      <value>blocks_complex_to_arg_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -154,6 +274,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -165,10 +297,10 @@
     </param>
   </block>
   <block>
-    <key>gr_stream_mux</key>
+    <key>blocks_stream_mux</key>
     <param>
       <key>id</key>
-      <value>gr_stream_mux_0</value>
+      <value>blocks_stream_mux_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -191,6 +323,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(1136, 779)</value>
     </param>
@@ -200,10 +344,10 @@
     </param>
   </block>
   <block>
-    <key>gr_sub_xx</key>
+    <key>blocks_sub_xx</key>
     <param>
       <key>id</key>
-      <value>gr_sub_xx_0</value>
+      <value>blocks_sub_xx_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -220,6 +364,18 @@
     <param>
       <key>num_inputs</key>
       <value>2</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -309,6 +465,10 @@
       <value>nb, 0</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(1158, 254)</value>
     </param>
@@ -376,6 +536,18 @@
       <value>nb, 2</value>
     </param>
     <param>
+      <key>trig_mode</key>
+      <value>wxgui.TRIG_MODE_AUTO</value>
+    </param>
+    <param>
+      <key>y_axis_label</key>
+      <value>Counts</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(1170, 569)</value>
     </param>
@@ -385,10 +557,10 @@
     </param>
   </block>
   <block>
-    <key>gr_add_xx</key>
+    <key>blocks_add_xx</key>
     <param>
       <key>id</key>
-      <value>gr_add_xx_0</value>
+      <value>blocks_add_xx_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -405,6 +577,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -416,10 +600,10 @@
     </param>
   </block>
   <block>
-    <key>gr_multiply_xx</key>
+    <key>blocks_multiply_xx</key>
     <param>
       <key>id</key>
-      <value>gr_multiply_xx_0</value>
+      <value>blocks_multiply_xx_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -436,6 +620,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -447,10 +643,10 @@
     </param>
   </block>
   <block>
-    <key>gr_sub_xx</key>
+    <key>blocks_sub_xx</key>
     <param>
       <key>id</key>
-      <value>gr_sub_xx_1</value>
+      <value>blocks_sub_xx_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -469,6 +665,18 @@
       <value>2</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(844, 118)</value>
     </param>
@@ -478,10 +686,10 @@
     </param>
   </block>
   <block>
-    <key>gr_vector_to_stream</key>
+    <key>blocks_vector_to_stream</key>
     <param>
       <key>id</key>
-      <value>gr_vector_to_stream_1_0</value>
+      <value>blocks_vector_to_stream_1_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -500,6 +708,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(344, 510)</value>
     </param>
@@ -509,10 +729,10 @@
     </param>
   </block>
   <block>
-    <key>gr_fft_vxx</key>
+    <key>fft_vxx</key>
     <param>
       <key>id</key>
-      <value>gr_fft_vxx_0_0</value>
+      <value>fft_vxx0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -537,6 +757,22 @@
     <param>
       <key>shift</key>
       <value>True</value>
+    </param>
+    <param>
+      <key>nthreads</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -548,10 +784,10 @@
     </param>
   </block>
   <block>
-    <key>gr_complex_to_mag</key>
+    <key>blocks_complex_to_mag</key>
     <param>
       <key>id</key>
-      <value>gr_complex_to_mag_0_0_0</value>
+      <value>blocks_complex_to_mag_0_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -560,6 +796,18 @@
     <param>
       <key>vlen</key>
       <value>1024</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -571,10 +819,10 @@
     </param>
   </block>
   <block>
-    <key>gr_vector_to_stream</key>
+    <key>blocks_vector_to_stream</key>
     <param>
       <key>id</key>
-      <value>gr_vector_to_stream_1_0_0</value>
+      <value>blocks_vector_to_stream_1_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -591,6 +839,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -602,10 +862,10 @@
     </param>
   </block>
   <block>
-    <key>gr_vector_to_stream</key>
+    <key>blocks_vector_to_stream</key>
     <param>
       <key>id</key>
-      <value>gr_vector_to_stream_1_0_0_0</value>
+      <value>blocks_vector_to_stream_1_0_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -622,6 +882,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -633,10 +905,10 @@
     </param>
   </block>
   <block>
-    <key>gr_complex_to_arg</key>
+    <key>blocks_complex_to_arg</key>
     <param>
       <key>id</key>
-      <value>gr_complex_to_arg_0</value>
+      <value>blocks_complex_to_arg_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -645,6 +917,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -656,10 +940,10 @@
     </param>
   </block>
   <block>
-    <key>gr_throttle</key>
+    <key>blocks_throttle</key>
     <param>
       <key>id</key>
-      <value>gr_throttle_0_0</value>
+      <value>blocks_throttle_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -676,6 +960,22 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>ignoretag</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -687,10 +987,10 @@
     </param>
   </block>
   <block>
-    <key>gr_stream_to_vector</key>
+    <key>blocks_stream_to_vector</key>
     <param>
       <key>id</key>
-      <value>gr_stream_to_vector_0_0</value>
+      <value>blocks_stream_to_vector_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -709,6 +1009,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(60, 450)</value>
     </param>
@@ -718,10 +1030,10 @@
     </param>
   </block>
   <block>
-    <key>gr_throttle</key>
+    <key>blocks_throttle</key>
     <param>
       <key>id</key>
-      <value>gr_throttle_0</value>
+      <value>blocks_throttle_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -740,6 +1052,22 @@
       <value>1</value>
     </param>
     <param>
+      <key>ignoretag</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(306, 5)</value>
     </param>
@@ -749,10 +1077,10 @@
     </param>
   </block>
   <block>
-    <key>gr_stream_to_vector</key>
+    <key>blocks_stream_to_vector</key>
     <param>
       <key>id</key>
-      <value>gr_stream_to_vector_0</value>
+      <value>blocks_stream_to_vector_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -771,6 +1099,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(305, 324)</value>
     </param>
@@ -780,10 +1120,10 @@
     </param>
   </block>
   <block>
-    <key>gr_fft_vxx</key>
+    <key>fft_vxx</key>
     <param>
       <key>id</key>
-      <value>gr_fft_vxx_0</value>
+      <value>fft_vxx0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -810,6 +1150,22 @@
       <value>True</value>
     </param>
     <param>
+      <key>nthreads</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(305, 368)</value>
     </param>
@@ -819,10 +1175,10 @@
     </param>
   </block>
   <block>
-    <key>gr_multiply_const_vxx</key>
+    <key>blocks_multiply_const_vxx</key>
     <param>
       <key>id</key>
-      <value>gr_multiply_const_vxx_0</value>
+      <value>blocks_multiply_const_vxx_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -841,6 +1197,18 @@
       <value>fft_width</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(328, 600)</value>
     </param>
@@ -850,10 +1218,10 @@
     </param>
   </block>
   <block>
-    <key>gr_add_const_vxx</key>
+    <key>blocks_add_const_vxx</key>
     <param>
       <key>id</key>
-      <value>gr_add_const_vxx_0</value>
+      <value>blocks_add_const_vxx_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -872,6 +1240,18 @@
       <value>fft_width</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(328, 660)</value>
     </param>
@@ -881,10 +1261,10 @@
     </param>
   </block>
   <block>
-    <key>gr_nlog10_ff</key>
+    <key>blocks_nlog10_ff</key>
     <param>
       <key>id</key>
-      <value>gr_nlog10_ff_0</value>
+      <value>blocks_nlog10_ff_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -901,6 +1281,18 @@
     <param>
       <key>vlen</key>
       <value>1024</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -990,6 +1382,10 @@
       <value>nb, 0</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(957, 588)</value>
     </param>
@@ -1077,6 +1473,14 @@
       <value></value>
     </param>
     <param>
+      <key>freqvar</key>
+      <value>None</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(589, 0)</value>
     </param>
@@ -1142,6 +1546,18 @@
     <param>
       <key>notebook</key>
       <value>nb, 1</value>
+    </param>
+    <param>
+      <key>trig_mode</key>
+      <value>wxgui.TRIG_MODE_AUTO</value>
+    </param>
+    <param>
+      <key>y_axis_label</key>
+      <value>Counts</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -1298,10 +1714,10 @@
     </param>
   </block>
   <block>
-    <key>gr_udp_sink</key>
+    <key>blocks_udp_sink</key>
     <param>
       <key>id</key>
-      <value>gr_udp_sink_0</value>
+      <value>blocks_udp_sink_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1328,43 +1744,16 @@
       <value>True</value>
     </param>
     <param>
-      <key>borip</key>
-      <value>False</value>
-    </param>
-    <param>
-      <key>status_in</key>
-      <value>False</value>
-    </param>
-    <param>
       <key>vlen</key>
       <value>2</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(1085, 916)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>id</key>
-      <value>fft_width</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>1024</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(11, 121)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1418,10 +1807,10 @@
     </param>
   </block>
   <block>
-    <key>gr_fft_vxx</key>
+    <key>fft_vxx</key>
     <param>
       <key>id</key>
-      <value>gr_fft_vxx_1</value>
+      <value>fft_vxx1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1448,6 +1837,22 @@
       <value>True</value>
     </param>
     <param>
+      <key>nthreads</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(58, 746)</value>
     </param>
@@ -1457,10 +1862,10 @@
     </param>
   </block>
   <block>
-    <key>gr_vector_to_stream</key>
+    <key>blocks_vector_to_stream</key>
     <param>
       <key>id</key>
-      <value>gr_vector_to_stream_0</value>
+      <value>blocks_vector_to_stream_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1477,6 +1882,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -1566,54 +1983,16 @@
       <value>nb, 1</value>
     </param>
     <param>
+      <key>freqvar</key>
+      <value>None</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(325, 769)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>id</key>
-      <value>fft_offset</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>400/4</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(11, 61)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>id</key>
-      <value>f</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>(1.0*samp_rate/fft_width)*fft_offset</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(11, 241)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1699,53 +2078,10 @@
     </param>
   </block>
   <block>
-    <key>gr_sig_source_x</key>
+    <key>blocks_throttle</key>
     <param>
       <key>id</key>
-      <value>gr_sig_source_x_0_0</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>float</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>waveform</key>
-      <value>gr.GR_COS_WAVE</value>
-    </param>
-    <param>
-      <key>freq</key>
-      <value>f</value>
-    </param>
-    <param>
-      <key>amp</key>
-      <value>amp</value>
-    </param>
-    <param>
-      <key>offset</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(102, 123)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>gr_throttle</key>
-    <param>
-      <key>id</key>
-      <value>gr_throttle_0_1</value>
+      <value>blocks_throttle_0_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1764,6 +2100,22 @@
       <value>1</value>
     </param>
     <param>
+      <key>ignoretag</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(365, 217)</value>
     </param>
@@ -1773,10 +2125,10 @@
     </param>
   </block>
   <block>
-    <key>gr_skiphead</key>
+    <key>blocks_skiphead</key>
     <param>
       <key>id</key>
-      <value>gr_skiphead_0</value>
+      <value>blocks_skiphead_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1793,6 +2145,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -1804,10 +2168,10 @@
     </param>
   </block>
   <block>
-    <key>gr_skiphead</key>
+    <key>blocks_skiphead</key>
     <param>
       <key>id</key>
-      <value>gr_skiphead_0_0</value>
+      <value>blocks_skiphead_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1826,6 +2190,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(545, 510)</value>
     </param>
@@ -1835,10 +2211,10 @@
     </param>
   </block>
   <block>
-    <key>gr_keep_one_in_n</key>
+    <key>blocks_keep_one_in_n</key>
     <param>
       <key>id</key>
-      <value>gr_keep_one_in_n_0</value>
+      <value>blocks_keep_one_in_n_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1855,6 +2231,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -1866,10 +2254,10 @@
     </param>
   </block>
   <block>
-    <key>gr_keep_one_in_n</key>
+    <key>blocks_keep_one_in_n</key>
     <param>
       <key>id</key>
-      <value>gr_keep_one_in_n_0_0</value>
+      <value>blocks_keep_one_in_n_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1888,6 +2276,18 @@
       <value>1</value>
     </param>
     <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(726, 501)</value>
     </param>
@@ -1897,10 +2297,10 @@
     </param>
   </block>
   <block>
-    <key>gr_complex_to_mag</key>
+    <key>blocks_complex_to_mag</key>
     <param>
       <key>id</key>
-      <value>gr_complex_to_mag_0_0</value>
+      <value>blocks_complex_to_mag_0_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1909,6 +2309,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -1920,10 +2332,10 @@
     </param>
   </block>
   <block>
-    <key>gr_complex_to_mag</key>
+    <key>blocks_complex_to_mag</key>
     <param>
       <key>id</key>
-      <value>gr_complex_to_mag_0</value>
+      <value>blocks_complex_to_mag_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1932,6 +2344,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -1943,10 +2367,10 @@
     </param>
   </block>
   <block>
-    <key>gr_file_sink</key>
+    <key>blocks_file_sink</key>
     <param>
       <key>id</key>
-      <value>gr_file_sink_1</value>
+      <value>blocks_file_sink_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1963,6 +2387,18 @@
     <param>
       <key>vlen</key>
       <value>fft_size</value>
+    </param>
+    <param>
+      <key>unbuffered</key>
+      <value>False</value>
+    </param>
+    <param>
+      <key>append</key>
+      <value>False</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -2032,6 +2468,18 @@
       <value>nb, 2</value>
     </param>
     <param>
+      <key>trig_mode</key>
+      <value>wxgui.TRIG_MODE_AUTO</value>
+    </param>
+    <param>
+      <key>y_axis_label</key>
+      <value>Counts</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(787, 673)</value>
     </param>
@@ -2041,10 +2489,10 @@
     </param>
   </block>
   <block>
-    <key>gr_null_sink</key>
+    <key>blocks_null_sink</key>
     <param>
       <key>id</key>
-      <value>gr_null_sink_0</value>
+      <value>blocks_null_sink_0</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -2059,6 +2507,18 @@
       <value>1024</value>
     </param>
     <param>
+      <key>num_inputs</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>bus_conns</key>
+      <value>[[0,],]</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(886, 901)</value>
     </param>
@@ -2068,10 +2528,10 @@
     </param>
   </block>
   <block>
-    <key>gr_complex_to_mag</key>
+    <key>blocks_complex_to_mag</key>
     <param>
       <key>id</key>
-      <value>gr_complex_to_mag_1</value>
+      <value>blocks_complex_to_mag_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -2080,6 +2540,18 @@
     <param>
       <key>vlen</key>
       <value>fft_size</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -2091,10 +2563,10 @@
     </param>
   </block>
   <block>
-    <key>gr_fft_vxx</key>
+    <key>fft_vxx</key>
     <param>
       <key>id</key>
-      <value>gr_fft_vxx_0_1</value>
+      <value>fft_vxx0_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -2121,6 +2593,22 @@
       <value>True</value>
     </param>
     <param>
+      <key>nthreads</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(678, 825)</value>
     </param>
@@ -2130,10 +2618,10 @@
     </param>
   </block>
   <block>
-    <key>gr_stream_to_vector</key>
+    <key>blocks_stream_to_vector</key>
     <param>
       <key>id</key>
-      <value>gr_stream_to_vector_0_1</value>
+      <value>blocks_stream_to_vector_0_1</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -2150,6 +2638,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -2184,72 +2684,6 @@
     </param>
   </block>
   <block>
-    <key>variable</key>
-    <param>
-      <key>id</key>
-      <value>fft_size</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>65536*7*0+fft_width</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(486, 832)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
-    <key>gr_sig_source_x</key>
-    <param>
-      <key>id</key>
-      <value>gr_sig_source_x_0</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>float</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>waveform</key>
-      <value>gr.GR_COS_WAVE</value>
-    </param>
-    <param>
-      <key>freq</key>
-      <value>f</value>
-    </param>
-    <param>
-      <key>amp</key>
-      <value>1</value>
-    </param>
-    <param>
-      <key>offset</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(99, 4)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-  </block>
-  <block>
     <key>baz_delay</key>
     <param>
       <key>id</key>
@@ -2274,6 +2708,18 @@
     <param>
       <key>vlen</key>
       <value>1</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -2343,6 +2789,18 @@
       <value>nb, 0</value>
     </param>
     <param>
+      <key>trig_mode</key>
+      <value>wxgui.TRIG_MODE_AUTO</value>
+    </param>
+    <param>
+      <key>y_axis_label</key>
+      <value>Counts</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(1154, 19)</value>
     </param>
@@ -2351,231 +2809,341 @@
       <value>0</value>
     </param>
   </block>
+  <block>
+    <key>analog_sig_source_x</key>
+    <param>
+      <key>id</key>
+      <value>analog_sig_source_x_0_0</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>float</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>waveform</key>
+      <value>analog.GR_COS_WAVE</value>
+    </param>
+    <param>
+      <key>freq</key>
+      <value>f</value>
+    </param>
+    <param>
+      <key>amp</key>
+      <value>amp</value>
+    </param>
+    <param>
+      <key>offset</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(107, 122)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>analog_sig_source_x</key>
+    <param>
+      <key>id</key>
+      <value>analog_sig_source_x_0</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>float</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>waveform</key>
+      <value>analog.GR_COS_WAVE</value>
+    </param>
+    <param>
+      <key>freq</key>
+      <value>f</value>
+    </param>
+    <param>
+      <key>amp</key>
+      <value>1</value>
+    </param>
+    <param>
+      <key>offset</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(99, 4)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+  </block>
   <connection>
-    <source_block_id>gr_stream_to_vector_0</source_block_id>
-    <sink_block_id>gr_fft_vxx_0</sink_block_id>
+    <source_block_id>blocks_stream_to_vector_0</source_block_id>
+    <sink_block_id>fft_vxx0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_stream_to_vector_0_0</source_block_id>
-    <sink_block_id>gr_fft_vxx_0_0</sink_block_id>
+    <source_block_id>blocks_stream_to_vector_0_0</source_block_id>
+    <sink_block_id>fft_vxx0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_fft_vxx_0</source_block_id>
-    <sink_block_id>gr_vector_to_stream_1</sink_block_id>
+    <source_block_id>fft_vxx0</source_block_id>
+    <sink_block_id>blocks_vector_to_stream_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_fft_vxx_0_0</source_block_id>
-    <sink_block_id>gr_vector_to_stream_1_0</sink_block_id>
+    <source_block_id>fft_vxx0_0</source_block_id>
+    <sink_block_id>blocks_vector_to_stream_1_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_vector_to_stream_1</source_block_id>
-    <sink_block_id>gr_skiphead_0</sink_block_id>
+    <source_block_id>blocks_vector_to_stream_1</source_block_id>
+    <sink_block_id>blocks_skiphead_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_vector_to_stream_1_0</source_block_id>
-    <sink_block_id>gr_skiphead_0_0</sink_block_id>
+    <source_block_id>blocks_vector_to_stream_1_0</source_block_id>
+    <sink_block_id>blocks_skiphead_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_skiphead_0</source_block_id>
-    <sink_block_id>gr_keep_one_in_n_0</sink_block_id>
+    <source_block_id>blocks_skiphead_0</source_block_id>
+    <sink_block_id>blocks_keep_one_in_n_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_skiphead_0_0</source_block_id>
-    <sink_block_id>gr_keep_one_in_n_0_0</sink_block_id>
+    <source_block_id>blocks_skiphead_0_0</source_block_id>
+    <sink_block_id>blocks_keep_one_in_n_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_keep_one_in_n_0</source_block_id>
-    <sink_block_id>gr_complex_to_mag_0</sink_block_id>
+    <source_block_id>blocks_keep_one_in_n_0</source_block_id>
+    <sink_block_id>blocks_complex_to_mag_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_keep_one_in_n_0</source_block_id>
-    <sink_block_id>gr_complex_to_arg_0</sink_block_id>
+    <source_block_id>blocks_keep_one_in_n_0</source_block_id>
+    <sink_block_id>blocks_complex_to_arg_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_keep_one_in_n_0_0</source_block_id>
-    <sink_block_id>gr_complex_to_mag_0_0</sink_block_id>
+    <source_block_id>blocks_keep_one_in_n_0_0</source_block_id>
+    <sink_block_id>blocks_complex_to_mag_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_arg_0</source_block_id>
-    <sink_block_id>gr_sub_xx_0</sink_block_id>
+    <source_block_id>blocks_complex_to_arg_0</source_block_id>
+    <sink_block_id>blocks_sub_xx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_keep_one_in_n_0_0</source_block_id>
-    <sink_block_id>gr_complex_to_arg_0_0</sink_block_id>
+    <source_block_id>blocks_keep_one_in_n_0_0</source_block_id>
+    <sink_block_id>blocks_complex_to_arg_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_arg_0_0</source_block_id>
-    <sink_block_id>gr_sub_xx_0</sink_block_id>
+    <source_block_id>blocks_complex_to_arg_0_0</source_block_id>
+    <sink_block_id>blocks_sub_xx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
-    <sink_block_id>gr_throttle_0</sink_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
+    <sink_block_id>blocks_throttle_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_throttle_0</source_block_id>
+    <source_block_id>blocks_throttle_0</source_block_id>
     <sink_block_id>wxgui_fftsink2_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_throttle_0_0</source_block_id>
-    <sink_block_id>gr_stream_to_vector_0_0</sink_block_id>
+    <source_block_id>blocks_throttle_0_0</source_block_id>
+    <sink_block_id>blocks_stream_to_vector_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sub_xx_0</source_block_id>
-    <sink_block_id>gr_stream_mux_0</sink_block_id>
+    <source_block_id>blocks_sub_xx_0</source_block_id>
+    <sink_block_id>blocks_stream_mux_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_mag_0_0</source_block_id>
-    <sink_block_id>gr_stream_mux_0</sink_block_id>
+    <source_block_id>blocks_complex_to_mag_0_0</source_block_id>
+    <sink_block_id>blocks_stream_mux_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_mag_0_0</source_block_id>
+    <source_block_id>blocks_complex_to_mag_0_0</source_block_id>
     <sink_block_id>wxgui_numbersink2_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_throttle_0_1</source_block_id>
+    <source_block_id>blocks_throttle_0_1</source_block_id>
     <sink_block_id>baz_delay_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
-    <sink_block_id>gr_add_xx_0</sink_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
+    <sink_block_id>blocks_add_xx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_add_xx_0</source_block_id>
+    <source_block_id>blocks_add_xx_0</source_block_id>
     <sink_block_id>wxgui_scopesink2_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_multiply_xx_0</source_block_id>
+    <source_block_id>blocks_multiply_xx_0</source_block_id>
     <sink_block_id>wxgui_scopesink2_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sub_xx_0</source_block_id>
+    <source_block_id>blocks_sub_xx_0</source_block_id>
     <sink_block_id>wxgui_scopesink2_1_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>baz_delay_0</source_block_id>
-    <sink_block_id>gr_multiply_xx_0</sink_block_id>
+    <sink_block_id>blocks_multiply_xx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_stream_to_vector_1</source_block_id>
-    <sink_block_id>gr_udp_sink_0</sink_block_id>
+    <source_block_id>blocks_stream_to_vector_1</source_block_id>
+    <sink_block_id>blocks_udp_sink_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_stream_mux_0</source_block_id>
-    <sink_block_id>gr_stream_to_vector_1</sink_block_id>
+    <source_block_id>blocks_stream_mux_0</source_block_id>
+    <sink_block_id>blocks_stream_to_vector_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>baz_delay_0</source_block_id>
-    <sink_block_id>gr_add_xx_0</sink_block_id>
+    <sink_block_id>blocks_add_xx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
-    <sink_block_id>gr_multiply_xx_0</sink_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
+    <sink_block_id>blocks_multiply_xx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sub_xx_1</source_block_id>
+    <source_block_id>blocks_sub_xx_1</source_block_id>
     <sink_block_id>wxgui_scopesink2_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
-    <sink_block_id>gr_sub_xx_1</sink_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
+    <sink_block_id>blocks_sub_xx_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_fft_vxx_0_0</source_block_id>
-    <sink_block_id>gr_fft_vxx_1</sink_block_id>
+    <source_block_id>fft_vxx0_0</source_block_id>
+    <sink_block_id>fft_vxx1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_vector_to_stream_1_0_0</source_block_id>
+    <source_block_id>blocks_vector_to_stream_1_0_0</source_block_id>
     <sink_block_id>wxgui_scopesink2_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_fft_vxx_0_0</source_block_id>
-    <sink_block_id>gr_complex_to_mag_0_0_0</sink_block_id>
+    <source_block_id>fft_vxx0_0</source_block_id>
+    <sink_block_id>blocks_complex_to_mag_0_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_vector_to_stream_1_0_0_0</source_block_id>
+    <source_block_id>blocks_vector_to_stream_1_0_0_0</source_block_id>
     <sink_block_id>wxgui_scopesink2_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_nlog10_ff_0</source_block_id>
-    <sink_block_id>gr_vector_to_stream_1_0_0</sink_block_id>
+    <source_block_id>blocks_nlog10_ff_0</source_block_id>
+    <sink_block_id>blocks_vector_to_stream_1_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_add_const_vxx_0</source_block_id>
-    <sink_block_id>gr_vector_to_stream_1_0_0_0</sink_block_id>
+    <source_block_id>blocks_add_const_vxx_0</source_block_id>
+    <sink_block_id>blocks_vector_to_stream_1_0_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
@@ -2587,114 +3155,114 @@
   </connection>
   <connection>
     <source_block_id>virtual_source_0</source_block_id>
-    <sink_block_id>gr_throttle_0_0</sink_block_id>
+    <sink_block_id>blocks_throttle_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_throttle_0</source_block_id>
-    <sink_block_id>gr_stream_to_vector_0</sink_block_id>
+    <source_block_id>blocks_throttle_0</source_block_id>
+    <sink_block_id>blocks_stream_to_vector_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_mag_0_0_0</source_block_id>
-    <sink_block_id>gr_multiply_const_vxx_0</sink_block_id>
+    <source_block_id>blocks_complex_to_mag_0_0_0</source_block_id>
+    <sink_block_id>blocks_multiply_const_vxx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_multiply_const_vxx_0</source_block_id>
-    <sink_block_id>gr_add_const_vxx_0</sink_block_id>
+    <source_block_id>blocks_multiply_const_vxx_0</source_block_id>
+    <sink_block_id>blocks_add_const_vxx_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_vector_to_stream_0</source_block_id>
+    <source_block_id>blocks_vector_to_stream_0</source_block_id>
     <sink_block_id>wxgui_fftsink2_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_fft_vxx_1</source_block_id>
-    <sink_block_id>gr_vector_to_stream_0</sink_block_id>
+    <source_block_id>fft_vxx1</source_block_id>
+    <sink_block_id>blocks_vector_to_stream_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>baz_delay_0</source_block_id>
-    <sink_block_id>gr_sub_xx_1</sink_block_id>
+    <sink_block_id>blocks_sub_xx_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>virtual_source_0</source_block_id>
-    <sink_block_id>gr_stream_to_vector_0_0</sink_block_id>
+    <sink_block_id>blocks_stream_to_vector_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
-    <sink_block_id>gr_stream_to_vector_0</sink_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
+    <sink_block_id>blocks_stream_to_vector_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
     <sink_block_id>virtual_sink_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_add_const_vxx_0</source_block_id>
-    <sink_block_id>gr_nlog10_ff_0</sink_block_id>
+    <source_block_id>blocks_add_const_vxx_0</source_block_id>
+    <sink_block_id>blocks_nlog10_ff_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0_0</source_block_id>
-    <sink_block_id>gr_throttle_0_1</sink_block_id>
+    <source_block_id>analog_sig_source_x_0_0</source_block_id>
+    <sink_block_id>blocks_throttle_0_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sub_xx_0</source_block_id>
+    <source_block_id>blocks_sub_xx_0</source_block_id>
     <sink_block_id>wxgui_numbersink2_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_mag_1</source_block_id>
-    <sink_block_id>gr_null_sink_0</sink_block_id>
+    <source_block_id>blocks_complex_to_mag_1</source_block_id>
+    <sink_block_id>blocks_null_sink_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_fft_vxx_0_1</source_block_id>
-    <sink_block_id>gr_complex_to_mag_1</sink_block_id>
+    <source_block_id>fft_vxx0_1</source_block_id>
+    <sink_block_id>blocks_complex_to_mag_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_complex_to_mag_1</source_block_id>
-    <sink_block_id>gr_file_sink_1</sink_block_id>
+    <source_block_id>blocks_complex_to_mag_1</source_block_id>
+    <sink_block_id>blocks_file_sink_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>virtual_source_0_0</source_block_id>
-    <sink_block_id>gr_stream_to_vector_0_1</sink_block_id>
+    <sink_block_id>blocks_stream_to_vector_0_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_stream_to_vector_0_1</source_block_id>
-    <sink_block_id>gr_fft_vxx_0_1</sink_block_id>
+    <source_block_id>blocks_stream_to_vector_0_1</source_block_id>
+    <sink_block_id>fft_vxx0_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>gr_sig_source_x_0</source_block_id>
+    <source_block_id>analog_sig_source_x_0</source_block_id>
     <sink_block_id>wxgui_scopesink2_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
